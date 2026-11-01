@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}ပင်မစာမျက်နှာ - သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', path='/css/home.css') }}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-banner">
+    <div class="hero-banner-bg" style="background-image: url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');"></div>
+    <div class="hero-banner-overlay"></div>
+    <div class="hero-banner-container">
+        <div class="hero-banner-content">
+            <span class="hero-badge">Data Collection and Survey System</span>
+            <h1 class="hero-banner-title">
+                DEDC Survey Platform
+            </h1>
+            <p class="hero-banner-subtitle">
+                သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန
+            </p>
+            <p class="hero-banner-text">
+                A centralized platform for collecting, managing, and analyzing survey data from Ministries and Universities. 
+                Streamline data collection with a professional, reliable, and easy-to-use system.
+            </p>
+            <div class="hero-banner-actions">
+                <a href="/surveys" class="btn btn-banner-primary">
+                    Get Started
+                </a>
+                <a href="#about" class="btn btn-banner-secondary">
+                    Learn More
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="stats">
+    <div class="stats-container">
+        <div class="stat-item">
+            <div class="stat-icon">
+                <i class="fas fa-university"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">---</h3>
+                <p class="stat-label">တက္ကသိုလ်များ</p>
+            </div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <div class="stat-icon">
+                <i class="fas fa-building"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">---</h3>
+                <p class="stat-label">ဝန်ကြီးဌာနများ</p>
+            </div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">---</h3>
+                <p class="stat-label">စစ်တမ်းများ</p>
+            </div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3 class="stat-number">---</h3>
+                <p class="stat-label">တုံ့ပြန်သူများ</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- About Section -->
+<section class="about" id="about">
+    <div class="about-container">
+        <div class="section-header-center">
+            <span class="section-badge">About DEDC</span>
+            <h2 class="section-title">About the Platform</h2>
+            <p class="section-subtitle">
+                A professional data collection and survey system designed for Ministries and Universities
+            </p>
+        </div>
+        <div class="about-grid">
+            <div class="about-card">
+                <div class="about-card-icon">
+                    <i class="fas fa-database"></i>
+                </div>
+                <h3>Centralized Data Collection</h3>
+                <p>
+                    Collect and manage survey responses from multiple ministries and universities in one centralized platform.
+                </p>
+            </div>
+            <div class="about-card">
+                <div class="about-card-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h3>Secure & Reliable</h3>
+                <p>
+                    Built with reliability and data integrity in mind to ensure accurate and secure survey management.
+                </p>
+            </div>
+            <div class="about-card">
+                <div class="about-card-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Efficient Management</h3>
+                <p>
+                    Streamlined workflow for administrators and respondents to manage surveys efficiently and effectively.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Sectors Section -->
+<section class="sectors" id="sectors">
+    <div class="sectors-container">
+        <div class="section-header-center">
+            <span class="section-badge">Key Features</span>
+            <h2 class="section-title">How the Survey System Works</h2>
+            <p class="section-subtitle">
+                Simple and efficient workflow for data collection and management
+            </p>
+        </div>
+        <div class="sectors-grid">
+            <div class="sector-card">
+                <div class="sector-icon sector-icon-blue">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h3>Admin Management</h3>
+                <p>Create surveys, manage questions, and oversee all survey activities</p>
+            </div>
+            <div class="sector-card">
+                <div class="sector-icon sector-icon-green">
+                    <i class="fas fa-university"></i>
+                </div>
+                <h3>Ministries & Universities</h3>
+                <p>Authorized institutions can access and respond to assigned surveys</p>
+            </div>
+            <div class="sector-card">
+                <div class="sector-icon sector-icon-orange">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h3>Response Collection</h3>
+                <p>Submit and track survey responses in a structured format</p>
+            </div>
+            <div class="sector-card">
+                <div class="sector-icon sector-icon-purple">
+                    <i class="fas fa-table"></i>
+                </div>
+                <h3>Data Management</h3>
+                <p>Organize and manage collected data efficiently</p>
+            </div>
+            <div class="sector-card">
+                <div class="sector-icon sector-icon-red">
+                    <i class="fas fa-search"></i>
+                </div>
+                <h3>Easy Navigation</h3>
+                <p>Simple and intuitive interface for all user types</p>
+            </div>
+            <div class="sector-card">
+                <div class="sector-icon sector-icon-cyan">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h3>Organized Reports</h3>
+                <p>View and manage survey data in structured format</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="cta">
+    <div class="cta-container">
+        <div class="cta-content">
+            <h2 class="cta-title">Start Managing Surveys</h2>
+            <p class="cta-subtitle">
+                Access the survey platform to view and respond to surveys for your institution
+            </p>
+            <div class="cta-actions">
+                <a href="/login" class="btn btn-cta-primary">
+                    Login to Continue
+                </a>
+                <a href="/surveys" class="btn btn-cta-secondary">
+                    View Surveys
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', path='/js/home.js') }}"></script>
+{% endblock %}

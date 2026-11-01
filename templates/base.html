@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="my">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန - Myanmar Ministry of Science and Technology{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Myanmar:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="/" class="nav-logo">
+                <div class="nav-logo-image">
+                    <img src="https://upload.wikimedia.org/wikipedia/my/f/f1/Seal_of_MOST.jpeg?utm_source=my.wikipedia.org&utm_campaign=parser&utm_content=thumbnail_unscaled"
+                         alt="Ministry of Science and Technology Logo"
+                         onerror="this.onerror=null;this.src='https://placehold.co/60x60/174A78/FFFFFF?text=MST';">
+                </div>
+                <div class="nav-logo-text">
+                    <span class="nav-logo-main">DEDC</span>
+                    <span class="nav-logo-sub">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</span>
+                </div>
+            </a>
+            <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+            <ul class="nav-menu" id="navMenu">
+                <li class="nav-item">
+                    <a href="/" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#about" class="nav-link">About</a>
+                </li>
+                <li class="nav-item">
+                    <a href="/surveys" class="nav-link">Survey / Data Collection</a>
+                </li>
+                <li class="nav-item nav-item-login">
+                    <a href="/login" class="nav-link nav-link-login">
+                        Login
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-main">
+                <div class="footer-section footer-about">
+                    <div class="footer-logo">
+                        <div class="footer-logo-image">
+                            <img src="https://upload.wikimedia.org/wikipedia/my/f/f1/Seal_of_MOST.jpeg?utm_source=my.wikipedia.org&utm_campaign=parser&utm_content=thumbnail_unscaled"
+                                 alt="MST Logo"
+                                 onerror="this.onerror=null;this.src='https://placehold.co/48x48/174A78/FFFFFF?text=MST';">
+                        </div>
+                        <div class="footer-logo-text">
+                            <h3>DEDC</h3>
+                            <p>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</p>
+                        </div>
+                    </div>
+                    <p class="footer-description">
+                        Data Collection and Survey System for collecting and managing survey data from Ministries and Universities.
+                    </p>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-heading">Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="/">Home</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="/surveys">Survey / Data Collection</a></li>
+                        <li><a href="/login">Login</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4 class="footer-heading">Contact</h4>
+                    <ul class="footer-contact">
+                        <li>
+                            <i class="fas fa-envelope"></i>
+                            <span>info@most.gov.mm</span>
+                        </li>
+                        <li>
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>Nay Pyi Taw, Myanmar</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 DEDC - Ministry of Science and Technology. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
