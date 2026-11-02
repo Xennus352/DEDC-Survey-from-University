@@ -6,7 +6,9 @@
 <style>
   html, body {
     max-width: 100%;
-    overflow-x: hidden;
+    /* `clip` keeps horizontal overflow hidden without breaking the sticky header.
+       `hidden` makes the body a scroll container, which disables position: sticky. */
+    overflow-x: clip;
   }
 
   *, *::before, *::after {
@@ -146,20 +148,20 @@
         </div>
         <div class="stat-card">
           <span class="stat-icon" aria-hidden="true">▦</span>
-          <dd>၄</dd>
+          <dd>၇</dd>
           <dt>ဦးစီးဌာနများ</dt>
         </div>
         <div class="stat-card">
           <span class="stat-icon" aria-hidden="true">↗</span>
-          <dd>၂၀၂၃</dd>
+          <dd>၂၀၂၁</dd>
           <dt>နောက်ဆုံး ပြင်ဆင်ဖွဲ့စည်းမှု</dt>
         </div>
       </dl>
 
-      <p class="notice">
+      <!-- <p class="notice">
         <span class="notice-icon" aria-hidden="true">i</span>
         ဤစာမျက်နှာရှိ အချက်အလက်များသည် ယာယီဖြစ်ပြီး စစ်တမ်းအတွက် နမူနာအနေဖြင့် ဖော်ပြထားခြင်း ဖြစ်ပါသည်။
-      </p>
+      </p> -->
     </div>
   </section>
 
@@ -238,33 +240,18 @@
           <span class="contact-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
           </span>
-          <address>ရုံးအမှတ် (၂၆)၊ နေပြည်တော်၊<br>ပြည်ထောင်စုနယ်မြေ။</address>
+          <address>ရုံးအမှတ် (၂၁)၊ နေပြည်တော်၊<br>ပြည်ထောင်စုနယ်မြေ။</address>
         </div>
       </div>
       <div class="map-wrapper card-hover">
-        <div id="map" class="map-container" aria-label="ဝန်ကြီးဌာန တည်နေရာပြမြေပုံ"></div>
+        <iframe
+          class="map-container"
+          src="https://www.google.com/maps?q=19.7633,96.0785&z=15&hl=en&output=embed"
+          title="ဝန်ကြီးဌာန တည်နေရာပြမြေပုံ"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen></iframe>
       </div>
     </div>
   </section>
-{% endblock %}
-
-{% block extra_js %}
-<script src="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const mapElement = document.getElementById("map");
-    if (!mapElement || typeof maplibregl === "undefined") return;
-
-    const map = new maplibregl.Map({
-      container: mapElement,
-      style: "https://tiles.openfreemap.org/styles/liberty",
-      center: [96.0785, 19.7633],
-      zoom: 13
-    });
-
-    new maplibregl.Marker({ color: "#2674d9" })
-      .setLngLat([96.0785, 19.7633])
-      .addTo(map);
-  });
-</script>
 {% endblock %}
