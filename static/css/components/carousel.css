@@ -1,4 +1,4 @@
-.hero { padding-top: 2rem; }
+.hero { padding-top: .5rem; }
 .hero-frame { position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: var(--radius-lg); background: var(--color-muted); }
 .hero-image, .hero-overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
 .hero-image { object-fit: cover; opacity: 0; transform: scale(1.05); transition: opacity 1s ease-out, transform 1s ease-out; }
