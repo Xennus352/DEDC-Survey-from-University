@@ -2,12 +2,12 @@
   color-scheme: light;
   --color-background: #fff;
   --color-text: #171717;
-  --color-primary: oklch(0.32 0.08 258);
+  --color-primary: #232550;
   --color-secondary: #f3f5f8;
   --color-muted: #f8f9fb;
   --color-subtle: #697383;
   --color-border: #e5e8ed;
-  --color-accent: #e0b352;
+  --color-accent: #b58a35;
   --font-body: Inter, 'Noto Sans Myanmar', Pyidaungsu, 'Myanmar Text', sans-serif;
   --container-width: 72rem;
   --radius-sm: .5rem;

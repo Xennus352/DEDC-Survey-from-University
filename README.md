@@ -1,154 +1,68 @@
-# DEDC Survey Project
+# DEDC Survey Administration
 
-A FastAPI-based survey application with HTML templates, CSS, and JavaScript for managing surveys, questions, and responses.
+A database-driven survey application built with FastAPI, SQLAlchemy, Jinja2 and plain JavaScript. The administrator workspace uses the ministry logo at `static/img/logo.png`, a restrained navy/gold palette, responsive layouts and light/dark themes.
 
-Administrator login and logout are available at `/portal`. See
-[Admin portal setup and Git collaboration](docs/admin-portal.md) for Docker MySQL
-configuration, administrator credentials, routes, and the feature-branch workflow.
+## Run locally
 
-## Project Structure
+Requires Python 3.12+, uv and the configured MySQL database.
 
-```
-DEDC/
-├── app/                    # Core application code
-│   ├── __init__.py
-│   ├── main.py            # FastAPI app entry point, router & static files setup
-│   ├── config.py          # Application settings & environment variables
-│   ├── database.py        # SQLAlchemy engine, session, and Base model
-│   ├── dependencies.py    # FastAPI dependencies (DB session)
-│   │
-│   ├── models/            # SQLAlchemy ORM models (Database tables)
-│   │   ├── __init__.py
-│   │   ├── survey.py      # Survey model (title, year)
-│   │   ├── question.py    # Question model (linked to Survey)
-│   │   ├── option.py      # Option model for multiple-choice questions
-│   │   ├── response.py    # Response model (survey submission metadata)
-│   │   └── answer.py      # Answer model (individual question answers)
-│   │
-│   ├── schemas/           # Pydantic schemas (Request/Response validation)
-│   │   ├── __init__.py
-│   │   ├── survey.py      # SurveyCreate, Survey schemas
-│   │   ├── question.py    # QuestionCreate, Question, Option schemas
-│   │   └── response.py    # ResponseCreate, Response, Answer schemas
-│   │
-│   ├── crud/              # Database CRUD operations
-│   │   ├── __init__.py
-│   │   ├── survey.py      # Survey CRUD functions
-│   │   └── response.py    # Response CRUD functions
-│   │
-│   └── routers/           # API route handlers
-│       ├── __init__.py
-│       ├── surveys.py     # Survey API endpoints (/surveys)
-│       ├── questions.py   # Question API endpoints (/questions)
-│       ├── responses.py   # Response API endpoints (/responses)
-│       └── web/           # Web UI route handlers
-│           ├── __init__.py
-│           └── views.py   # HTML page routes (/, /surveys, /survey/{id})
-│
-├── templates/             # Jinja2 HTML templates
-│   ├── base.html          # Base template with navbar & common layout
-│   ├── index.html         # Home page
-│   ├── surveys.html       # Surveys listing page
-│   └── survey_detail.html # Individual survey detail page
-│
-├── static/                # Static assets
-│   ├── css/
-│   │   └── style.css      # Main stylesheet
-│   ├── js/
-│   │   ├── main.js        # Common JavaScript
-│   │   ├── surveys.js     # Surveys listing page logic
-│   │   └── survey_detail.js # Survey detail page logic
-│   └── img/               # Images (empty, add as needed)
-│
-├── alembic/               # Database migrations (Alembic)
-├── tests/                 # Test files
-├── pyproject.toml         # Project dependencies (managed by uv)
-├── uv.lock                # Lock file for dependencies
-├── requirements.txt       # Legacy requirements file
-├── .env                   # Environment variables (not committed)
-└── README.md              # This file
-```
-
-## Where to Write What
-
-| Folder/File | Purpose | When to Add |
-|-------------|---------|-------------|
-| `app/models/` | SQLAlchemy models defining database tables and relationships. | Add new entities (e.g., User, Category) here. Always inherit from `Base`. |
-| `app/schemas/` | Pydantic models for request/response validation and serialization. | Add schemas matching your models. Use `from_attributes = True` for ORM objects. |
-| `app/crud/` | Reusable database operations (create, read, update, delete). | Add complex DB queries here. Keep routers thin by calling CRUD functions. |
-| `app/routers/` | API endpoints. REST API routes go in root, web UI routes in `routers/web/`. | Add new API endpoints here. Group by resource (e.g., users.py). |
-| `app/routers/web/views.py` | HTML page routes using Jinja2 templates. | Add routes to render new pages here. |
-| `app/main.py` | App initialization, middleware, static files, and router registration. | Register new routers here with `app.include_router()`. |
-| `app/config.py` | App configuration using Pydantic Settings. | Add new environment variables/settings here. |
-| `app/dependencies.py` | Shared dependencies (DB session, auth, etc.). | Add reusable FastAPI dependencies here. |
-| `templates/` | Jinja2 HTML templates. Extend `base.html` for consistency. | Create new `.html` files for pages. Use `{% block %}` for customization. |
-| `static/css/` | Stylesheets. | Add component/page-specific CSS files here. Import/link in templates. |
-| `static/js/` | Client-side JavaScript. | Add interactivity logic. Fetch data from API endpoints. |
-| `static/img/` | Images, icons, logos. | Add static images here. |
-| `alembic/` | Database migrations. | Generate with `alembic revision --autogenerate -m "message"`, apply with `alembic upgrade head`. |
-| `tests/` | Unit/integration tests. | Add pytest tests for models, CRUD, routers. |
-
-## Getting Started
-
-### Prerequisites
-- Python 3.10+
-- [uv](https://docs.astral.sh/uv/) package manager
-
-### Installation
-
-1. Install dependencies:
 ```bash
 uv sync
-```
-
-2. Set up environment variables:
-```bash
-cp .env.example .env  # if exists, or edit .env
-```
-
-3. Run database migrations (after setting up Alembic):
-```bash
-alembic upgrade head
-```
-
-### Running the Application
-
-Development server:
-```bash
+# Configure DATABASE_URL and portal settings in your existing .env.
+uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
 
-The app will be available at:
-- **API Docs**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-- **Web UI**: http://localhost:8000/
+Use `.env.example` for configuration names. Do not overwrite existing credentials or commit secrets. If no administrator exists, create one interactively with `uv run python -m app.portal_auth`.
 
-## API Endpoints
+- Administrator login: `http://localhost:8000/portal`
+- Dashboard: `http://localhost:8000/dashboard`
+- Respondent login/surveys: `http://localhost:8000/survey`
+- API documentation: `http://localhost:8000/docs`
 
-| Method | Endpoint | Description |
-## API Endpoints
+## Form workflow
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Home page (HTML) |
-| GET | `/surveys` | Surveys list page (HTML) |
-| GET | `/survey/{id}` | Survey detail page (HTML) |
-| GET | `/health` | Health check |
-| POST | `/surveys/` | Create a survey |
-| GET | `/surveys/ | Get all surveys (paginated) |
-| GET | `/surveys/year/{year}` | Get surveys by year |
-| GET | `/surveys/{id}` | Get a specific survey |
-| DELETE | `/surveys/{id}` | Delete a survey |
-| POST | `/questions/survey/{survey_id}` | Create question with options |
-| GET | `/questions/survey/{survey_id}` | Get questions for a survey |
-| POST | `/responses/ | Create a survey response (submit answers) |
-| GET | `/responses/{id}` | Get a specific response |
-| GET | `/responses/survey/{survey_id} | Get responses for a survey (paginated) |
+Create a form or import an Excel workbook in **Data management**. Edit sections/questions/options/conditions, save the draft, preview it, then explicitly publish. Published definitions are immutable; subsequent changes require a new draft version. Archive forms to stop new responses while preserving history.
 
-## Development Tips
+Respondents enter the **From/To reporting dates first**, then complete the dynamic sections. Preview uses the same renderer and supports width/language controls. Normal respondent accounts cannot access administrator APIs.
 
-- **Models first**: Define ORM models in `app/models/`, then create corresponding schemas.
-- **Keep separation**: API logic in routers, DB logic in CRUD, validation in schemas.
-- **Templates**: Use `{% extends "base.html" %` and define blocks for page-specific content.
-- **Static files**: Link CSS/JS using `url_for('static', path='/css/style.css')`.
--                    {url_for('static', path='/js/script.js')} }
+## Excel formats
+
+The supplied DEDC workbook contains four periods with 25 original question rows each. Every row has presence, quantity and details components. Imported source answers are preserved separately from new submissions and are never used as defaults.
+
+**Data management → Original format** exports the full reference workbook as questions only or questions+original answers. The latter is byte-identical to the archived source. Questions-only exports clear answer cells while retaining worksheet names, original wording, merges, fonts, borders, alignment, row heights and column widths.
+
+**Form builder → Export Excel** exports the selected version. Submitted answers use the same six columns and include the selected reporting period in the heading. Each response gets its own sheet. New/edited structures reuse the reference styles while reflecting the current sections and question order.
+
+Reports also have separate filtered CSV, XLSX and PDF exports with metadata. PDFs embed the bundled Myanmar font and use HarfBuzz shaping.
+
+An explicit, idempotent CLI import is available:
+
+```bash
+uv run python scripts/import_reference_workbook.py "/path/to/workbook.xlsx" --actor-id 1
+# After reviewing the printed sheets/counts, add --confirm to save drafts.
+```
+
+## Organization
+
+- `app/models/`: existing database mappings and normalized versioned form entities.
+- `app/services/`: form transactions, logic/validation, workbook import/export, reports and attachments.
+- `app/routers/`: preserved legacy APIs, protected admin APIs, public published schemas and authenticated submissions.
+- `templates/admin/`, `templates/survey/`: administrator shell and respondent experience.
+- `static/js/admin/`: shared API/UI, editor, conditions, renderer, reports and import screens.
+- `static/css/admin/`: scoped design tokens and responsive components.
+- `migrations/`: frozen, create-only baseline/additive migrations. Destructive downgrade is deliberately disabled.
+- `tests/`: standard-library unittest integration, API, migration and exact-workbook checks.
+- `context/`: specification, design system, audits and implementation progress.
+
+## Verification
+
+```bash
+uv run python -m unittest discover -s tests -v
+uv run --with playwright playwright install firefox
+DEDC_FULL_WORKSPACE=1 uv run --with playwright python scripts/check_admin_session_browser.py
+```
+
+Browser tests start their own server and disposable SQLite database. Exact reference-workbook tests require the original local file; they are skipped when unavailable. Never point test fixtures at production data.
+
+See [implementation progress](context/IMPLEMENTATION_PLAN.md), [implementation report](context/IMPLEMENTATION_REPORT.md), [workbook audit](context/WORKBOOK_AUDIT.md), [design resources](context/DESIGN_RESOURCES.md), and [collaboration guidance](docs/admin-portal.md). Advanced response save/resume, report table controls and geographic analytics remain pending; do not treat this checkpoint as completion of every product requirement.

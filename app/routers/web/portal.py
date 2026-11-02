@@ -9,6 +9,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from starlette.concurrency import run_in_threadpool
 
+from app.admin_auth import COOKIE_NAME, AdminIdentity, require_admin
 from app.config import settings
 from app.crud import admin_session, user
 from app.database import engine
@@ -16,8 +17,6 @@ from app.dependencies import get_db
 from app.models.admin_session import AdminSession
 from app.portal_auth import csrf_token
 from app.routers.web.views import templates
-
-COOKIE_NAME = "dedc_portal_session"
 
 
 @asynccontextmanager
@@ -108,12 +107,9 @@ def portal(request: Request, db: Session = Depends(get_db)):
 
 
 @router.get("/dashboard", name="dashboard")
-def dashboard(request: Request, db: Session = Depends(get_db)):
-    admin = current_admin(request, db)
-    if not admin:
-        return redirect_to(request, "portal")
+def dashboard(request: Request, admin: AdminIdentity = Depends(require_admin)):
     return render(
-        request, "dashboard", request.cookies[COOKIE_NAME], username=admin.username,
+        request, "dashboard", request.cookies[COOKIE_NAME], username=admin.username, page="overview", page_title="Overview",
     )
 
 
@@ -134,12 +130,17 @@ async def login(request: Request, db: Session = Depends(get_db)):
         user.authenticate_admin, db, form.get("username", ""), form.get("password", ""),
     )
     if not admin:
+        from app.services.forms import audit
+        audit(db,None,'auth.login_failed','session',None)
+        db.commit()
         return render(
             request, "login", token, status_code=401,
             error="The username or password is incorrect.",
             username=form.get("username", ""),
         )
     admin_id = admin.id
+    from app.services.forms import audit
+    audit(db,admin_id,'auth.login','user',admin_id)
     admin_session.delete_session(db, token)
     token = admin_session.create_session(db, admin_id)
     response = redirect_to(request, "dashboard")
@@ -150,6 +151,9 @@ async def login(request: Request, db: Session = Depends(get_db)):
 @router.post("/portal/logout", name="portal_logout")
 async def logout(request: Request, db: Session = Depends(get_db)):
     await read_form(request, db)
+    from app.services.forms import audit
+    session=admin_session.find_session(db,request.cookies[COOKIE_NAME])
+    audit(db,session.user_id if session else None,'auth.logout','session',None)
     admin_session.delete_session(db, request.cookies[COOKIE_NAME])
     response = redirect_to(request, "portal")
     response.delete_cookie(

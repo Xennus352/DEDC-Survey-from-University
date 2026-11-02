@@ -23,3 +23,9 @@ def authenticate_admin(db: Session, username: str, password: str) -> User | None
     )
     valid = verify_password(password, password_hash)
     return user if valid else None
+
+
+def authenticate_account(db: Session, username: str, password: str) -> User | None:
+    account=db.query(User).filter(User.username==username,User.is_active.is_(True)).first()
+    password_hash=account.password_hash if account else ('pbkdf2_sha256$600000$dummy-salt$'+'0'*64)
+    return account if verify_password(password,password_hash) else None

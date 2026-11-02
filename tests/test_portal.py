@@ -5,13 +5,16 @@ import time
 import unittest
 from http.cookies import SimpleCookie
 from unittest.mock import patch
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 
+from fastapi import FastAPI
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.config import settings
+from app.database import Base
+from app import admin_auth
 from app.dependencies import get_db
 from app.main import app
 from app.models.admin_session import AdminSession
@@ -20,7 +23,7 @@ from app.portal_auth import hash_password
 from app.routers.web import portal
 
 
-class PortalTests(unittest.IsolatedAsyncioTestCase):
+class PortalFixture(unittest.IsolatedAsyncioTestCase):
     @classmethod
     def setUpClass(cls):
         cls.password = "a-test-password-123"
@@ -28,20 +31,32 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
 
     async def asyncSetUp(self):
         self.engine = create_engine(
-            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool,
+            "sqlite://",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,
         )
         self.sessions = sessionmaker(bind=self.engine)
         self.cookies = SimpleCookie()
-        UserRole.__table__.create(self.engine)
-        User.__table__.create(self.engine)
+        Base.metadata.create_all(self.engine)
         with self.sessions() as db:
-            db.add_all([UserRole(id=1, name="Admin"), UserRole(id=2, name="University")])
+            db.add_all(
+                [UserRole(id=1, name="Admin"), UserRole(id=2, name="University")]
+            )
             db.flush()
-            db.add_all([
-                User(username="admin", password_hash=self.password_hash, role_id=1),
-                User(username="inactive", password_hash=self.password_hash, role_id=1, is_active=False),
-                User(username="member", password_hash=self.password_hash, role_id=2),
-            ])
+            db.add_all(
+                [
+                    User(username="admin", password_hash=self.password_hash, role_id=1),
+                    User(
+                        username="inactive",
+                        password_hash=self.password_hash,
+                        role_id=1,
+                        is_active=False,
+                    ),
+                    User(
+                        username="member", password_hash=self.password_hash, role_id=2
+                    ),
+                ]
+            )
             db.commit()
 
         def test_db():
@@ -50,12 +65,15 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
 
         app.dependency_overrides[get_db] = test_db
         self.config = patch.multiple(
-            settings, ADMIN_ROLE_NAME="Admin",
+            settings,
+            ADMIN_ROLE_NAME="Admin",
             PORTAL_COOKIE_SECURE=False,
         )
         self.config.start()
         self.engine_patch = patch.object(portal, "engine", self.engine)
         self.engine_patch.start()
+        self.auth_db_patch = patch.object(admin_auth, "SessionLocal", self.sessions)
+        self.auth_db_patch.start()
         self.lifespan = app.router.lifespan_context(app)
         await self.lifespan.__aenter__()
 
@@ -64,16 +82,36 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         app.dependency_overrides.clear()
         self.config.stop()
         self.engine_patch.stop()
+        self.auth_db_patch.stop()
         self.engine.dispose()
 
-    async def request(self, path="/portal", method="GET", form=None):
-        body = urlencode(form or {}).encode()
+    async def request(
+        self,
+        path="/portal",
+        method="GET",
+        form=None,
+        extra_headers=(),
+        target_app=None,
+        raw_body=None,
+        content_type=None,
+    ):
+        parsed = urlsplit(path)
+        path = parsed.path
+        body = raw_body if raw_body is not None else urlencode(form or {}).encode()
         headers = [(b"host", b"testserver")]
+        headers.extend(extra_headers)
         if self.cookies:
-            cookie = "; ".join(f"{key}={value.value}" for key, value in self.cookies.items())
+            cookie = "; ".join(
+                f"{key}={value.value}" for key, value in self.cookies.items()
+            )
             headers.append((b"cookie", cookie.encode()))
-        if method == "POST":
-            headers.append((b"content-type", b"application/x-www-form-urlencoded"))
+        if content_type or method == "POST":
+            headers.append(
+                (
+                    b"content-type",
+                    (content_type or "application/x-www-form-urlencoded").encode(),
+                )
+            )
         messages = []
 
         async def receive():
@@ -82,13 +120,24 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         async def send(message):
             messages.append(message)
 
-        await app({
-            "type": "http", "asgi": {"version": "3.0", "spec_version": "2.4"}, "http_version": "1.1",
-            "method": method, "scheme": "http", "path": path,
-            "raw_path": path.encode(), "query_string": b"", "root_path": "",
-            "headers": headers, "client": ("127.0.0.1", 1234),
-            "server": ("testserver", 80),
-        }, receive, send)
+        await (target_app or app)(
+            {
+                "type": "http",
+                "asgi": {"version": "3.0", "spec_version": "2.4"},
+                "http_version": "1.1",
+                "method": method,
+                "scheme": "http",
+                "path": path,
+                "raw_path": path.encode(),
+                "query_string": parsed.query.encode(),
+                "root_path": "",
+                "headers": headers,
+                "client": ("127.0.0.1", 1234),
+                "server": ("testserver", 80),
+            },
+            receive,
+            send,
+        )
         start = messages[0]
         for key, value in start["headers"]:
             if key == b"set-cookie":
@@ -102,10 +151,16 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         return re.search(r'name="csrf_token" value="([^"]+)"', body).group(1)
 
     async def login(self, **overrides):
-        fields = {"csrf_token": await self.csrf(), "username": "admin", "password": self.password}
+        fields = {
+            "csrf_token": await self.csrf(),
+            "username": "admin",
+            "password": self.password,
+        }
         fields.update(overrides)
         return await self.request("/portal/login", "POST", fields)
 
+
+class PortalTests(PortalFixture):
     async def test_signed_out_page_and_session_cookie(self):
         status, headers, body = await self.request()
         self.assertEqual(status, 200)
@@ -118,9 +173,15 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
     async def test_login_rotates_session_and_logout_revokes_it(self):
         csrf = await self.csrf()
         anonymous_token = self.cookies[portal.COOKIE_NAME].value
-        status, headers, _ = await self.request("/portal/login", "POST", {
-            "csrf_token": csrf, "username": "admin", "password": self.password,
-        })
+        status, headers, _ = await self.request(
+            "/portal/login",
+            "POST",
+            {
+                "csrf_token": csrf,
+                "username": "admin",
+                "password": self.password,
+            },
+        )
         self.assertEqual(status, 303)
         self.assertEqual(headers[b"location"], b"http://testserver/dashboard")
         authenticated_token = self.cookies[portal.COOKIE_NAME].value
@@ -129,7 +190,9 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, 200)
         self.assertIn("Welcome, admin.", body)
         csrf = re.search(r'name="csrf_token" value="([^"]+)"', body).group(1)
-        status, _, _ = await self.request("/portal/logout", "POST", {"csrf_token": csrf})
+        status, _, _ = await self.request(
+            "/portal/logout", "POST", {"csrf_token": csrf}
+        )
         self.assertEqual(status, 303)
         status, headers, _ = await self.request("/dashboard")
         self.assertEqual(status, 303)
@@ -138,10 +201,18 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         _, _, body = await self.request()
         self.assertIn("Welcome back", body)
         with self.sessions() as db:
-            self.assertIsNone(db.get(AdminSession, portal.admin_session.token_hash(authenticated_token)))
+            self.assertIsNone(
+                db.get(
+                    AdminSession, portal.admin_session.token_hash(authenticated_token)
+                )
+            )
 
     async def test_wrong_credentials_and_unicode_fail_cleanly(self):
-        for username, password in [("admin", "wrong"), ("other", self.password), ("မြန်မာ", "စကားဝှက်")]:
+        for username, password in [
+            ("admin", "wrong"),
+            ("other", self.password),
+            ("မြန်မာ", "စကားဝှက်"),
+        ]:
             status, _, body = await self.login(username=username, password=password)
             self.assertEqual(status, 401)
             self.assertIn("username or password is incorrect", body)
@@ -150,7 +221,11 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
     async def test_authenticated_admin_cannot_reenter_login(self):
         await self.login()
         token = self.cookies[portal.COOKIE_NAME].value
-        for path, method in (("/portal", "GET"), ("/portal/login", "GET"), ("/portal/login", "POST")):
+        for path, method in (
+            ("/portal", "GET"),
+            ("/portal/login", "GET"),
+            ("/portal/login", "POST"),
+        ):
             status, headers, body = await self.request(path, method)
             self.assertEqual(status, 303)
             self.assertEqual(headers[b"location"], b"http://testserver/dashboard")
@@ -169,6 +244,129 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(status, 303)
         self.assertEqual(headers[b"location"], b"http://testserver/portal")
 
+    async def test_all_nested_dashboard_paths_require_authentication(self):
+        paths = (
+            "/dashboard",
+            "/dashboard/",
+            "/dashboard/forms",
+            "/dashboard/forms/123/edit",
+        )
+        for path in paths:
+            status, headers, _ = await self.request(path)
+            self.assertEqual(status, 303, path)
+            self.assertEqual(headers[b"location"], b"http://testserver/portal", path)
+            self.assertEqual(headers[b"cache-control"], b"no-store", path)
+
+    async def test_registered_nested_route_is_guarded_before_handler_runs(self):
+        protected = FastAPI()
+        protected.add_middleware(admin_auth.AdminAuthorizationMiddleware)
+        calls = []
+
+        @protected.get("/dashboard/forms")
+        def nested_page():
+            calls.append("read")
+            return {"authorized": True}
+
+        status, _, _ = await self.request("/dashboard/forms", target_app=protected)
+        self.assertEqual(status, 303)
+        self.assertEqual(calls, [])
+        await self.login()
+        status, _, _ = await self.request("/dashboard/forms", target_app=protected)
+        self.assertEqual(status, 200)
+        self.assertEqual(calls, ["read"])
+        _, _, body = await self.request("/dashboard")
+        csrf = re.search(r'name="csrf_token" value="([^"]+)"', body).group(1)
+        await self.request("/portal/logout", "POST", {"csrf_token": csrf})
+        status, _, _ = await self.request("/dashboard/forms", target_app=protected)
+        self.assertEqual(status, 303)
+        self.assertEqual(calls, ["read"])
+
+    async def test_logout_blocks_nested_routes_and_copied_session_cookie(self):
+        await self.login()
+        token = self.cookies[portal.COOKIE_NAME].value
+        _, _, body = await self.request("/dashboard")
+        csrf = re.search(r'name="csrf_token" value="([^"]+)"', body).group(1)
+        status, headers, _ = await self.request(
+            "/portal/logout", "POST", {"csrf_token": csrf}
+        )
+        self.assertEqual(status, 303)
+        self.assertIn(b"Max-Age=0", headers[b"set-cookie"])
+        for copied_cookie in (False, True):
+            self.cookies.clear()
+            if copied_cookie:
+                self.cookies[portal.COOKIE_NAME] = token
+            for path in ("/dashboard", "/dashboard/forms", "/dashboard/forms/1"):
+                status, _, _ = await self.request(path)
+                self.assertEqual(status, 303, path)
+            status, _, _ = await self.request("/api/admin/session")
+            self.assertEqual(status, 401)
+
+    async def test_admin_api_checks_expiry_role_and_account_on_every_request(self):
+        status, _, _ = await self.request("/api/admin/session")
+        self.assertEqual(status, 401)
+        await self.login()
+        status, headers, body = await self.request("/api/admin/session")
+        self.assertEqual(status, 200)
+        self.assertIn('"username":"admin"', body)
+        self.assertEqual(headers[b"cache-control"], b"no-store")
+        with self.sessions() as db:
+            account = db.query(User).filter(User.username == "admin").one()
+            account.role_id = 2
+            db.commit()
+        status, _, _ = await self.request("/api/admin/session")
+        self.assertEqual(status, 403)
+        with self.sessions() as db:
+            account = db.query(User).filter(User.username == "admin").one()
+            account.role_id = 1
+            account.is_active = False
+            db.commit()
+        status, _, _ = await self.request("/api/admin/session")
+        self.assertEqual(status, 403)
+        with self.sessions() as db:
+            db.query(AdminSession).update(
+                {AdminSession.expires_at: int(time.time()) - 1}
+            )
+            db.commit()
+        status, _, _ = await self.request("/api/admin/session")
+        self.assertEqual(status, 401)
+        status, _, _ = await self.request("/dashboard/forms")
+        self.assertEqual(status, 303)
+
+    async def test_member_session_is_forbidden_from_admin_api(self):
+        with self.sessions() as db:
+            member = db.query(User).filter(User.username == "member").one()
+            token = portal.admin_session.create_session(db, member.id)
+        self.cookies[portal.COOKIE_NAME] = token
+        status, _, _ = await self.request("/api/admin/session")
+        self.assertEqual(status, 403)
+
+    async def test_admin_namespace_requires_csrf_before_mutating_route_dispatch(self):
+        await self.login()
+        status, _, _ = await self.request("/api/admin/future-action", "POST")
+        self.assertEqual(status, 403)
+        token = self.cookies[portal.COOKIE_NAME].value
+        status, headers, _ = await self.request(
+            "/api/admin/future-action",
+            "POST",
+            extra_headers=[
+                (b"x-csrf-token", portal.csrf_token(token).encode()),
+            ],
+        )
+        self.assertEqual(status, 404)
+        self.assertEqual(headers[b"cache-control"], b"no-store")
+
+    async def test_dashboard_delivers_history_and_cross_tab_session_guard(self):
+        await self.login()
+        status, headers, body = await self.request("/dashboard")
+        self.assertEqual(status, 200)
+        self.assertEqual(headers[b"cache-control"], b"no-store")
+        self.assertIn("data-admin-workspace", body)
+        self.assertIn("/js/admin-session.js", body)
+        status, _, _ = await self.request("/dashboard/forms")
+        self.assertEqual(
+            status, 200
+        )  # The real database-driven form list is now registered.
+
     async def test_signed_out_admin_can_open_login_route(self):
         status, _, body = await self.request("/portal/login")
         self.assertEqual(status, 200)
@@ -177,7 +375,9 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
     async def test_expired_session_can_open_login_route(self):
         await self.login()
         with self.sessions() as db:
-            db.query(AdminSession).update({AdminSession.expires_at: int(time.time()) - 1})
+            db.query(AdminSession).update(
+                {AdminSession.expires_at: int(time.time()) - 1}
+            )
             db.commit()
         status, _, body = await self.request("/portal/login")
         self.assertEqual(status, 200)
@@ -187,16 +387,23 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
         status, _, _ = await self.login(csrf_token="forged")
         self.assertEqual(status, 403)
         self.cookies.clear()
-        status, _, _ = await self.request("/portal/login", "POST", {
-            "username": "admin", "password": self.password,
-        })
+        status, _, _ = await self.request(
+            "/portal/login",
+            "POST",
+            {
+                "username": "admin",
+                "password": self.password,
+            },
+        )
         self.assertEqual(status, 403)
 
     async def test_logout_requires_post_and_csrf(self):
         await self.login()
         status, _, _ = await self.request("/portal/logout")
         self.assertEqual(status, 405)
-        status, _, _ = await self.request("/portal/logout", "POST", {"csrf_token": "forged"})
+        status, _, _ = await self.request(
+            "/portal/logout", "POST", {"csrf_token": "forged"}
+        )
         self.assertEqual(status, 403)
         _, _, body = await self.request("/dashboard")
         self.assertIn("Welcome, admin.", body)
@@ -220,7 +427,9 @@ class PortalTests(unittest.IsolatedAsyncioTestCase):
     async def test_disabled_account_loses_existing_portal_access(self):
         await self.login()
         with self.sessions() as db:
-            db.query(User).filter(User.username == "admin").update({User.is_active: False})
+            db.query(User).filter(User.username == "admin").update(
+                {User.is_active: False}
+            )
             db.commit()
         status, headers, _ = await self.request("/dashboard")
         self.assertEqual(status, 303)

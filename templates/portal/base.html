@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1b3452">
   <meta name="robots" content="noindex, nofollow">
   <title>{% block title %}Admin portal{% endblock %} | DEDC</title>
-  <link rel="icon" href="https://upload.wikimedia.org/wikipedia/my/f/f1/Seal_of_MOST.jpeg" type="image/jpeg">
+  <link rel="icon" href="/static/img/logo.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,9 +14,9 @@
   <link rel="stylesheet" href="{{ url_for('static', path='/css/base/reset.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', path='/css/pages/portal.css') }}">
 </head>
-<body class="portal {% block body_class %}{% endblock %}">
+<body class="portal {% block body_class %}{% endblock %}" {% block body_attributes %}{% endblock %}>
   <a class="skip-link" href="#main-content">Skip to content</a>
-  {% macro seal(size=44) %}<img class="portal-seal" src="https://upload.wikimedia.org/wikipedia/my/f/f1/Seal_of_MOST.jpeg" alt="Ministry of Science and Technology seal" width="{{ size }}" height="{{ size }}">{% endmacro %}
+  {% macro seal(size=44) %}<img class="portal-seal" src="/static/img/logo.png" alt="Ministry of Science and Technology seal" width="{{ size }}" height="{{ size }}">{% endmacro %}
   {% macro icon(name) %}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
     {% if name == 'arrow' %}<path d="M5 12h14m-5-5 5 5-5 5"/>

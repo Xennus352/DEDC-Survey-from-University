@@ -8,7 +8,7 @@
   <meta name="description" content="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန၏ ပင်မစာမျက်နှာ — သုတေသန၊ ဆန်းသစ်တီထွင်မှုနှင့် လူသားအရင်းအမြစ် ဖွံ့ဖြိုးရေး။">
   <title>{% block title %}သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန | Ministry of Science and Technology{% endblock %}</title>
 
-  <link rel="icon" href="/static/img/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/static/img/logo.png" type="image/png">
   <link rel="apple-touch-icon" href="/static/img/apple-icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -32,7 +32,7 @@
   <div class="container header-inner">
     <a class="brand" href="#home" aria-label="ဝန်ကြီးဌာန ပင်မစာမျက်နှာ">
       <span class="brand-seals">
-        <img src="https://upload.wikimedia.org/wikipedia/my/f/f1/Seal_of_MOST.jpeg"
+        <img src="/static/img/logo.png"
              alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်" width="48" height="48">
       </span>
       <span class="brand-text">
@@ -92,23 +92,13 @@
       </div>
       <button class="icon-button" type="button" data-login-close aria-label="ပိတ်ရန်">×</button>
     </div>
-    <form id="login-form">
-      <div class="form-field">
-        <label for="username">အသုံးပြုသူအမည်</label>
-        <input id="username" name="username" type="text" autocomplete="username"
-               placeholder="အသုံးပြုသူအမည် ထည့်ပါ" required>
-      </div>
-      <div class="form-field">
-        <label for="password">စကားဝှက်</label>
-        <input id="password" name="password" type="password" autocomplete="current-password"
-               placeholder="စကားဝှက် ထည့်ပါ" required>
-      </div>
-      <button class="button button--primary" type="submit">
-        ဝင်ရောက်ရန် <span aria-hidden="true">→</span>
-      </button>
+    <form id="login-form" action="/survey/login" method="get">
+      <p>သင့်အကောင့်ဖြင့် စစ်တမ်းများကို ဖြည့်သွင်းပါ။</p>
+      <button class="button button--primary" type="submit">Survey sign in →</button>
+      <a class="button" href="/portal">Administrator sign in →</a>
       <p class="form-status" role="status" hidden></p>
     </form>
-    <p class="dialog-note">ဤစနစ်သည် ယာယီဖြစ်ပြီး စစ်တမ်းအတွက် နမူနာသာဖြစ်ပါသည်။</p>
+
   </div>
 </dialog>
 

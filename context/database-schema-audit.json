@@ -1,0 +1,755 @@
+{
+  "admin_sessions": {
+    "columns": [
+      {
+        "name": "token_hash",
+        "type": "VARCHAR(64)",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "user_id",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "expires_at",
+        "type": "BIGINT",
+        "nullable": false,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "token_hash"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "indexes": [
+      {
+        "name": "ix_admin_sessions_expires_at",
+        "column_names": [
+          "expires_at"
+        ],
+        "unique": false
+      }
+    ],
+    "unique_constraints": []
+  },
+  "ministry": {
+    "columns": [
+      {
+        "name": "ministryId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "ministryName",
+        "type": "VARCHAR(255) COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "ministryId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "indexes": [
+      {
+        "name": "ministryName",
+        "column_names": [
+          "ministryName"
+        ],
+        "unique": true
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "ministryName",
+        "column_names": [
+          "ministryName"
+        ],
+        "duplicates_index": "ministryName"
+      }
+    ]
+  },
+  "ministryquestion": {
+    "columns": [
+      {
+        "name": "mQId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "mQDetail",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "qTID",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "yID",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "mQId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "FK_ministryquestion_questiontitle",
+        "constrained_columns": [
+          "qTID"
+        ],
+        "referred_schema": null,
+        "referred_table": "questiontitle",
+        "referred_columns": [
+          "qTID"
+        ],
+        "options": {
+          "onupdate": "CASCADE",
+          "ondelete": "SET NULL"
+        }
+      },
+      {
+        "name": "fk_ministryquestion_year",
+        "constrained_columns": [
+          "yID"
+        ],
+        "referred_schema": null,
+        "referred_table": "year",
+        "referred_columns": [
+          "yID"
+        ],
+        "options": {}
+      }
+    ],
+    "indexes": [
+      {
+        "name": "FK_ministryquestion_questiontitle",
+        "column_names": [
+          "qTID"
+        ],
+        "unique": false
+      },
+      {
+        "name": "fk_ministryquestion_year",
+        "column_names": [
+          "yID"
+        ],
+        "unique": false
+      }
+    ],
+    "unique_constraints": []
+  },
+  "ministrysurvey": {
+    "columns": [
+      {
+        "name": "mSurveyId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "ministryId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "mQId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "hasItem",
+        "type": "TINYINT",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "itemCount",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "surveyDescription",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "remark",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "submittedAt",
+        "type": "DATETIME",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "name": "updatedAt",
+        "type": "DATETIME",
+        "nullable": true,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "mSurveyId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "fk_ministrySurvey_ministry",
+        "constrained_columns": [
+          "ministryId"
+        ],
+        "referred_schema": null,
+        "referred_table": "ministry",
+        "referred_columns": [
+          "ministryId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      },
+      {
+        "name": "fk_ministrySurvey_question",
+        "constrained_columns": [
+          "mQId"
+        ],
+        "referred_schema": null,
+        "referred_table": "ministryquestion",
+        "referred_columns": [
+          "mQId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      }
+    ],
+    "indexes": [
+      {
+        "name": "idx_ministrySurvey_mQId",
+        "column_names": [
+          "mQId"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_ministrySurvey_ministryId",
+        "column_names": [
+          "ministryId"
+        ],
+        "unique": false
+      }
+    ],
+    "unique_constraints": []
+  },
+  "questiontitle": {
+    "columns": [
+      {
+        "name": "qTID",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "qTDetail",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "description",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": true,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "qTID"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "indexes": [],
+    "unique_constraints": []
+  },
+  "uniquestion": {
+    "columns": [
+      {
+        "name": "uQId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "uQDetail",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "qTID",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "yID",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "uQId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "FK_uniquestion_questiontitle",
+        "constrained_columns": [
+          "qTID"
+        ],
+        "referred_schema": null,
+        "referred_table": "questiontitle",
+        "referred_columns": [
+          "qTID"
+        ],
+        "options": {
+          "onupdate": "CASCADE",
+          "ondelete": "SET NULL"
+        }
+      },
+      {
+        "name": "fk_uniquestion_year",
+        "constrained_columns": [
+          "yID"
+        ],
+        "referred_schema": null,
+        "referred_table": "year",
+        "referred_columns": [
+          "yID"
+        ],
+        "options": {}
+      }
+    ],
+    "indexes": [
+      {
+        "name": "FK_uniquestion_questiontitle",
+        "column_names": [
+          "qTID"
+        ],
+        "unique": false
+      },
+      {
+        "name": "fk_uniquestion_year",
+        "column_names": [
+          "yID"
+        ],
+        "unique": false
+      }
+    ],
+    "unique_constraints": []
+  },
+  "unisurvey": {
+    "columns": [
+      {
+        "name": "uniSurveyId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "uniId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "uQId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "hasItem",
+        "type": "TINYINT",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "itemCount",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "surveyDescription",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "remark",
+        "type": "TEXT COLLATE utf8mb4_unicode_ci",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "submittedAt",
+        "type": "DATETIME",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP"
+      },
+      {
+        "name": "updatedAt",
+        "type": "DATETIME",
+        "nullable": true,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "uniSurveyId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "fk_uniSurvey_question",
+        "constrained_columns": [
+          "uQId"
+        ],
+        "referred_schema": null,
+        "referred_table": "uniquestion",
+        "referred_columns": [
+          "uQId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      },
+      {
+        "name": "fk_uniSurvey_university",
+        "constrained_columns": [
+          "uniId"
+        ],
+        "referred_schema": null,
+        "referred_table": "university",
+        "referred_columns": [
+          "uniId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      }
+    ],
+    "indexes": [
+      {
+        "name": "idx_uniSurvey_uQId",
+        "column_names": [
+          "uQId"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_uniSurvey_uniId",
+        "column_names": [
+          "uniId"
+        ],
+        "unique": false
+      }
+    ],
+    "unique_constraints": []
+  },
+  "university": {
+    "columns": [
+      {
+        "name": "uniId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "uniType",
+        "type": "VARCHAR(100) COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "uniName",
+        "type": "VARCHAR(255) COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "uniId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "indexes": [
+      {
+        "name": "uniName",
+        "column_names": [
+          "uniName"
+        ],
+        "unique": true
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "uniName",
+        "column_names": [
+          "uniName"
+        ],
+        "duplicates_index": "uniName"
+      }
+    ]
+  },
+  "user": {
+    "columns": [
+      {
+        "name": "userId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "roleId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "uniId",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "ministryId",
+        "type": "INTEGER",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "userName",
+        "type": "VARCHAR(100) COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "passwordHash",
+        "type": "VARCHAR(255) COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "isActive",
+        "type": "TINYINT",
+        "nullable": false,
+        "default": "'1'"
+      },
+      {
+        "name": "createdAt",
+        "type": "DATETIME",
+        "nullable": false,
+        "default": "CURRENT_TIMESTAMP"
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "userId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [
+      {
+        "name": "fk_user_ministry",
+        "constrained_columns": [
+          "ministryId"
+        ],
+        "referred_schema": null,
+        "referred_table": "ministry",
+        "referred_columns": [
+          "ministryId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      },
+      {
+        "name": "fk_user_role",
+        "constrained_columns": [
+          "roleId"
+        ],
+        "referred_schema": null,
+        "referred_table": "userrole",
+        "referred_columns": [
+          "roleId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      },
+      {
+        "name": "fk_user_university",
+        "constrained_columns": [
+          "uniId"
+        ],
+        "referred_schema": null,
+        "referred_table": "university",
+        "referred_columns": [
+          "uniId"
+        ],
+        "options": {
+          "onupdate": "CASCADE"
+        }
+      }
+    ],
+    "indexes": [
+      {
+        "name": "idx_user_ministryId",
+        "column_names": [
+          "ministryId"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_user_roleId",
+        "column_names": [
+          "roleId"
+        ],
+        "unique": false
+      },
+      {
+        "name": "idx_user_uniId",
+        "column_names": [
+          "uniId"
+        ],
+        "unique": false
+      },
+      {
+        "name": "userName",
+        "column_names": [
+          "userName"
+        ],
+        "unique": true
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "userName",
+        "column_names": [
+          "userName"
+        ],
+        "duplicates_index": "userName"
+      }
+    ]
+  },
+  "userrole": {
+    "columns": [
+      {
+        "name": "roleId",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "roleName",
+        "type": "VARCHAR(100) COLLATE utf8mb4_unicode_ci",
+        "nullable": false,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "roleId"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "indexes": [
+      {
+        "name": "roleName",
+        "column_names": [
+          "roleName"
+        ],
+        "unique": true
+      }
+    ],
+    "unique_constraints": [
+      {
+        "name": "roleName",
+        "column_names": [
+          "roleName"
+        ],
+        "duplicates_index": "roleName"
+      }
+    ]
+  },
+  "year": {
+    "columns": [
+      {
+        "name": "yID",
+        "type": "INTEGER",
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "yearFrom",
+        "type": "DATE",
+        "nullable": true,
+        "default": null
+      },
+      {
+        "name": "yearTo",
+        "type": "DATE",
+        "nullable": true,
+        "default": null
+      }
+    ],
+    "primary_key": {
+      "constrained_columns": [
+        "yID"
+      ],
+      "name": null
+    },
+    "foreign_keys": [],
+    "indexes": [],
+    "unique_constraints": []
+  }
+}

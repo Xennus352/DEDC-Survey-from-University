@@ -16,7 +16,7 @@ def get_surveys_by_year(db: Session, year: int, skip: int = 0, limit: int = 100)
 
 
 def create_survey(db: Session, survey_data):
-    db_survey = survey.Survey(**survey_data.dict())
+    db_survey = survey.Survey(**survey_data.model_dump())
     db.add(db_survey)
     db.commit()
     db.refresh(db_survey)

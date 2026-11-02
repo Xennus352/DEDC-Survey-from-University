@@ -29,11 +29,5 @@ window.MOST.initLoginDialog = function () {
     if (opener) opener.focus();
     document.dispatchEvent(new Event('most:dialogchange'));
   });
-  form.addEventListener('submit', function (event) {
-    event.preventDefault();
-    // Presentation only: credentials are never stored or sent anywhere.
-    form.reset();
-    status.textContent = 'နမူနာစနစ်သာ ဖြစ်ပါသည်။ / Demo only — authentication is not connected.';
-    status.hidden = false;
-  });
+  // Native form navigation opens the real respondent sign-in flow.
 };

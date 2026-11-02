@@ -10,7 +10,7 @@ class Answer(Base):
     id = Column(Integer, primary_key=True, index=True)
     response_id = Column(Integer, ForeignKey("responses.id"))
     question_id = Column(Integer, ForeignKey("questions.id"))
-    answer_text = Column(String, nullable=True)
+    answer_text = Column(String(4096), nullable=True)
     option_id = Column(Integer, ForeignKey("options.id"), nullable=True)
 
     response = relationship("Response", back_populates="answers")

@@ -1,0 +1,62 @@
+[
+  {
+    "repository": "akseolabs-seo/cinematic-ui",
+    "revision": "37651d0f59e83a5236e8773aa915cce93f2e7fc3",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "freshtechbro/claudedesignskills",
+    "revision": "1da73febff0c3e1dfefc07f8a5ef8f7d1dfdb6cd",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "bergside/design-md-chrome",
+    "revision": "8e07614fb18752ab1ee14dd65a8ff93e63c9b13b",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "greensock/gsap-skills",
+    "revision": "aed9cfd3277740755f6bfc1155c7aa645403b760",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "Nutlope/hallmark",
+    "revision": "4f6a46c6dc325d40ab268c93e25c7b96676ebccd",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "nexu-io/open-design",
+    "revision": "5a0c47777975ddb91d09c1c16b423a3ef74bf572",
+    "license": "Apache-2.0",
+    "readme": "README.md"
+  },
+  {
+    "repository": "stevembarclay/pencilplaybook",
+    "revision": "b7324295d73d67ea0a672cf16832880c111df0ed",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "Leonxlnx/taste-skill",
+    "revision": "12af471f627f866411b4bd785b19646d3672784c",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "felix-huber/ui-landingpage-generator-skill",
+    "revision": "8dc143767218bc884b502a054b5d3fc401411a4b",
+    "license": "MIT",
+    "readme": "README.md"
+  },
+  {
+    "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
+    "revision": "3a13158ff1f32156cbe144108de48eda2ecaed9a",
+    "license": "MIT",
+    "readme": "README.md"
+  }
+]

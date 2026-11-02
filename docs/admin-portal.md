@@ -1,7 +1,7 @@
 # Admin portal
 
 The portal has its own router, templates and page stylesheet, and reuses the public
-site's CSS tokens and reset. The landing page and demo login dialog are unchanged.
+site's CSS tokens and reset. The public landing page keeps its existing layout; its login dialog now opens the real respondent or administrator sign-in flow.
 Visit `/portal` directly to use administrator login.
 
 ## Setup
@@ -114,3 +114,7 @@ git commit -m "Stop tracking local environment configuration"
 
 Use `.env.example` for shared variable names. If real credentials have ever been
 committed to `.env`, rotate them; removing the file does not remove Git history.
+
+## Current administration workspace
+
+The dynamic builder, versioned forms, reporting-period-first respondent experience, original-format workbook exports and reporting/user/audit pages are documented in [the implementation report](../context/IMPLEMENTATION_REPORT.md). Run `uv run alembic upgrade head` after syncing dependencies. Schema upgrades are additive; do not run autogeneration blindly against the existing MySQL schema.

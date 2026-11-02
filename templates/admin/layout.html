@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="csrf-token" content="{{ csrf_token }}">
+  <meta name="theme-color" content="#f7f8fa">
+  <title>{{ page_title }} · DEDC</title>
+  <link rel="icon" href="/static/img/logo.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/admin/workspace.css">
+  <script defer src="/static/js/admin-session.js"></script>
+  <script type="module" src="/static/js/admin/workspace.js"></script>
+</head>
+<body data-admin-workspace data-page="{{ page }}" data-form-id="{{ form_id | default('') }}">
+  {% macro symbol(name) %}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{% if name=='overview' %}<path d="M3 13h7V3H3zm11 8h7V11h-7zM3 21h7v-4H3zM14 7h7V3h-7z"/>{% elif name=='forms' %}<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/>{% elif name=='questions' %}<path d="M4 4h16v13H9l-5 4zM9 8a3 3 0 0 1 6 0c0 2-3 2-3 4m0 2h.01"/>{% elif name=='submissions' %}<path d="M5 3h10l4 4v14H5zM9 12l2 2 4-4"/>{% elif name=='reports' %}<path d="M4 3v18h17M8 16v-5m5 5V7m5 9v-3"/>{% elif name=='users' %}<circle cx="9" cy="8" r="3"/><path d="M3 20v-3a6 6 0 0 1 12 0v3m2-15a3 3 0 0 1 0 6m1 3a5 5 0 0 1 3 4v2"/>{% elif name=='data' %}<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 4 16 4 16 0V5M4 12v6c0 4 16 4 16 0v-6"/>{% elif name=='settings' %}<circle cx="12" cy="12" r="3"/><path d="m9 3 1-1h4l1 3 3 1 3 2v4l-3 2-1 3-2 4h-4l-2-3-3-1-4-2v-4l3-2 1-3z"/>{% elif name=='logout' %}<path d="M9 4H4v16h5m5-12 4 4-4 4m-5-4h12"/>{% elif name=='menu' %}<path d="M4 6h16M4 12h16M4 18h16"/>{% elif name=='search' %}<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>{% elif name=='bell' %}<path d="M5 16h14l-2-3V9a5 5 0 0 0-10 0v4zM10 20h4"/>{% else %}<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>{% endif %}</svg>{% endmacro %}
+  <a class="skip" href="#main-content">Skip to content</a>
+  <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="/dashboard"><img class="brand-logo" src="/static/img/logo.png" alt="Ministry of Science and Technology logo" width="40" height="40"><span class="brand-name">DEDC<span>Survey administration</span></span></a>
+    <div class="workspace-label">Workspace</div>
+    <nav aria-label="Admin navigation">
+      {% for key,label in [('overview','Overview'),('forms','Survey forms'),('questions','Question bank'),('submissions','Form submissions'),('reports','Reports & analytics'),('users','Users & enumerators'),('data','Data management')] %}
+      <a href="/dashboard{{ '' if key=='overview' else '/'+key }}" {% if page==key or (key=='forms' and page in ['editor','preview']) %}aria-current="page"{% endif %} title="{{ label }}">{{ symbol(key) }}<span>{{ label }}</span>{% if key=='forms' %}<span class="nav-shortcut">↗</span>{% endif %}</a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-bottom"><nav><a href="/dashboard/audit" {% if page=='audit' %}aria-current="page"{% endif %}>{{ symbol('audit') }}<span>Audit trail</span></a><a href="/dashboard/settings" {% if page=='settings' %}aria-current="page"{% endif %}>{{ symbol('settings') }}<span>Settings</span></a></nav>
+    <div class="profile"><span class="avatar">{{ username[:1] | upper }}</span><span class="profile-name"><strong>{{ username }}</strong><small>Administrator</small></span><form action="/portal/logout" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button type="submit" class="icon-button" aria-label="Sign out" title="Sign out">{{ symbol('logout') }}</button></form></div></div>
+  </aside>
+  <div class="workspace"><header class="topbar"><button class="icon-button" type="button" data-sidebar-toggle aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="true">{{ symbol('menu') }}</button><div class="breadcrumb"><a href="/dashboard">Workspace</a><span>/</span><strong>{{ page_title }}</strong></div><div class="topbar-actions"><form class="search" action="/dashboard/forms"><label class="sr-only" for="global-search">Search workspace</label>{{ symbol('search') }}<input id="global-search" name="search" placeholder="Search workspace…" autocomplete="off"><kbd>/</kbd></form><a class="icon-button" href="/dashboard/audit" aria-label="View recent activity" title="Recent activity">{{ symbol('bell') }}</a><a class="top-avatar avatar" href="/dashboard/settings" aria-label="Your profile">{{ username[:1] | upper }}</a></div></header>
+  <main id="main-content" tabindex="-1"><p class="sr-only">Welcome, {{ username }}.</p><p class="notice error" role="alert" tabindex="-1" data-session-error hidden></p>
+    <div class="page-heading"><div><div class="page-context">Administration <span>/</span> DEDC</div><h1>{{ page_title }}</h1><p id="page-description"></p></div><div id="page-actions" class="actions"></div></div>
+    <div id="content" aria-live="polite"><div class="skeleton" aria-label="Loading workspace"><span></span><span></span><span></span></div></div>
+    <noscript><p class="notice">Enable JavaScript to use the form builder and reports. <a href="/docs">API documentation</a> remains available.</p></noscript>
+    <footer class="workspace-footer"><span>DEDC · Survey administration</span><span>Ministry of Science and Technology</span></footer>
+  </main></div>
+  <dialog id="workspace-dialog"><div class="dialog-head"><h2 id="dialog-title"></h2><button class="icon-button" data-close-dialog type="button" aria-label="Close dialog">×</button></div><div id="dialog-content"></div></dialog>
+  <div class="toast" role="status" hidden></div>
+</body></html>
