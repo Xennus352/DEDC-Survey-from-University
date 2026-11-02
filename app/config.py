@@ -2,8 +2,10 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "sqlite:///./survey.db"
+    DATABASE_URL: str
     APP_NAME: str = "DEDC Survey API"
+    ADMIN_ROLE_NAME: str = "Admin"
+    PORTAL_COOKIE_SECURE: bool = False
 
     class Config:
         env_file = ".env"

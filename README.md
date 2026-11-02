@@ -2,6 +2,10 @@
 
 A FastAPI-based survey application with HTML templates, CSS, and JavaScript for managing surveys, questions, and responses.
 
+Administrator login and logout are available at `/portal`. See
+[Admin portal setup and Git collaboration](docs/admin-portal.md) for Docker MySQL
+configuration, administrator credentials, routes, and the feature-branch workflow.
+
 ## Project Structure
 
 ```

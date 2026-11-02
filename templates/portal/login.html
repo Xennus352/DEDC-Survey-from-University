@@ -1,0 +1,46 @@
+{% extends "portal/base.html" %}
+{% block title %}Admin login{% endblock %}
+{% block body_class %}portal-auth{% endblock %}
+{% block layout %}
+<main class="auth-layout" id="main-content" tabindex="-1">
+  <section class="auth-story" aria-labelledby="portal-heading">
+    <a class="portal-brand" href="{{ url_for('index') }}">
+      {{ seal(50) }}
+      <span><strong lang="my">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</strong><small>MINISTRY OF SCIENCE AND TECHNOLOGY</small></span>
+    </a>
+    <div class="auth-story-content">
+      <p class="portal-eyebrow"><span></span> DEDC · ADMINISTRATION</p>
+      <h1 id="portal-heading">Progress starts<br> with <em>possibility.</em></h1>
+      <p class="auth-story-description">A connected workspace for the people advancing science, technology, and education.</p>
+      <div class="auth-orbit" aria-hidden="true"><div class="orbit-ring orbit-ring-one"></div><div class="orbit-ring orbit-ring-two"></div><div class="orbit-core">{{ icon('shield') }}</div><span class="orbit-dot orbit-dot-one"></span><span class="orbit-dot orbit-dot-two"></span><span class="orbit-label">SCIENCE & TECHNOLOGY</span></div>
+      <div class="auth-values"><span>Science</span><span>Innovation</span><span>Development</span></div>
+    </div>
+    <p class="auth-story-footer">Empowering institutions. Enabling the future.</p>
+  </section>
+  <section class="auth-panel" aria-labelledby="login-heading">
+    <a class="auth-back" href="{{ url_for('index') }}"><span aria-hidden="true">←</span> Back to website</a>
+    <div class="auth-form-wrap">
+      <div class="auth-heading-icon">{{ icon('lock') }}</div>
+      <p class="portal-eyebrow">ADMINISTRATOR ACCESS</p>
+      <h2 id="login-heading">Welcome back<span>.</span></h2>
+      <p class="portal-muted">Sign in to your DEDC workspace.</p>
+      {% if error %}<p class="portal-message portal-message-error" role="alert">{{ error }}</p>{% endif %}
+      <form class="portal-form" action="{{ url_for('portal_login') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="portal-field">
+          <label for="portal-username">Username</label>
+          <div class="portal-input-wrap">{{ icon('user') }}<input id="portal-username" name="username" type="text" autocomplete="username" maxlength="100" value="{{ username | default('') }}" placeholder="Enter your username" required></div>
+        </div>
+        <div class="portal-field">
+          <label for="portal-password">Password</label>
+          <div class="portal-input-wrap">{{ icon('lock') }}<input id="portal-password" name="password" type="password" autocomplete="current-password" maxlength="1024" placeholder="Enter your password" required><button class="password-toggle" type="button" aria-controls="portal-password" aria-pressed="false" data-password-toggle hidden>Show</button></div>
+        </div>
+        <button class="button portal-submit" type="submit">Sign in to workspace {{ icon('arrow') }}</button>
+      </form>
+      <p class="auth-access-note">{{ icon('shield') }} Access is reserved for authorized administrators.</p>
+    </div>
+    <footer class="auth-panel-footer"><span>© 2026 Ministry of Science and Technology</span><span>DEDC Portal</span></footer>
+  </section>
+</main>
+{% endblock %}
+{% block scripts %}<script defer src="{{ url_for('static', path='/js/portal.js') }}"></script>{% endblock %}

@@ -3,7 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.routers import surveys, questions, responses
-from app.routers.web import views
+from app.routers.web import portal, views
 
 app = FastAPI(title="DEDC Survey API")
 
@@ -14,6 +14,7 @@ app.include_router(surveys.router)
 app.include_router(questions.router)
 app.include_router(responses.router)
 app.include_router(views.router)
+app.include_router(portal.router)
 
 
 @app.get("/health")

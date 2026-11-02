@@ -1,0 +1,41 @@
+{% extends "portal/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body_class %}portal-workspace{% endblock %}
+{% block layout %}
+<aside class="workspace-sidebar" aria-label="Workspace navigation">
+  <a class="sidebar-brand" href="{{ url_for('dashboard') }}">{{ seal(44) }}<span><strong>DEDC</strong><small>Administration</small></span></a>
+  <div class="sidebar-section-label">WORKSPACE</div>
+  <nav class="sidebar-nav" aria-label="Admin navigation">
+    <a href="{{ url_for('dashboard') }}" aria-current="page">{{ icon('grid') }} Overview <span class="nav-active-dot"></span></a>
+    <a href="#account">{{ icon('user') }} Your account</a>
+    <a href="{{ url_for('index') }}">{{ icon('external') }} Public website</a>
+  </nav>
+  <div class="sidebar-ministry"><span class="sidebar-section-label">AN INITIATIVE OF</span><p>Ministry of Science<br>and Technology</p><span class="sidebar-gold-line"></span></div>
+  <div class="sidebar-account"><span class="account-avatar">{{ username[:1] | upper }}</span><span class="account-summary"><strong>{{ username }}</strong><small>Administrator</small></span>
+    <form action="{{ url_for('portal_logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="sidebar-logout" type="submit" aria-label="Sign out" title="Sign out">{{ icon('logout') }}</button></form>
+  </div>
+</aside>
+<div class="workspace-body">
+  <header class="workspace-topbar"><div><span class="topbar-label">Workspace</span><span class="topbar-divider" aria-hidden="true">/</span><strong>Overview</strong></div><span class="session-pill"><span></span> Session active</span></header>
+  <main class="workspace-main" id="main-content" tabindex="-1">
+    <div class="workspace-heading"><div><p class="portal-eyebrow">YOUR ADMINISTRATION WORKSPACE</p><h1>Overview</h1><p class="portal-muted">A clear view of your account and workspace.</p></div><a class="workspace-visit" href="{{ url_for('index') }}">View website {{ icon('external') }}</a></div>
+    <section class="workspace-welcome" aria-labelledby="welcome-heading">
+      <div><p class="welcome-kicker">WELCOME TO DEDC</p><h2 id="welcome-heading">Welcome, {{ username }}.</h2><p>Your workspace is ready. You’re signed in and all set to continue.</p><a href="#account">View your account {{ icon('arrow') }}</a></div>
+      <div class="welcome-emblem" aria-hidden="true"><div class="emblem-ring"></div>{{ seal(100) }}</div>
+      <span class="welcome-corner" aria-hidden="true">DEDC / ADMIN</span>
+    </section>
+    <div class="workspace-details">
+      <section class="workspace-card" id="account" aria-labelledby="account-heading">
+        <div class="card-heading"><span class="card-icon">{{ icon('user') }}</span><div><h2 id="account-heading">Your account</h2><p>Administrator profile</p></div><span class="small-status">Active</span></div>
+        <dl class="account-details"><div><dt>Username</dt><dd>{{ username }}</dd></div><div><dt>Access level</dt><dd>Administrator</dd></div><div><dt>Workspace</dt><dd>DEDC Administration</dd></div></dl>
+      </section>
+      <section class="workspace-card" aria-labelledby="quick-links-heading">
+        <div class="card-heading"><span class="card-icon">{{ icon('grid') }}</span><div><h2 id="quick-links-heading">Quick access</h2><p>Your next destination</p></div></div>
+        <a class="destination-link" href="{{ url_for('index') }}"><span class="destination-icon">{{ icon('external') }}</span><span><strong>Public website</strong><small>Open the ministry’s landing page</small></span>{{ icon('arrow') }}</a>
+        <div class="workspace-session-note">{{ icon('shield') }}<p>Your session is active.<br><span>Sign out when you finish on a shared device.</span></p></div>
+      </section>
+    </div>
+    <footer class="workspace-footer"><span>© 2026 Ministry of Science and Technology</span><span>DEDC Administration Portal</span></footer>
+  </main>
+</div>
+{% endblock %}
