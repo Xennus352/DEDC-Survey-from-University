@@ -1,0 +1,17 @@
+.login-dialog { margin: auto; width: calc(100% - 2rem); max-width: 24rem; max-height: calc(100dvh - 2rem); overflow: auto; padding: 0; border: 1px solid var(--color-border); border-radius: var(--radius-md); color: var(--color-text); background: #fff; box-shadow: 0 25px 50px -12px rgb(0 0 0 / 25%); }
+.login-dialog::backdrop { background: rgb(0 0 0 / 20%); backdrop-filter: blur(4px); }
+body:has(.login-dialog[open]) { overflow: hidden; }
+.dialog-body { padding: 2rem; }
+.dialog-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.dialog-heading h2 { font-size: 1.25rem; letter-spacing: -.025em; }
+.dialog-heading p { margin-top: .25rem; color: var(--color-subtle); font-size: .875rem; }
+.dialog-heading .icon-button { width: 2rem; height: 2rem; margin-right: -.5rem; font-size: 1.5rem; color: var(--color-subtle); }
+#login-form { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 2rem; }
+.form-field { display: flex; flex-direction: column; gap: .5rem; }
+.form-field label { font-size: .875rem; font-weight: 500; }
+.form-field input { width: 100%; height: 2.75rem; border-radius: var(--radius-sm); padding: 0 .875rem; color: var(--color-text); background: #fff; font-size: .875rem; }
+.form-field input::placeholder { color: var(--color-subtle); }
+.form-field input:focus { border-color: var(--color-primary); }
+#login-form .button { margin-top: .5rem; }
+.dialog-note, .form-status { font-size: .75rem; color: var(--color-subtle); }
+.dialog-note { margin-top: 1.5rem; text-align: center; }

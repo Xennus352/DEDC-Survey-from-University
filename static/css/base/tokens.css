@@ -1,0 +1,23 @@
+:root {
+  color-scheme: light;
+  --color-background: #fff;
+  --color-text: #171717;
+  --color-primary: oklch(0.32 0.08 258);
+  --color-secondary: #f3f5f8;
+  --color-muted: #f8f9fb;
+  --color-subtle: #697383;
+  --color-border: #e5e8ed;
+  --color-accent: #e0b352;
+  --font-body: Inter, 'Noto Sans Myanmar', Pyidaungsu, 'Myanmar Text', sans-serif;
+  --container-width: 72rem;
+  --radius-sm: .5rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+
+  /* NEW: nav + footer colors */
+  --color-nav-bg: var(--color-primary);
+  --color-nav-text: #ffffff;
+  --color-nav-active: var(--color-accent);
+  --color-footer-bg: var(--color-primary);
+  --color-footer-text: #e6ecf5;
+}

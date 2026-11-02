@@ -1,0 +1,18 @@
+.site-header { position: sticky; top: 0; z-index: 40; border-bottom: 1px solid var(--color-border); background: rgb(255 255 255 / 85%); backdrop-filter: blur(12px); }
+.header-inner { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; min-height: 4rem; }
+.brand { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.brand-seals { display: flex; flex-shrink: 0; }
+.brand-seals img { width: 2.25rem; height: 2.25rem; border-radius: 50%; background: #fff; object-fit: contain; outline: 1px solid var(--color-border); }
+.brand-seals img + img { margin-left: -.5rem; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.5; }
+.brand-text strong { font-size: .875rem; font-weight: 600; }
+.brand-text span { color: var(--color-subtle); font-size: .75rem; }
+.brand-text > * { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.desktop-nav { display: none; align-items: center; gap: .25rem; flex-shrink: 0; }
+.desktop-nav a, .mobile-nav a { padding: .5rem 1rem; border-radius: 999px; color: var(--color-subtle); font-size: .875rem; }
+.desktop-nav a:hover, .mobile-nav a:hover { color: var(--color-text); background: var(--color-secondary); }
+nav a[aria-current='page'] { background: var(--color-secondary); color: var(--color-text); font-weight: 500; }
+.desktop-nav .button { margin-left: .75rem; }
+.mobile-nav { display: flex; flex-direction: column; gap: .25rem; padding-block: 1rem; border-top: 1px solid var(--color-border); background: #fff; }
+.mobile-nav .button { margin-top: .75rem; }
+@media (min-width: 48rem) { .desktop-nav { display: flex; } .menu-toggle, .mobile-nav { display: none; } }

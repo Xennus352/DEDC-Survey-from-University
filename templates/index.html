@@ -1,206 +1,374 @@
-{% extends "base.html" %}
+<!doctype html>
+<html lang="my">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန၏ ပင်မစာမျက်နှာ — သုတေသန၊ ဆန်းသစ်တီထွင်မှုနှင့် လူသားအရင်းအမြစ် ဖွံ့ဖြိုးရေး။">
+  <title>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန | Ministry of Science and Technology</title>
 
-{% block title %}ပင်မစာမျက်နှာ - သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန{% endblock %}
+  <link rel="icon" href="/static/img/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/static/img/apple-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Noto+Sans+Myanmar:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-{% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', path='/css/home.css') }}">
-{% endblock %}
+  <link href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/home.css">
 
-{% block content %}
-<!-- Hero Section -->
-<section class="hero-banner">
-    <div class="hero-banner-bg" style="background-image: url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D');"></div>
-    <div class="hero-banner-overlay"></div>
-    <div class="hero-banner-container">
-        <div class="hero-banner-content">
-            <span class="hero-badge">Data Collection and Survey System</span>
-            <h1 class="hero-banner-title">
-                DEDC Survey Platform
-            </h1>
-            <p class="hero-banner-subtitle">
-                သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန
-            </p>
-            <p class="hero-banner-text">
-                A centralized platform for collecting, managing, and analyzing survey data from Ministries and Universities. 
-                Streamline data collection with a professional, reliable, and easy-to-use system.
-            </p>
-            <div class="hero-banner-actions">
-                <a href="/surveys" class="btn btn-banner-primary">
-                    Get Started
-                </a>
-                <a href="#about" class="btn btn-banner-secondary">
-                    Learn More
-                </a>
-            </div>
+  <script defer src="/static/js/navigation.js"></script>
+  <script defer src="/static/js/carousel.js"></script>
+  <script defer src="/static/js/login-dialog.js"></script>
+  <script defer src="/static/js/main.js"></script>
+
+  <style>
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    .hero-frame {
+      overflow: hidden;
+    }
+
+    .map-wrapper,
+    .map-container,
+    .information,
+    .intro-full-width {
+      max-width: 100%;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    /* CENTER THE HERO SECTION */
+    .hero {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+
+    .hero-frame {
+      position: relative;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      border-radius: 24px;
+    }
+
+    /* FIX: Smaller introduction text */
+    .intro-heading {
+      margin: 0;
+      color: #1b3452;
+      font-size: clamp(1.1rem, 2vw, 1.5rem);
+      font-weight: 600;
+      line-height: 1.7;
+      letter-spacing: -.02em;
+    }
+
+    .intro-description {
+      max-width: 800px;
+      margin: 14px 0 0;
+      color: var(--home-muted);
+      font-size: .95rem;
+      line-height: 1.8;
+    }
+  </style>
+</head>
+
+<body>
+<a class="skip-link" href="#main-content">အကြောင်းအရာသို့ ကျော်သွားရန်</a>
+
+<header class="site-header" id="home">
+  <div class="container header-inner">
+    <a class="brand" href="#home" aria-label="ဝန်ကြီးဌာန ပင်မစာမျက်နှာ">
+      <span class="brand-seals">
+        <img src="https://upload.wikimedia.org/wikipedia/my/f/f1/Seal_of_MOST.jpeg"
+             alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်" width="48" height="48">
+      </span>
+      <span class="brand-text">
+        <strong>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</strong>
+        <span lang="en">MINISTRY OF SCIENCE AND TECHNOLOGY</span>
+      </span>
+    </a>
+
+    <nav class="desktop-nav" aria-label="ပင်မလမ်းညွှန်">
+      <a href="#home" aria-current="page">ပင်မစာမျက်နှာ</a>
+      <a href="#survey">မိတ်ဆက်</a>
+      <a href="#departments">ဦးစီးဌာနများ</a>
+      <a href="#contact">ဆက်သွယ်ရန်</a>
+      <button class="button button--pill" type="button" data-login-open>
+        <span class="login-icon" aria-hidden="true">↗</span> လော့အင်
+      </button>
+    </nav>
+
+    <button class="icon-button menu-toggle" type="button"
+            aria-expanded="false" aria-controls="mobile-nav"
+            aria-label="မီနူးဖွင့်ရန်" data-menu-toggle>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+        <path d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+  </div>
+
+  <nav id="mobile-nav" class="mobile-nav container" aria-label="မိုဘိုင်းလမ်းညွှန်" hidden>
+    <a href="#home" aria-current="page">ပင်မစာမျက်နှာ</a>
+    <a href="#survey">မိတ်ဆက်</a>
+    <a href="#departments">ဦးစီးဌာနများ</a>
+    <a href="#contact">ဆက်သွယ်ရန်</a>
+    <button class="button button--pill" type="button" data-login-open>လော့အင် ဝင်ရန်</button>
+  </nav>
+</header>
+
+<main id="main-content" tabindex="-1">
+  <!-- Hero / Main banner -->
+  <section class="hero section-fade-in"
+           aria-roledescription="carousel" aria-label="အဓိကသတင်းများ" data-carousel>
+    <div class="hero-frame">
+      <img class="hero-image is-active" src="/static/img/p1.jpg" alt=""
+           width="1376" height="768" fetchpriority="high" data-slide>
+      <img class="hero-image" src="/static/img/hero-2.png" alt=""
+           width="1376" height="768" loading="lazy" data-slide>
+      <img class="hero-image" src="/static/img/hero-3.png" alt=""
+           width="1376" height="768" loading="lazy" data-slide>
+
+      <div class="hero-overlay"></div>
+      <div class="hero-decoration hero-decoration--one"></div>
+      <div class="hero-decoration hero-decoration--two"></div>
+
+      <div class="hero-content">
+        <div class="hero-copy" aria-live="off" aria-atomic="true">
+          <span class="hero-eyebrow">
+            <span class="eyebrow-dot"></span> SCIENCE · TECHNOLOGY · INNOVATION
+          </span>
+          <h1 class="hero-title">ဆန်းသစ်တီထွင်မှုနှင့် ဒီဂျစ်တယ်အတတ်ပညာမြှင့်တင်ရေးလုပ်ငန်းကော်မတီ</h1>
+          <p class="hero-description">
+            သိပ္ပံနှင့်နည်းပညာ ဖွံ့ဖြိုးတိုးတက်ရေးမှတစ်ဆင့် ပိုမိုကောင်းမွန်သော အနာဂတ်ကို တည်ဆောက်ခြင်း။
+          </p>
+          <div class="hero-actions">
+            <!-- <a href="#survey" class="button button--primary"> 
+              ပိုမိုလေ့လာရန် <span aria-hidden="true">→</span>
+            </a>
+          </div>-->
         </div>
+
+        <div class="carousel-controls">
+          <div class="slide-dots" aria-label="Slide ရွေးချယ်ရန်">
+            <button class="slide-dot" type="button" data-slide-to="0" aria-label="Slide 1" aria-current="true"></button>
+            <button class="slide-dot" type="button" data-slide-to="1" aria-label="Slide 2" aria-current="false"></button>
+            <button class="slide-dot" type="button" data-slide-to="2" aria-label="Slide 3" aria-current="false"></button>
+          </div>
+          <div class="carousel-arrows">
+            <button class="icon-button carousel-pause" type="button" data-slide-pause
+                    aria-label="Slideshow ခေတ္တရပ်ရန်" aria-pressed="false"><span aria-hidden="true">Ⅱ</span></button>
+            <button class="icon-button arrow-left" type="button" data-slide-prev aria-label="ရှေ့သို့">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M19 12H5m6 6-6-6 6-6"/></svg>
+            </button>
+            <button class="icon-button" type="button" data-slide-next aria-label="နောက်သို့">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="hero-side-label" aria-hidden="true">BUILDING A SMARTER FUTURE</div>
     </div>
-</section>
+  </section>
 
-<!-- Stats Section -->
-<section class="stats">
-    <div class="stats-container">
-        <div class="stat-item">
-            <div class="stat-icon">
-                <i class="fas fa-university"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-number">---</h3>
-                <p class="stat-label">တက္ကသိုလ်များ</p>
-            </div>
+  <!-- Introduction -->
+  <section class="container section-space section-fade-in" id="survey">
+    <div class="intro-full-width">
+      <div class="section-heading">
+        <span class="section-label">မိတ်ဆက် / INTRODUCTION</span>
+        <span class="heading-line" aria-hidden="true"></span>
+      </div>
+      <h2 class="intro-heading">
+        သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာနသည် နိုင်ငံတော်၏ သိပ္ပံနှင့်နည်းပညာဆိုင်ရာ ကဏ္ဍအသီးသီးတွင် သုတေသန၊ နည်းပညာဖွံ့ဖြိုးတိုးတက်ရေးနှင့် လူသားအရင်းအမြစ်ဖွံ့ဖြိုးရေးတို့ကို ဆောင်ရွက်လျက်ရှိပါသည်။
+      </h2>
+      <p class="intro-description">
+        ဤစစ်တမ်းကောက်ယူခြင်းသည် ဝန်ကြီးဌာန၏ ဝန်ဆောင်မှုများနှင့် မူဝါဒများကို ပိုမိုကောင်းမွန်စေရန် အချက်အလက်များ စုဆောင်းခြင်းဖြစ်ပါသည်။
+      </p>
+
+      <dl class="stats card-container">
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">✦</span>
+          <dd>၁၉၉၆</dd>
+          <dt>စတင်ဖွဲ့စည်းသည့်နှစ်</dt>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-            <div class="stat-icon">
-                <i class="fas fa-building"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-number">---</h3>
-                <p class="stat-label">ဝန်ကြီးဌာနများ</p>
-            </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">▦</span>
+          <dd>၄</dd>
+          <dt>ဦးစီးဌာနများ</dt>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-            <div class="stat-icon">
-                <i class="fas fa-clipboard-list"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-number">---</h3>
-                <p class="stat-label">စစ်တမ်းများ</p>
-            </div>
+        <div class="stat-card">
+          <span class="stat-icon" aria-hidden="true">↗</span>
+          <dd>၂၀၂၃</dd>
+          <dt>နောက်ဆုံး ပြင်ဆင်ဖွဲ့စည်းမှု</dt>
         </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item">
-            <div class="stat-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="stat-content">
-                <h3 class="stat-number">---</h3>
-                <p class="stat-label">တုံ့ပြန်သူများ</p>
-            </div>
-        </div>
+      </dl>
+
+      <p class="notice">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        ဤစာမျက်နှာရှိ အချက်အလက်များသည် ယာယီဖြစ်ပြီး စစ်တမ်းအတွက် နမူနာအနေဖြင့် ဖော်ပြထားခြင်း ဖြစ်ပါသည်။
+      </p>
     </div>
-</section>
+  </section>
 
-<!-- About Section -->
-<section class="about" id="about">
-    <div class="about-container">
-        <div class="section-header-center">
-            <span class="section-badge">About DEDC</span>
-            <h2 class="section-title">About the Platform</h2>
-            <p class="section-subtitle">
-                A professional data collection and survey system designed for Ministries and Universities
+  <!-- Ministry information -->
+  <section class="information section-space" aria-label="ဝန်ကြီးဌာန အချက်အလက်များ">
+    <div class="container">
+      <div class="section-intro">
+        <span class="section-label">OUR MINISTRY</span>
+        <h2>ဝန်ကြီးဌာနအကြောင်း</h2>
+        <p>သမိုင်းကြောင်း၊ ဖွဲ့စည်းပုံနှင့် လုပ်ငန်းဆောင်ရွက်မှုများကို လေ့လာနိုင်ပါသည်။</p>
+      </div>
+
+      <div class="information-inner">
+        <article class="info-row card-hover" id="history">
+          <div class="info-image">
+            <img src="/static/img/history.png" alt="ရှေးဟောင်း သိပ္ပံကိရိယာများနှင့် စာအုပ်များ"
+                 loading="lazy" width="1200" height="896">
+            <span class="image-caption">OUR HISTORY</span>
+          </div>
+          <div class="info-content">
+            <span class="section-number">01 / HISTORY</span>
+            <h3>သမိုင်းကြောင်း</h3>
+            <p class="info-body">
+              သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာနကို ၁၉၉၆ ခုနှစ်တွင် စတင်ဖွဲ့စည်းခဲ့ပြီး နိုင်ငံတော်၏ သိပ္ပံနှင့်နည်းပညာဖွံ့ဖြိုးတိုးတက်ရေးအတွက် အဓိကတာဝန်ယူဆောင်ရွက်လျက်ရှိပါသည်။ နှစ်စဉ် သုတေသနစီမံကိန်းများ၊ နည်းပညာသင်တန်းများနှင့် ပြည်သူ့ဝန်ဆောင်မှုများကို ဆောင်ရွက်လျက်ရှိပါသည်။
             </p>
-        </div>
-        <div class="about-grid">
-            <div class="about-card">
-                <div class="about-card-icon">
-                    <i class="fas fa-database"></i>
-                </div>
-                <h3>Centralized Data Collection</h3>
-                <p>
-                    Collect and manage survey responses from multiple ministries and universities in one centralized platform.
-                </p>
-            </div>
-            <div class="about-card">
-                <div class="about-card-icon">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
-                <h3>Secure & Reliable</h3>
-                <p>
-                    Built with reliability and data integrity in mind to ensure accurate and secure survey management.
-                </p>
-            </div>
-            <div class="about-card">
-                <div class="about-card-icon">
-                    <i class="fas fa-chart-line"></i>
-                </div>
-                <h3>Efficient Management</h3>
-                <p>
-                    Streamlined workflow for administrators and respondents to manage surveys efficiently and effectively.
-                </p>
-            </div>
-        </div>
-    </div>
-</section>
+            <p class="badge">ဖွဲ့စည်းသည့်နှစ် — ၁၉၉၆</p>
+          </div>
+        </article>
 
-<!-- Sectors Section -->
-<section class="sectors" id="sectors">
-    <div class="sectors-container">
-        <div class="section-header-center">
-            <span class="section-badge">Key Features</span>
-            <h2 class="section-title">How the Survey System Works</h2>
-            <p class="section-subtitle">
-                Simple and efficient workflow for data collection and management
+        <article class="info-row info-row--reverse card-hover" id="organization">
+          <div class="info-image">
+            <img src="/static/img/organization.png" alt="ခေတ်မီ သုတေသန ဓာတ်ခွဲခန်း"
+                 loading="lazy" width="1200" height="896">
+            <span class="image-caption">ORGANIZATION</span>
+          </div>
+          <div class="info-content">
+            <span class="section-number">02 / ORGANIZATION</span>
+            <h3>ပြင်ဆင်ဖွဲ့စည်းခြင်း</h3>
+            <p class="info-body">
+              ဝန်ကြီးဌာနကို ပြည်ထောင်စုဝန်ကြီး၊ ဒုတိယဝန်ကြီးနှင့် အမြဲတမ်းအတွင်းဝန်တို့ဖြင့် ဦးဆောင်ဖွဲ့စည်းထားပါသည်။ အောက်တွင် ဦးစီးဌာနများ၊ သုတေသနဌာနများနှင့် တက္ကသိုလ်များ ပါဝင်ပါသည်။
             </p>
-        </div>
-        <div class="sectors-grid">
-            <div class="sector-card">
-                <div class="sector-icon sector-icon-blue">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-                <h3>Admin Management</h3>
-                <p>Create surveys, manage questions, and oversee all survey activities</p>
-            </div>
-            <div class="sector-card">
-                <div class="sector-icon sector-icon-green">
-                    <i class="fas fa-university"></i>
-                </div>
-                <h3>Ministries & Universities</h3>
-                <p>Authorized institutions can access and respond to assigned surveys</p>
-            </div>
-            <div class="sector-card">
-                <div class="sector-icon sector-icon-orange">
-                    <i class="fas fa-clipboard-check"></i>
-                </div>
-                <h3>Response Collection</h3>
-                <p>Submit and track survey responses in a structured format</p>
-            </div>
-            <div class="sector-card">
-                <div class="sector-icon sector-icon-purple">
-                    <i class="fas fa-table"></i>
-                </div>
-                <h3>Data Management</h3>
-                <p>Organize and manage collected data efficiently</p>
-            </div>
-            <div class="sector-card">
-                <div class="sector-icon sector-icon-red">
-                    <i class="fas fa-search"></i>
-                </div>
-                <h3>Easy Navigation</h3>
-                <p>Simple and intuitive interface for all user types</p>
-            </div>
-            <div class="sector-card">
-                <div class="sector-icon sector-icon-cyan">
-                    <i class="fas fa-chart-bar"></i>
-                </div>
-                <h3>Organized Reports</h3>
-                <p>View and manage survey data in structured format</p>
-            </div>
-        </div>
-    </div>
-</section>
+            <p class="badge">ပြင်ဆင်ဖွဲ့စည်းမှု — ၂၀၂၃ ခုနှစ်</p>
+          </div>
+        </article>
 
-<!-- CTA Section -->
-<section class="cta">
-    <div class="cta-container">
-        <div class="cta-content">
-            <h2 class="cta-title">Start Managing Surveys</h2>
-            <p class="cta-subtitle">
-                Access the survey platform to view and respond to surveys for your institution
-            </p>
-            <div class="cta-actions">
-                <a href="/login" class="btn btn-cta-primary">
-                    Login to Continue
-                </a>
-                <a href="/surveys" class="btn btn-cta-secondary">
-                    View Surveys
-                </a>
-            </div>
-        </div>
+        <article class="info-row card-hover" id="departments">
+          <div class="info-image">
+            <img src="/static/img/departments.png" alt="ခေတ်မီ ရုံးခန်း စင်္ကြံ"
+                 loading="lazy" width="1200" height="896">
+            <span class="image-caption">OUR DEPARTMENTS</span>
+          </div>
+          <div class="info-content">
+            <span class="section-number">03 / DEPARTMENTS</span>
+            <h3>ဖွဲ့စည်းပုံနှင့် ဦးစီးဌာန</h3>
+            <p class="info-body">ဝန်ကြီးဌာနအောက်တွင် အောက်ပါဦးစီးဌာနများ ပါဝင်ပါသည်။</p>
+            <ul class="department-list">
+              <li>သိပ္ပံနှင့်နည်းပညာဦးစီးဌာန</li>
+              <li>သုတေသနနှင့်ဖွံ့ဖြိုးရေးဦးစီးဌာန</li>
+              <li>နည်းပညာမြှင့်တင်ရေးဦးစီးဌာန</li>
+              <li>သတင်းအချက်အလက်နည်းပညာဦးစီးဌာန</li>
+            </ul>
+          </div>
+        </article>
+      </div>
     </div>
-</section>
-{% endblock %}
+  </section>
 
-{% block extra_js %}
-<script src="{{ url_for('static', path='/js/home.js') }}"></script>
-{% endblock %}
+  <!-- Contact and map -->
+  <section class="container section-space section-fade-in" id="contact">
+    <div class="contact-layout">
+      <div class="contact-header">
+        <span class="section-label">GET IN TOUCH</span>
+        <h2>ဆက်သွယ်ရန်</h2>
+        <p>အသေးစိတ်သိရှိလိုပါက ဝန်ကြီးဌာန၏ ရုံးတည်နေရာကို လေ့လာနိုင်ပါသည်။</p>
+        <div class="contact-address">
+          <span class="contact-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </span>
+          <address>ရုံးအမှတ် (၂၆)၊ နေပြည်တော်၊<br>ပြည်ထောင်စုနယ်မြေ။</address>
+        </div>
+      </div>
+      <div class="map-wrapper card-hover">
+        <div id="map" class="map-container" aria-label="ဝန်ကြီးဌာန တည်နေရာပြမြေပုံ"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <a class="footer-brand" href="#home">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</a>
+    <p>© 2026 သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန။ မူပိုင်ခွင့်အားလုံး လက်ဝယ်ရှိသည်။</p>
+    <a class="back-to-top" href="#home" aria-label="စာမျက်နှာထိပ်သို့ ပြန်သွားရန်">↑</a>
+  </div>
+</footer>
+
+<!-- Login dialog -->
+<dialog class="login-dialog" id="login-dialog" aria-labelledby="login-title">
+  <div class="dialog-body">
+    <div class="dialog-heading">
+      <div>
+        <span class="dialog-kicker">WELCOME BACK</span>
+        <h2 id="login-title">လော့အင် ဝင်ရောက်ခြင်း</h2>
+        <p>သင့်အကောင့်ဖြင့် ဆက်လက်ဝင်ရောက်ပါ</p>
+      </div>
+      <button class="icon-button" type="button" data-login-close aria-label="ပိတ်ရန်">×</button>
+    </div>
+    <form id="login-form">
+      <div class="form-field">
+        <label for="username">အသုံးပြုသူအမည်</label>
+        <input id="username" name="username" type="text" autocomplete="username"
+               placeholder="အသုံးပြုသူအမည် ထည့်ပါ" required>
+      </div>
+      <div class="form-field">
+        <label for="password">စကားဝှက်</label>
+        <input id="password" name="password" type="password" autocomplete="current-password"
+               placeholder="စကားဝှက် ထည့်ပါ" required>
+      </div>
+      <button class="button button--primary" type="submit">
+        ဝင်ရောက်ရန် <span aria-hidden="true">→</span>
+      </button>
+      <p class="form-status" role="status" hidden></p>
+    </form>
+    <p class="dialog-note">ဤစနစ်သည် ယာယီဖြစ်ပြီး စစ်တမ်းအတွက် နမူနာသာဖြစ်ပါသည်။</p>
+  </div>
+</dialog>
+
+<script src="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const mapElement = document.getElementById("map");
+    if (!mapElement || typeof maplibregl === "undefined") return;
+
+    const map = new maplibregl.Map({
+      container: mapElement,
+      style: "https://tiles.openfreemap.org/styles/liberty",
+      center: [96.0785, 19.7633],
+      zoom: 13
+    });
+
+    new maplibregl.Marker({ color: "#2674d9" })
+      .setLngLat([96.0785, 19.7633])
+      .addTo(map);
+  });
+</script>
+</body>
+</html>
