@@ -467,8 +467,27 @@ class PortalTests(PortalFixture):
         status, _, body = await self.request("/")
         self.assertEqual(status, 200)
         self.assertIn('id="login-dialog"', body)
+        self.assertIn('href="/RoadMap.html"', body)
+        self.assertIn('href="/#home" aria-current="page"', body)
+        self.assertIn('href="/#contact"', body)
         status, _, _ = await self.request("/static/css/pages/portal.css")
         self.assertEqual(status, 200)
+
+    async def test_roadmap_page_serves_separate_assets(self):
+        status, _, body = await self.request("/RoadMap.html")
+        self.assertEqual(status, 200)
+        self.assertIn("MYANMAR DIGITAL ECONOMY ROADMAP 2030", body)
+        self.assertIn('href="/static/css/pages/roadmap.css"', body)
+        self.assertIn('src="/static/js/roadmap.js"', body)
+        self.assertIn('href="/RoadMap.html" aria-current="page"', body)
+        self.assertNotIn('href="/#home" aria-current="page"', body)
+        self.assertIn('href="/#contact"', body)
+        for path in (
+            "/static/css/pages/roadmap.css",
+            "/static/js/roadmap.js",
+        ):
+            status, _, _ = await self.request(path)
+            self.assertEqual(status, 200, path)
 
 
 if __name__ == "__main__":

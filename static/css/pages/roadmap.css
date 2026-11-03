@@ -1,0 +1,369 @@
+/* Roadmap 2030 page styles. Loaded only by templates/RoadMap.html. */
+.roadmap-hero {
+  position: relative;
+  padding: clamp(3rem, 8vw, 5rem) 1rem;
+  background: linear-gradient(135deg, #0b1f33 0%, #1b3452 40%, #2a4a6b 100%);
+  color: #fff;
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.roadmap-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 80% 20%, rgba(255,255,255,.06) 0%, transparent 50%),
+              radial-gradient(circle at 10% 90%, rgba(255,255,255,.04) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.roadmap-hero .container {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.roadmap-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .35rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.15);
+  font-size: .72rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: #a8d0f0;
+  margin-bottom: 1.25rem;
+}
+
+.roadmap-hero h1 {
+  font-size: clamp(1.4rem, 3.5vw, 2.2rem);
+  font-weight: 700;
+  line-height: 1.5;
+  margin: 0 auto 1rem;
+  max-width: 900px;
+  letter-spacing: -.02em;
+}
+
+.roadmap-hero p {
+  max-width: 720px;
+  margin: 0 auto;
+  color: #b8cfe4;
+  font-size: .95rem;
+  line-height: 1.8;
+}
+
+.roadmap-badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .65rem;
+  margin-top: 1.75rem;
+}
+
+.roadmap-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem 1rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  font-size: .78rem;
+  color: #d0e4f5;
+}
+
+.roadmap-badge span {
+  color: #7ab8e8;
+  font-weight: 700;
+}
+
+/* Pillar navigation */
+.pillar-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .5rem;
+  margin: 0 auto 2.5rem;
+  max-width: 1100px;
+  padding: 0 1rem;
+}
+
+.pillar-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem 1rem;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e0e6ed;
+  color: #1b3452;
+  font-size: .78rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all .2s ease;
+  white-space: nowrap;
+}
+
+.pillar-nav a:hover,
+.pillar-nav a:focus-visible {
+  background: #1b3452;
+  color: #fff;
+  border-color: #1b3452;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(27,52,82,.18);
+}
+
+.pillar-nav a .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  background: #eef3f8;
+  font-size: .65rem;
+  font-weight: 800;
+  color: #1b3452;
+  transition: all .2s ease;
+}
+
+.pillar-nav a:hover .num {
+  background: rgba(255,255,255,.2);
+  color: #fff;
+}
+
+/* Pillar sections */
+.pillar-section {
+  margin-bottom: 3.5rem;
+  scroll-margin-top: 100px;
+}
+
+.pillar-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e8edf3;
+}
+
+.pillar-number {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1b3452, #2a4a6b);
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(27,52,82,.2);
+}
+
+.pillar-title-group h2 {
+  margin: 0 0 .25rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1b3452;
+  line-height: 1.5;
+}
+
+.pillar-title-group .pillar-sub {
+  margin: 0;
+  font-size: .82rem;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+/* Goal cards */
+.goal-card {
+  background: #fff;
+  border: 1px solid #e8edf3;
+  border-radius: 18px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  transition: all .25s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,.03);
+}
+
+.goal-card:hover {
+  border-color: #c5d5e6;
+  box-shadow: 0 8px 28px rgba(27,52,82,.08);
+  transform: translateY(-2px);
+}
+
+.goal-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .28rem .8rem;
+  border-radius: 999px;
+  background: #eef3f8;
+  color: #1b3452;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-bottom: .9rem;
+}
+
+.goal-label::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+}
+
+.goal-objective {
+  margin: 0 0 1.25rem;
+  font-size: .92rem;
+  line-height: 1.8;
+  color: #334155;
+  padding-left: 1rem;
+  border-left: 3px solid #dbe5f0;
+}
+
+.action-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+}
+
+.action-list li {
+  display: flex;
+  gap: .75rem;
+  align-items: flex-start;
+  padding: .85rem 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #eef2f7;
+  font-size: .86rem;
+  line-height: 1.75;
+  color: #475569;
+  transition: all .2s ease;
+}
+
+.action-list li:hover {
+  background: #f1f6fb;
+  border-color: #d8e3f0;
+}
+
+.action-code {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.4rem;
+  padding: .2rem .45rem;
+  border-radius: 6px;
+  background: #1b3452;
+  color: #fff;
+  font-size: .66rem;
+  font-weight: 700;
+  letter-spacing: .02em;
+  margin-top: .1rem;
+}
+
+.action-text {
+  flex: 1;
+}
+
+/* Empty state for status */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-top: .6rem;
+  padding: .25rem .7rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: .68rem;
+  font-weight: 600;
+  border: 1px solid #fde68a;
+}
+
+.status-pill::before {
+  content: "○";
+  font-size: .75rem;
+}
+
+/* Summary strip */
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  max-width: 900px;
+  margin: 0 auto 2.5rem;
+  padding: 0 1rem;
+}
+
+.summary-item {
+  text-align: center;
+  padding: 1.25rem 1rem;
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #e8edf3;
+  box-shadow: 0 1px 3px rgba(0,0,0,.03);
+}
+
+.summary-item strong {
+  display: block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1b3452;
+  line-height: 1.2;
+  margin-bottom: .2rem;
+}
+
+.summary-item span {
+  font-size: .76rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .pillar-header {
+    flex-direction: column;
+    gap: .75rem;
+  }
+
+  .goal-card {
+    padding: 1.15rem;
+  }
+
+  .action-list li {
+    flex-direction: column;
+    gap: .4rem;
+    padding: .75rem .85rem;
+  }
+
+  .action-code {
+    min-width: auto;
+    align-self: flex-start;
+  }
+
+  .pillar-nav a {
+    font-size: .72rem;
+    padding: .38rem .8rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .goal-card,
+  .pillar-nav a,
+  .action-list li {
+    transition: none !important;
+  }
+}

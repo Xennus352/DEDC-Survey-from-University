@@ -19,3 +19,11 @@ async def index(request: Request):
         request=request,
         name="index.html"
     )
+
+
+@router.get("/RoadMap.html", response_class=HTMLResponse, include_in_schema=False)
+async def roadmap(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="RoadMap.html"
+    )

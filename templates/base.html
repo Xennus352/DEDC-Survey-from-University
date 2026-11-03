@@ -26,11 +26,12 @@
 </head>
 
 <body>
+{% set current_path = request.url.path if request else '/' %}
 <a class="skip-link" href="#main-content">အကြောင်းအရာသို့ ကျော်သွားရန်</a>
 
 <header class="site-header" id="home">
   <div class="container header-inner">
-    <a class="brand" href="#home" aria-label="ဝန်ကြီးဌာန ပင်မစာမျက်နှာ">
+    <a class="brand" href="/" aria-label="ဝန်ကြီးဌာန ပင်မစာမျက်နှာ">
       <span class="brand-seals">
         <img src="/static/img/logo.png"
              alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်" width="48" height="48">
@@ -42,10 +43,10 @@
     </a>
 
     <nav class="desktop-nav" aria-label="ပင်မလမ်းညွှန်">
-      <a href="#home" aria-current="page">ပင်မစာမျက်နှာ</a>
-      <a href="#survey">မိတ်ဆက်</a>
-      <a href="#departments">ဦးစီးဌာနများ</a>
-      <a href="#contact">ဆက်သွယ်ရန်</a>
+      <a href="/#home" {% if current_path == "/" %}aria-current="page"{% endif %}>ပင်မစာမျက်နှာ</a>
+      <a href="/#survey">မိတ်ဆက်</a>
+      <a href="/RoadMap.html" {% if current_path == "/RoadMap.html" %}aria-current="page"{% endif %}>မဏ္ဍိုင်များ</a>
+      <a href="/#contact">ဆက်သွယ်ရန်</a>
       <button class="button button--pill" type="button" data-login-open>
         <span class="login-icon" aria-hidden="true">↗</span> လော့အင်
       </button>
@@ -61,10 +62,11 @@
   </div>
 
   <nav id="mobile-nav" class="mobile-nav container" aria-label="မိုဘိုင်းလမ်းညွှန်" hidden>
-    <a href="#home" aria-current="page">ပင်မစာမျက်နှာ</a>
-    <a href="#survey">မိတ်ဆက်</a>
-    <a href="#departments">ဦးစီးဌာနများ</a>
-    <a href="#contact">ဆက်သွယ်ရန်</a>
+    <a href="/#home" {% if current_path == "/" %}aria-current="page"{% endif %}>ပင်မစာမျက်နှာ</a>
+    <a href="/#survey">မိတ်ဆက်</a>
+    <a href="/#departments">ဦးစီးဌာနများ</a>
+    <a href="/RoadMap.html" {% if current_path == "/RoadMap.html" %}aria-current="page"{% endif %}>မဏ္ဍိုင်များ</a>
+    <a href="/#contact">ဆက်သွယ်ရန်</a>
     <button class="button button--pill" type="button" data-login-open>လော့အင် ဝင်ရန်</button>
   </nav>
 </header>
@@ -75,7 +77,7 @@
 
 <footer class="site-footer">
   <div class="container footer-inner">
-    <a class="footer-brand" href="#home">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</a>
+    <a class="footer-brand" href="/">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</a>
     <p>© 2026 သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန။ မူပိုင်ခွင့်အားလုံး လက်ဝယ်ရှိသည်။</p>
     <!-- <a class="back-to-top" href="#home" aria-label="စာမျက်နှာထိပ်သို့ ပြန်သွားရန်">↑</a> -->
   </div>
