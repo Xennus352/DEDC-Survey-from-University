@@ -3,7 +3,7 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 from fastapi import HTTPException
-from sqlalchemy import update
+from sqlalchemy import update, select, func
 from sqlalchemy.orm import selectinload
 
 from app.models.forms import (
@@ -16,8 +16,9 @@ from app.models.forms import (
     Submission,
     SurveyForm,
     WorkbookImport,
+    QuestionBankQuestion,
 )
-from app.schemas.forms import DraftInput
+from app.schemas.forms import DraftInput, SectionInput, QuestionInput
 from app.services.form_logic import SUPPORTED, validate_answers, validate_rules
 
 
@@ -138,7 +139,7 @@ def apply_definition(db, version, data):
     except ValueError as error:
         raise HTTPException(422, str(error))
     sources = {
-        q.key: (q.source_university_question_id, q.source_ministry_question_id)
+        q.key: q.source_university_question_id
         for section in version.sections
         for q in section.questions
     }
@@ -165,9 +166,7 @@ def apply_definition(db, version, data):
                 **field.model_dump(exclude={"options"}),
             )
             if q.key in sources:
-                q.source_university_question_id, q.source_ministry_question_id = (
-                    sources[q.key]
-                )
+                q.source_university_question_id = sources[q.key]
             section.questions.append(q)
             q.options = [
                 FieldOption(position=i, **option.model_dump())
@@ -176,10 +175,57 @@ def apply_definition(db, version, data):
 
 
 def create_form(db, data, actor):
+    """Simple form creation - just title and template, system handles everything else."""
+    import json
+    from pathlib import Path
+
+    # Check if using kid template
+    if data.template == "kid_survey":
+        content = json.loads(
+            (Path(__file__).resolve().parents[1] / "data" / "kid_survey.json")
+            .read_text(encoding="utf-8")
+        )
+        content["title"] = data.title
+        initial = DraftInput.model_validate(content)
+    elif data.template == "university_dedc":
+        content = json.loads(
+            (Path(__file__).resolve().parents[1] / "data" / "university_survey.json")
+            .read_text(encoding="utf-8")
+        )
+        content["title"] = data.title
+        initial = DraftInput.model_validate(content)
+    else:
+        # Blank form with minimal questions - kid friendly!
+        initial = DraftInput(
+            title=data.title,
+            sections=[
+                SectionInput(
+                    title="Basic Information",
+                    questions=[
+                        QuestionInput(
+                            key="name",
+                            title="What is your name?",
+                            kind="short_text",
+                            required=True,
+                        ),
+                        QuestionInput(
+                            key="age",
+                            title="How old are you?",
+                            kind="number",
+                            required=True,
+                            config={"min": 0, "max": 120},
+                        ),
+                    ],
+                )
+            ],
+        )
+
     form = SurveyForm(title=data.title, audience=data.audience)
     form.versions.append(FormVersion(number=1, title=data.title))
     db.add(form)
     db.flush()
+    if initial is not None:
+        apply_definition(db, form.versions[0], initial)
     audit(db, actor, "form.create", "form", form.id, title=data.title)
     db.commit()
     return form
@@ -265,7 +311,6 @@ def clone_version(db, form_id, actor):
         for q in section.questions:
             old = originals[q.key]
             q.source_university_question_id = old.source_university_question_id
-            q.source_ministry_question_id = old.source_ministry_question_id
     audit(db, actor, "form.version", "version", version.id, source_version=source.id)
     db.commit()
     return version
@@ -386,3 +431,242 @@ def submit(db, form_id, data, actor):
     )
     db.commit()
     return submission
+
+
+# ---- Question Bank Questions ----
+
+def search_question_bank(db, query: str, page: int = 1, limit: int = 50):
+    """Search the question bank by title with case-insensitive matching."""
+    from sqlalchemy import func as sq_func
+    from app.models.forms import QuestionBankQuestion, FormField, FormSection, FormVersion, SurveyForm
+
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
+    offset = (page - 1) * limit
+
+    # Build search filter
+    search_filter = (
+        sq_func.lower(QuestionBankQuestion.title).contains(sq_func.lower(query))
+        | QuestionBankQuestion.title.contains(query)
+    )
+
+    # Count question bank questions
+    bank_count = (
+        db.query(sq_func.count(QuestionBankQuestion.id))
+        .filter(search_filter)
+        .scalar() or 0
+    )
+
+    # Count form fields (questions from forms)
+    form_field_count = (
+        db.query(sq_func.count(FormField.id))
+        .join(FormSection, FormField.section_id == FormSection.id)
+        .join(FormVersion, FormSection.version_id == FormVersion.id)
+        .join(SurveyForm, FormVersion.form_id == SurveyForm.id)
+        .filter(
+            sq_func.lower(FormField.title).contains(sq_func.lower(query))
+            | FormField.title.contains(query)
+        )
+        .scalar() or 0
+    )
+
+    total = bank_count + form_field_count
+
+    # Get question bank questions
+    bank_items = (
+        db.query(QuestionBankQuestion)
+        .filter(search_filter)
+        .order_by(QuestionBankQuestion.id.desc())
+        .limit(limit)
+        .offset(max(0, offset - bank_count) if offset < bank_count else 0)
+        .all()
+    )
+
+    # Get form fields
+    form_field_offset = max(0, offset - len(bank_items)) if offset < bank_count else offset - bank_count
+    form_field_limit = max(0, limit - len(bank_items))
+
+    form_field_items = []
+    if form_field_limit > 0:
+        form_field_items = (
+            db.query(FormField, SurveyForm.title.label("form_title"), FormVersion.number.label("version_number"), SurveyForm.id.label("form_id"), FormVersion.status.label("version_status"))
+            .join(FormSection, FormField.section_id == FormSection.id)
+            .join(FormVersion, FormSection.version_id == FormVersion.id)
+            .join(SurveyForm, FormVersion.form_id == SurveyForm.id)
+            .filter(
+                sq_func.lower(FormField.title).contains(sq_func.lower(query))
+                | FormField.title.contains(query)
+            )
+            .order_by(FormField.id.desc())
+            .limit(form_field_limit)
+            .offset(form_field_offset)
+            .all()
+        )
+
+    # Combine results - convert to dict format expected by UI
+    items = []
+    for q in bank_items:
+        items.append({
+            "id": q.id,
+            "title": q.title,
+            "title_my": q.title_my,
+            "title_en": q.title_en,
+            "kind": q.kind,
+            "help_text": q.help_text,
+            "placeholder": q.placeholder,
+            "required": q.required,
+            "enabled": q.enabled,
+            "config": q.config,
+            "question_bank_id": q.id,
+            "form": None,
+            "version": None,
+            "form_id": None,
+            "status": "bank",
+        })
+
+    for field, form_title, version_number, form_id, version_status in form_field_items:
+        items.append({
+            "id": field.id,
+            "title": field.title,
+            "title_my": field.title_my,
+            "title_en": field.title_en,
+            "kind": field.kind,
+            "help_text": field.help_text,
+            "placeholder": field.placeholder,
+            "required": field.required,
+            "enabled": field.enabled,
+            "config": field.config,
+            "question_bank_id": field.question_bank_id,
+            "form": form_title,
+            "version": version_number,
+            "form_id": form_id,
+            "status": version_status,
+        })
+
+    return {"total": total, "items": items, "page": page, "limit": limit, "pages": (total + limit - 1) // limit if total > 0 else 0}
+
+
+def get_question_bank_question(db, question_id: int):
+    """Get a single question bank question by ID."""
+    return db.get(QuestionBankQuestion, question_id)
+
+
+def create_question_bank_question(
+    db,
+    title: str,
+    title_my: str = "",
+    title_en: str = "",
+    kind: str = "short_text",
+    help_text: str = "",
+    placeholder: str = "",
+    required: bool = False,
+    enabled: bool = True,
+    config: dict | None = None,
+) -> QuestionBankQuestion:
+    """Create a new question in the question bank, preventing duplicates."""
+    from sqlalchemy import select
+
+    config = config or {}
+    # Normalize title for duplicate check (trim whitespace, case-insensitive)
+    normalized_title = title.strip()
+
+    # Check for existing question with same title and kind (case-insensitive, whitespace-normalized)
+    existing = (
+        db.query(QuestionBankQuestion)
+        .filter(
+            func.lower(QuestionBankQuestion.title).func.collate("NOCASE") == normalized_title.lower(),
+            QuestionBankQuestion.kind == kind,
+        )
+        .first()
+    )
+
+    if existing:
+        # Update existing question's fields if they've changed
+        existing.title_my = title_my or existing.title_my
+        existing.title_en = title_en or existing.title_en
+        existing.help_text = help_text or existing.help_text
+        existing.placeholder = placeholder or existing.placeholder
+        existing.required = required or existing.required
+        existing.enabled = enabled and existing.enabled
+        existing.config = {**existing.config, **config}
+        existing.created_at = func.now()
+        db.flush()
+        return existing
+
+    # Create new question bank question
+    question = QuestionBankQuestion(
+        title=normalized_title,
+        title_my=title_my,
+        title_en=title_en,
+        kind=kind,
+        help_text=help_text,
+        placeholder=placeholder,
+        required=required,
+        enabled=enabled,
+        config=config,
+    )
+    db.add(question)
+    db.flush()
+    return question
+
+
+def update_question_bank_question(
+    db,
+    question_id: int,
+    title: str | None = None,
+    title_my: str | None = None,
+    title_en: str | None = None,
+    kind: str | None = None,
+    help_text: str | None = None,
+    placeholder: str | None = None,
+    required: bool | None = None,
+    enabled: bool | None = None,
+    config: dict | None = None,
+) -> QuestionBankQuestion:
+    """Update a question bank question."""
+    question = db.get(QuestionBankQuestion, question_id)
+    if not question:
+        raise HTTPException(404, "Question bank question not found.")
+
+    if title is not None:
+        question.title = title.strip()
+    if title_my is not None:
+        question.title_my = title_my
+    if title_en is not None:
+        question.title_en = title_en
+    if kind is not None:
+        question.kind = kind
+    if help_text is not None:
+        question.help_text = help_text
+    if placeholder is not None:
+        question.placeholder = placeholder
+    if required is not None:
+        question.required = required
+    if enabled is not None:
+        question.enabled = enabled
+    if config is not None:
+        question.config = {**question.config, **config}
+
+    db.flush()
+    return question
+
+
+def delete_question_bank_question(db, question_id: int, check_usage: bool = True) -> bool:
+    """Delete a question bank question. If check_usage, prevent deletion if used by forms."""
+    question = db.get(QuestionBankQuestion, question_id)
+    if not question:
+        return False
+
+    if check_usage:
+        # Check if question is used by any form fields
+        used_by = (
+            db.query(FormField)
+            .filter(FormField.question_bank_id == question_id)
+            .count()
+        )
+        if used_by > 0:
+            return False  # Prevent deletion - question is in use
+
+    db.delete(question)
+    db.flush()
+    return True

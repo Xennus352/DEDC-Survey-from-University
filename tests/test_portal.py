@@ -3,6 +3,7 @@
 import re
 import time
 import unittest
+import tempfile
 from http.cookies import SimpleCookie
 from unittest.mock import patch
 from urllib.parse import urlencode, urlsplit
@@ -14,6 +15,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.config import settings
 from app.database import Base
+from app.storage import schema
+from app.storage.compact import CompactSession
 from app import admin_auth
 from app.dependencies import get_db
 from app.main import app
@@ -35,9 +38,10 @@ class PortalFixture(unittest.IsolatedAsyncioTestCase):
             connect_args={"check_same_thread": False},
             poolclass=StaticPool,
         )
-        self.sessions = sessionmaker(bind=self.engine)
+        self.private_folder = tempfile.TemporaryDirectory()
+        self.sessions = lambda: CompactSession(self.engine, self.private_folder.name)
         self.cookies = SimpleCookie()
-        Base.metadata.create_all(self.engine)
+        schema.metadata.create_all(self.engine)
         with self.sessions() as db:
             db.add_all(
                 [UserRole(id=1, name="Admin"), UserRole(id=2, name="University")]
@@ -84,6 +88,7 @@ class PortalFixture(unittest.IsolatedAsyncioTestCase):
         self.engine_patch.stop()
         self.auth_db_patch.stop()
         self.engine.dispose()
+        self.private_folder.cleanup()
 
     async def request(
         self,

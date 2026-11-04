@@ -10,6 +10,8 @@ from fastapi import HTTPException
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import sessionmaker
 from app.database import Base
+from app.storage import schema as persistent_schema
+from app.storage.compact import CompactSession
 from app.models.forms import AuditLog, FormField, Submission, WorkbookAnswer
 from app.models.user import User, UserRole
 from app.models.legacy import UniversityQuestion
@@ -24,8 +26,9 @@ SOURCE = Path(
 class FormTests(unittest.TestCase):
     def setUp(self):
         self.engine = create_engine("sqlite://")
-        Base.metadata.create_all(self.engine)
-        self.db = sessionmaker(bind=self.engine)()
+        persistent_schema.metadata.create_all(self.engine)
+        self.private_folder = tempfile.TemporaryDirectory()
+        self.db = CompactSession(self.engine, self.private_folder.name)
         role = UserRole(name="Admin")
         self.db.add(role)
         self.db.flush()
@@ -37,6 +40,7 @@ class FormTests(unittest.TestCase):
     def tearDown(self):
         self.db.close()
         self.engine.dispose()
+        self.private_folder.cleanup()
 
     def draft(self):
         form = forms.create_form(self.db, CreateForm(title="A real survey"), self.actor)
@@ -428,7 +432,7 @@ class MigrationTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     c.execute(text("SELECT version_num FROM alembic_version")).scalar(),
-                    "0004",
+                    "0006",
                 )
             self.assertIn("survey_fields", inspect(engine).get_table_names())
             engine.dispose()

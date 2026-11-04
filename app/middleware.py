@@ -4,6 +4,30 @@ from fastapi import HTTPException
 from starlette.responses import JSONResponse
 
 
+class StaticCacheMiddleware:
+    """Make browsers revalidate static assets so UI fixes appear on reload."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http" or not scope.get("path", "").startswith("/static/"):
+            return await self.app(scope, receive, send)
+
+        async def revalidating_send(message):
+            if message["type"] == "http.response.start":
+                headers = [
+                    (key, value)
+                    for key, value in message.get("headers", [])
+                    if key.lower() != b"cache-control"
+                ]
+                headers.append((b"cache-control", b"no-cache"))
+                message = {**message, "headers": headers}
+            await send(message)
+
+        await self.app(scope, receive, revalidating_send)
+
+
 class BodySizeLimitMiddleware:
     def __init__(self, app, limit=11 * 1024 * 1024):
         self.app = app

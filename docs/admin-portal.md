@@ -25,9 +25,7 @@ tables, requires `isActive`, and requires a role matching `ADMIN_ROLE_NAME`
 (default `Admin`). Accounts created by the setup command use the supported
 `pbkdf2_sha256$600000$salt$hash` password format. Unsupported password formats fail
 authentication. Role changes and deactivation also revoke access on the next
-portal request. The router creates only its `admin_sessions` table on startup;
-the existing account and survey table definitions are unaffected. Deployments that manage schema through
-migrations should create that table before starting the app.
+portal request. Sessions are stored in private files referenced by the eight-table SQL metadata. Startup creates no extra SQL tables. Import the supplied `dedc.sql` for a new workspace; convert an existing workspace using [the table guide](database-tables.md).
 
 | Method | Route | Behavior |
 | --- | --- | --- |
@@ -38,7 +36,7 @@ migrations should create that table before starting the app.
 | POST | `/portal/logout` | Validate CSRF, delete the session, clear the cookie, redirect to `/portal` |
 
 Passwords use salted PBKDF2-SHA256 with 600,000 iterations. Session cookies contain
-random tokens; only hashes are stored in the database. Anonymous forms expire
+random tokens; only hashes are stored in private session records. Anonymous forms expire
 after 15 minutes, and authenticated sessions after eight hours. Login and logout
 require a session-bound CSRF token. Portal pages use `Cache-Control: no-store`.
 The cookie uses path `/` so the session is available to both `/portal` and
@@ -46,10 +44,9 @@ The cookie uses path `/` so the session is available to both `/portal` and
 Server-side deletion invalidates a logged-out token, including copied cookies.
 
 Use HTTPS and set `PORTAL_COOKIE_SECURE=true` in production. Apply login rate
-limiting at your reverse proxy before exposing the portal publicly. Existing
-survey API routes retain their existing access behavior; this feature protects
-the portal and dashboard. Add authorization dependencies to administrative APIs as those
-features are built.
+limiting at your reverse proxy before exposing the portal publicly. The current
+form and administration APIs enforce their existing session and CSRF requirements. The original `/surveys`, `/questions`, and `/responses` API was
+retired in migration `0005`; see [the table guide](database-tables.md).
 
 Run the portal checks with `.venv/bin/python -m unittest discover -s tests -v`.
 
@@ -117,4 +114,4 @@ committed to `.env`, rotate them; removing the file does not remove Git history.
 
 ## Current administration workspace
 
-The dynamic builder, versioned forms, reporting-period-first respondent experience, original-format workbook exports and reporting/user/audit pages are documented in [the implementation report](../context/IMPLEMENTATION_REPORT.md). Run `uv run alembic upgrade head` after syncing dependencies. Schema upgrades are additive; do not run autogeneration blindly against the existing MySQL schema.
+The dynamic builder, versioned forms, reporting-period-first respondent experience, original-format workbook exports and reporting/user/audit pages are documented in [the implementation report](../context/IMPLEMENTATION_REPORT.md). The application now uses the eight-table schema; follow [the table guide](database-tables.md) to convert an existing database. Back up the SQL database and private files together. Historical Alembic migrations must not be applied to the eight-table database.

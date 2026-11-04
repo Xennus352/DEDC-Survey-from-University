@@ -1,1 +1,54 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="{{ csrf_token }}"><title>DEDC surveys</title><link rel="stylesheet" href="/static/css/admin/workspace.css"><script defer src="/static/js/admin-session.js"></script><script type="module" src="/static/js/admin/survey.js"></script></head><body class="survey-public" data-admin-workspace data-session-endpoint="/api/session" data-login-url="/survey/login" data-form-id="{{ form_id if form_id else '' }}"><header class="topbar"><a class="brand" href="/survey" style="padding:0"><img class="brand-logo" src="/static/img/logo.png" alt="Ministry of Science and Technology logo" width="40" height="40"><strong>DEDC surveys</strong></a><div class="topbar-actions"><span>{{ username }}</span><form action="/portal/logout" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="button small" type="submit">Sign out</button></form></div></header><main class="preview-frame"><p class="notice error" role="alert" tabindex="-1" data-session-error hidden></p><div id="survey-content"><div class="skeleton"><span></span></div></div></main><div class="toast" role="status" hidden></div></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="csrf-token" content="{{ csrf_token }}" />
+    <title>DEDC surveys</title>
+    <link rel="stylesheet" href="/static/css/admin/workspace.css" />
+    <script defer src="/static/js/admin-session.js"></script>
+    <script type="module" src="/static/js/admin/survey.js"></script>
+  </head>
+  <body
+    class="survey-public"
+    data-admin-workspace
+    data-session-endpoint="/api/session"
+    data-login-url="/survey/login"
+    data-form-id="{{ form_id if form_id else '' }}"
+  >
+    <header class="topbar">
+      <a class="brand" href="/survey" style="padding: 0"
+        ><img
+          class="brand-logo"
+          src="/static/img/logo.png"
+          alt="Ministry of Science and Technology logo"
+          width="40"
+          height="40"
+        /><strong>DEDC surveys</strong></a
+      >
+      <div class="topbar-actions">
+        <span>{{ username }}</span>
+        <form action="/portal/logout" method="post">
+          <input
+            type="hidden"
+            name="csrf_token"
+            value="{{ csrf_token }}"
+          /><button class="button small" type="submit">Sign out</button>
+        </form>
+      </div>
+    </header>
+    <main class="preview-frame">
+      <p
+        class="notice error"
+        role="alert"
+        tabindex="-1"
+        data-session-error
+        hidden
+      ></p>
+      <div id="survey-content">
+        <div class="skeleton"><span></span></div>
+      </div>
+    </main>
+    <div class="toast" role="status" hidden></div>
+  </body>
+</html>

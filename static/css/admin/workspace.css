@@ -778,6 +778,10 @@ td.numeric {
   gap: 22px;
   align-items: start;
 }
+.editor-layout > div,
+.editor-sidebar {
+  min-width: 0;
+}
 .editor-sidebar {
   position: sticky;
   top: 20px;
@@ -795,7 +799,9 @@ td.numeric {
 }
 .section-heading h2 {
   flex: 1;
+  min-width: 0;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
 .question-row {
   display: flex;
@@ -1159,6 +1165,12 @@ dialog[open] {
   }
   .form-grid {
     grid-template-columns: 1fr;
+  }
+  .editor-layout {
+    gap: 16px;
+  }
+  .editor-sidebar {
+    order: 0;
   }
   .editor-sidebar .field-stack {
     grid-template-columns: 1fr;

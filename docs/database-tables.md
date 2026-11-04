@@ -1,52 +1,131 @@
-# Database Table Guide
+# DEDC eight-table database
 
-This guide explains the tables registered by the application and migrations. The database schema audit at `context/database-schema-audit.json` is a snapshot of the original local MySQL schema **before** the new form-system migrations; it lists 11 tables. Migrations `0001`–`0004` add the tables described below. Use `uv run alembic current` and `uv run alembic heads` to check the migration state of a configured database.
+The configured MySQL database uses exactly the eight tables supplied in the
+November 2026 `dedc.sql`. The repository's `dedc.sql` is that original, empty
+schema. A populated, private `dedc.sql` is generated under `backups/` during
+conversion. The original file in Downloads is never overwritten.
 
-The configured local MySQL database was inspected read-only on 2026-11-02. It has 29 tables including Alembic's migration bookkeeping table. Several legacy workflow tables are empty, but their API routes remain active. The four imported forms, 100 original source-answer rows, and existing account/question records are present; there are no new survey submissions yet.
-
-## Existing accounts and organization data
-
-| Table | Purpose |
+| Table | Persistent records |
 |---|---|
-| `userrole` | Role names assigned to accounts. |
-| `user` | Login accounts, password hashes, active state, and optional organization membership. |
-| `university`, `ministry` | Organization records used by accounts and the legacy survey API. |
-| `year` | Reporting-period records referenced by legacy question definitions. |
-| `questiontitle` | Shared category/title for legacy questions and imported form sections. |
-| `uniquestion`, `ministryquestion` | Legacy question definitions for each audience. Imported dynamic fields link back to these records. |
-| `unisurvey`, `ministrysurvey` | Legacy answer records submitted by the Flutter-compatible university and ministry workflows. Keep these while those clients or records are in use. |
+| `university` | University organizations, referenced by accounts and responses. |
+| `ministry` | Ministry organizations, referenced by accounts and responses. |
+| `userrole` | Account roles. |
+| `user` | Accounts, existing password hashes, active state and organization membership. |
+| `uniquestion` | University source questions and custom questions; JSON form metadata in `description`. |
+| `ministryquestion` | Ministry questions and their metadata in `description`. |
+| `unisurvey` | University responses, including native presence/count columns and JSON answer values. |
+| `ministrysurvey` | Ministry responses using the same presence/count/JSON representation. |
 
-## Legacy survey API
+The table name is **`uniquestion`**, singular, exactly as in the supplied SQL.
+University fields imported from a workbook share their original source question:
+the presence, quantity and detail controls do not create three copies of it.
+Custom fields are stored in the appropriate audience's question table.
 
-| Table | Purpose |
-|---|---|
-| `surveys` | Parent records for the original generic `/surveys` API. |
-| `questions` | Questions belonging to a generic survey. |
-| `options` | Choice options belonging to a generic question. |
-| `responses` | Respondent submissions to a generic survey. |
-| `answers` | Individual answer values linked to a response and question. |
+## JSON and private files
 
-These tables are separate from `unisurvey` and `ministrysurvey`. The original API routers and CRUD modules still use them; dropping them would break those endpoints. They are created by the baseline migration if absent.
+The supplied schema has no columns for form sections, multiple input types,
+options, rules, drafts, immutable published versions, workbook provenance, review
+status or reporting-period dates. These features are preserved using versioned
+JSON envelopes in existing text columns, without adding SQL tables or columns.
 
-## Dynamic forms and reporting
+`uniquestion` reserves **negative IDs** for clearly labelled application metadata
+records. They are not respondent questions and no survey references them. Their
+`description` contains a JSON envelope with a format identifier, fragment number,
+SHA-256 checksum and compressed/base64 JSON payload. Normal questions have
+positive IDs. Exclude negative IDs when counting university questions directly
+in SQL (`WHERE uQId > 0`). Large metadata is split across records to respect the
+64 KiB `TEXT` limit.
 
-| Table | Purpose |
-|---|---|
-| `survey_forms` | Stable identity and audience for a form across versions. |
-| `survey_form_versions` | Versioned title, language, publication state, availability, and reporting-period defaults. |
-| `survey_sections` | Ordered sections, visibility conditions, and optional imported category link. |
-| `survey_fields` | Ordered question/input definitions, validation and conditional configuration, and legacy source links. |
-| `survey_field_options` | Ordered choice values for a field. |
-| `survey_submissions` | Respondent, form version, completion state, reporting dates, timestamps, and location. |
-| `survey_field_answers` | One stored answer value per field and submission. |
-| `survey_answer_files` | Uploaded response attachments, ownership, metadata, and binary file content. |
-| `survey_workbook_imports` | Import digest, worksheet, target draft version, importing user, and timestamp; prevents duplicate imports. |
-| `survey_workbook_answers` | Original workbook answer observations retained separately from new respondent submissions. |
-| `survey_workbook_templates` | Original workbook bytes keyed by digest so exact-layout Excel exports remain available. |
-| `audit_logs` | Administrative and authentication actions, actor, target, and safe change metadata. |
-| `admin_sessions` | Hashes and expiry times for revocable admin browser sessions; raw session tokens are not stored. |
-| `alembic_version` | Alembic's single current migration revision; required to know which schema upgrades have run. |
+The metadata preserves form/field IDs, sections, options, versions, source
+categories and periods, imports, verbatim workbook observations, and submission
+history. Normal question and answer rows are also materialized in the native
+university/ministry tables. `surveyDescription` contains keyed answer JSON;
+`remark` contains the submission/user/field links and lossless answer values.
+Compound quantity text remains JSON instead of being truncated into `itemCount`.
 
-## Which tables can be removed?
+`PRIVATE_STORAGE_DIR` (default `private/dedc`) contains hashed session records,
+audit history, attachment bytes and original workbook bytes. Files are immutable
+and named by their SHA-256 content hash. SQL metadata commits their references
+atomically. Files are written with private permissions, checked for integrity
+when read, and are never mounted as static assets. Existing session expiry,
+logout revocation, CSRF, role checks and authorized file downloads still apply.
+Back up **both MySQL and this directory**. A SQL-only restore cannot recover
+private sessions, audit data or uploaded bytes. Unreferenced files from rolled
+back operations are harmless and are retained; automatic garbage collection is
+not implemented.
 
-No table is currently confirmed safe to remove. The empty generic API tables (`surveys`, `questions`, `options`, `responses`, `answers`) are still used by the original `/surveys`, `/questions`, and `/responses` routes. The empty university/ministry response tables are reserved for the existing Flutter workflows. Empty file or attachment tables are part of implemented form features. In particular, workbook/source-answer tables preserve information needed for exact exports and provenance. Do not drop tables based only on their names or row counts. Before any future retirement, identify all application/client references, take and verify a database backup, migrate any required records, and remove the associated routes/models in a reviewed migration. The migrations in this project are intentionally additive and do not delete existing data.
+Existing accounts with no organization retain null membership. On their first
+submission for an audience, the application creates an organization labelled
+`Account <id>: <username>` with university type `Unspecified`, where needed.
+Replace these placeholders with the real organization names in the native
+organization tables. No real institution name is invented.
+
+## Runtime query model
+
+The existing SQLAlchemy models in `app/models/` describe **disposable in-memory
+query projections**, not additional persistent tables. Each unit of work loads
+the JSON feature data into an isolated memory-only SQLite engine so the existing
+builder, validation, reporting filters and export queries keep their behavior.
+The configured MySQL database contains only the eight supplied tables; no query
+projection or SQLite database file is persisted by the running application.
+
+`app/storage/schema.py` is the authoritative persistent schema.
+`app/storage/compact.py` reads/writes it. Do not run `Base.metadata.create_all`
+against `DATABASE_URL`. Native account rows are read directly on each request,
+so role changes/deactivation take effect immediately. The native response rows
+and question descriptions are application-managed; edit forms and answers
+through the application so their version metadata stays consistent.
+
+MySQL advisory locks serialize units of work across workers. The entire feature
+metadata is loaded per unit of work, making this suitable for the current small
+survey workspace, not a high-throughput or unbounded reporting system. All
+workers must use the same database endpoint and shared private-file directory.
+Missing/corrupted private files or incomplete metadata fail explicitly instead
+of silently dropping data. Read-only sessions do not rewrite storage.
+
+## Conversion and recovery
+
+Stop application writes, then run:
+
+```bash
+uv run python scripts/convert_eight_tables.py          # backup + stage + verify
+uv run python scripts/convert_eight_tables.py --apply  # repeat backup, verify and activate
+```
+
+The converter accepts the previous complete 19-table schema. It refuses unknown
+source tables or unresolved organization references, saves a lossless source
+snapshot plus its DDL, and constructs a separate eight-table SQLite staging copy.
+It verifies every feature row, including bytes and Burmese text, survives a
+round trip; it also checks foreign keys. With `--apply`, it copies those eight
+tables to staged MySQL tables, verifies them, rechecks the source has not changed,
+then switches names with one atomic MySQL `RENAME TABLE`. Only after another
+lossless verification does it drop the old tables. Private SQL and JSON backups
+remain under `backups/`. A failure after switching leaves the previous tables
+available for recovery instead of deleting them.
+
+The resulting database deliberately has no `alembic_version` table. Historical
+Alembic revisions describe the previous storage design and must not be applied
+to the eight-table database. For a fresh workspace, import `dedc.sql`, configure
+`DATABASE_URL` and `PRIVATE_STORAGE_DIR`, then create an administrator with
+`uv run python -m app.portal_auth`. Empty supplied schemas work without conversion;
+populated external eight-table databases without feature metadata are explicitly
+rejected, because ownership and version history cannot safely be inferred.
+
+To recover the previous application version, stop writes, restore the saved
+`source-schema.sql` and `source.json.gz` into a separate database using their
+preserved SQL types, compare the verification manifest, and point the previous
+application checkout at that database. Keep the private directory intact when
+restoring an eight-table backup. Never run an empty schema dump over live data.
+
+## Validation
+
+```bash
+uv run python -m unittest discover -s tests -v
+```
+
+Portal/API tests use isolated eight-table databases and reopen the real storage
+adapter between HTTP requests. Storage tests cover both audiences, native
+question/answer placement, attachments, reporting, session revocation, rollback,
+foreign keys and corrupt-file detection. Historical migration tests continue to
+test the older Alembic chain separately; their temporary 19-table schemas are not
+the application's persistent schema.

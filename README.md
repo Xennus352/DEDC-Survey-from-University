@@ -9,9 +9,11 @@ Requires Python 3.12+, uv and the configured MySQL database.
 ```bash
 uv sync
 # Configure DATABASE_URL and portal settings in your existing .env.
-uv run alembic upgrade head
+# Fresh database: import dedc.sql; existing database: see docs/database-tables.md
 uv run uvicorn app.main:app --reload
 ```
+
+The application uses exactly the eight tables in the supplied `dedc.sql`, with JSON form metadata and private session/upload files. See [the database table guide](docs/database-tables.md) for conversion, backup and storage details. Historical Alembic migrations are for the previous schema; do not apply them to the eight-table database.
 
 Use `.env.example` for configuration names. Do not overwrite existing credentials or commit secrets. If no administrator exists, create one interactively with `uv run python -m app.portal_auth`.
 
@@ -47,11 +49,11 @@ uv run python scripts/import_reference_workbook.py "/path/to/workbook.xlsx" --ac
 
 - `app/models/`: existing database mappings and normalized versioned form entities.
 - `app/services/`: form transactions, logic/validation, workbook import/export, reports and attachments.
-- `app/routers/`: preserved legacy APIs, protected admin APIs, public published schemas and authenticated submissions.
+- `app/routers/`: protected admin APIs, public published schemas and authenticated submissions.
 - `templates/admin/`, `templates/survey/`: administrator shell and respondent experience.
 - `static/js/admin/`: shared API/UI, editor, conditions, renderer, reports and import screens.
 - `static/css/admin/`: scoped design tokens and responsive components.
-- `migrations/`: frozen, create-only baseline/additive migrations. Destructive downgrade is deliberately disabled.
+- `migrations/`: frozen baseline migrations and guarded retirement of empty legacy tables in `0005`. Back up and stop application writes before upgrading. Destructive downgrade is deliberately disabled.
 - `tests/`: standard-library unittest integration, API, migration and exact-workbook checks.
 - `context/`: specification, design system, audits and implementation progress.
 

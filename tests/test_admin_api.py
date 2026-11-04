@@ -135,42 +135,10 @@ class AdminApiTests(PortalFixture):
         _, _, result = await self.admin_request("/users")
         self.assertNotIn("password", json.dumps(result))
 
-    async def test_legacy_mobile_payloads_still_round_trip(self):
-        status, _, body = await self.request(
-            "/surveys/",
-            "POST",
-            raw_body=b'{"title":"Legacy","year":2026}',
-            content_type="application/json",
-        )
-        self.assertEqual(status, 200, body)
-        survey = json.loads(body)
-        status, _, body = await self.request(
-            f"/questions/survey/{survey['id']}",
-            "POST",
-            raw_body=b'{"text":"Legacy question","question_type":"multiple_choice","options":[{"text":"Yes"}]}',
-            content_type="application/json",
-        )
-        self.assertEqual(status, 200, body)
-        question = json.loads(body)
-        payload = {
-            "survey_id": survey["id"],
-            "respondent_id": "mobile-123",
-            "answers": [
-                {
-                    "question_id": question["id"],
-                    "option_id": question["options"][0]["id"],
-                    "answer_text": None,
-                }
-            ],
-        }
-        status, _, body = await self.request(
-            "/responses/",
-            "POST",
-            raw_body=json.dumps(payload).encode(),
-            content_type="application/json",
-        )
-        self.assertEqual(status, 200, body)
-        self.assertEqual(json.loads(body)["respondent_id"], "mobile-123")
+    async def test_retired_api_is_unavailable(self):
+        for path in ("/surveys/", "/questions/survey/1", "/responses/"):
+            status, _, _ = await self.request(path)
+            self.assertEqual(status, 404, path)
 
     async def test_respondent_can_submit_without_administrator_permissions(self):
         await self.login()

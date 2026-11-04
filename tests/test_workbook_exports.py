@@ -4,10 +4,13 @@ from copy import copy
 from io import BytesIO
 from pathlib import Path
 import unittest
+import tempfile
 from openpyxl import load_workbook
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.database import Base
+from app.storage import schema as persistent_schema
+from app.storage.compact import CompactSession
 from app.models.user import User, UserRole
 from app.schemas.forms import DraftInput, SubmissionInput
 from app.services import forms, workbook
@@ -29,8 +32,9 @@ class WorkbookExportTests(unittest.TestCase):
     def setUp(self):
         self.content = SOURCE.read_bytes()
         self.engine = create_engine("sqlite://")
-        Base.metadata.create_all(self.engine)
-        self.db = sessionmaker(bind=self.engine)()
+        persistent_schema.metadata.create_all(self.engine)
+        self.private_folder = tempfile.TemporaryDirectory()
+        self.db = CompactSession(self.engine, self.private_folder.name)
         self.db.add(UserRole(id=1, name="Admin"))
         self.db.flush()
         self.user = User(username="export-admin", role_id=1, password_hash="test-only")
@@ -49,6 +53,7 @@ class WorkbookExportTests(unittest.TestCase):
     def tearDown(self):
         self.db.close()
         self.engine.dispose()
+        self.private_folder.cleanup()
 
     def assert_layout(self, original, exported, clear_answers):
         self.assertEqual(

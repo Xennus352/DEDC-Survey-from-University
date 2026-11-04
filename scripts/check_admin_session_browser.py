@@ -25,13 +25,15 @@ def main():
         os.environ["DATABASE_URL"] = f"sqlite:///{directory}/test.db"
         os.environ["PORTAL_COOKIE_SECURE"] = "false"
         os.environ["ADMIN_ROLE_NAME"] = "Admin"
+        os.environ["PRIVATE_STORAGE_DIR"] = f"{directory}/private"
         from app.database import Base, engine, SessionLocal
         from app.main import app
         from app.models.user import User, UserRole
         from app.models.admin_session import AdminSession
         from app.portal_auth import hash_password
 
-        Base.metadata.create_all(engine)
+        from app.storage.schema import metadata as persistent_metadata
+        persistent_metadata.create_all(engine)
         with SessionLocal() as db:
             role = UserRole(name="Admin")
             db.add(UserRole(name="University"))

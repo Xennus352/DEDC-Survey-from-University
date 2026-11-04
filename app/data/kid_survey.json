@@ -1,0 +1,62 @@
+{
+  "title": "Children's Survey",
+  "description": "Simple survey for kids - very easy to fill out",
+  "language": "my",
+  "starts_at": null,
+  "ends_at": null,
+  "reporting_start": null,
+  "reporting_end": null,
+  "revision": 1,
+  "sections": [
+    {
+      "title": "About Me",
+      "description": "Just a few simple questions",
+      "enabled": true,
+      "conditions": null,
+      "questions": [
+        {
+          "key": "name",
+          "title": "What is your name?",
+          "title_my": "နာမည်ကীလahkan?",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "Enter your name",
+          "required": true,
+          "enabled": true,
+          "config": {},
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "age",
+          "title": "How old are you?",
+          "title_my": "နားရလာျကလрый?",
+          "title_en": "",
+          "kind": "number",
+          "help_text": "Enter your age (0-120)",
+          "placeholder": "e.g., 8",
+          "required": true,
+          "enabled": true,
+          "config": {"min": 0, "max": 120},
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "favorite_color",
+          "title": "What is your favorite color?",
+          "title_my": "သဲကnorKo သက္ခအညလမ်းက cualesa warna?",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "e.g., red, blue, green",
+          "required": false,
+          "enabled": true,
+          "config": {},
+          "conditions": null,
+          "options": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
-"""Protected administrator endpoints; existing mobile endpoints stay compatible."""
+"""Protected endpoints for the current administration workspace."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Body
+from sqlalchemy.orm import Session
 
 from app.admin_auth import AdminIdentity, require_admin
 
@@ -18,7 +19,7 @@ import csv
 import json
 from fastapi import File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.dependencies import get_db
 from app.models.forms import (
@@ -30,6 +31,7 @@ from app.models.forms import (
     WorkbookAnswer,
     WorkbookImport,
 )
+from app.storage.schema import metadata as persistent_metadata
 from app.models.user import User, UserRole
 from app.portal_auth import hash_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput
@@ -73,6 +75,8 @@ def list_forms(
                         "number": v.number,
                         "status": v.status,
                         "fields": sum(len(s.questions) for s in v.sections),
+                        "section_count": len(v.sections),
+                        "sections": [{"id": s.id} for s in v.sections],
                     }
                     for v in f.versions
                 ],
@@ -168,13 +172,414 @@ def archive_form(
     return {"id": form.id, "archived": form.archived}
 
 
+@router.post("/forms/{form_id}/sections", status_code=201)
+def add_section(
+    form_id: int,
+    title: str = Form(...),
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Add a new section to a form draft."""
+    from app.services.forms import get_form, get_version
+
+    form = get_form(db, form_id, True)
+    if form.archived:
+        raise HTTPException(409, "Cannot add section to archived form.")
+
+    version = form.versions[-1]
+    if version.status != "draft":
+        raise HTTPException(409, "Only draft versions can be edited.")
+
+    # Check if a section with this title already exists in this version
+    existing = (
+        db.query(FormSection)
+        .filter(FormSection.version_id == version.id, FormSection.title == title)
+        .first()
+    )
+    if existing:
+        raise HTTPException(422, f"A section titled '{title}' already exists.")
+
+    # Get the next position
+    max_position = (
+        db.query(func.max(FormSection.position))
+        .filter(FormSection.version_id == version.id)
+        .scalar()
+    ) or -1
+
+    section = FormSection(
+        version_id=version.id,
+        title=title,
+        position=max_position + 1,
+        enabled=True,
+        conditions=None,
+    )
+    version.sections.append(section)
+    db.flush()
+    return {"id": section.id, "title": section.title, "position": section.position}
+
+
+@router.post("/forms/{form_id}/sections/{section_id}/questions", status_code=201)
+def add_questions_to_section(
+    form_id: int,
+    section_id: int,
+    question_ids: list[int] = Body(...),
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Add multiple questions from the question bank to a form section."""
+    from app.services.forms import get_form, get_version
+
+    form = get_form(db, form_id, True)
+    if form.archived:
+        raise HTTPException(409, "Cannot add questions to archived form.")
+
+    version = get_version(db, form_id, None)
+
+    # Find the section
+    section = None
+    for s in version.sections:
+        if s.id == section_id:
+            section = s
+            break
+
+    if not section:
+        raise HTTPException(404, "Section not found.")
+
+    # Get existing question keys in this section to prevent duplicates
+    existing_keys = {q.key for s in version.sections for q in s.questions}
+
+    added = []
+    for q_id in question_ids:
+        bank_question = db.get(QuestionBankQuestion, q_id)
+        if not bank_question:
+            raise HTTPException(404, f"Question bank question {q_id} not found.")
+
+        # Check if a question with same key already exists
+        key = bank_question.title[:50].strip().lower().replace(" ", "_")[:50] or f"q_{len(existing_keys)}"
+        # Make key unique
+        unique_key = key
+        counter = 1
+        while unique_key in existing_keys:
+            unique_key = f"{key}_{counter}"
+            counter += 1
+
+        question = FormField(
+            version_id=version.id,
+            section_id=section.id,
+            key=unique_key,
+            title=bank_question.title,
+            title_my=bank_question.title_my,
+            title_en=bank_question.title_en,
+            kind=bank_question.kind,
+            help_text=bank_question.help_text,
+            placeholder=bank_question.placeholder,
+            required=bank_question.required,
+            enabled=bank_question.enabled,
+            config=bank_question.config,
+            conditions=bank_question.conditions,
+            source_university_question_id=bank_question.source_university_question_id,
+            question_bank_id=bank_question.id,
+        )
+        db.add(question)
+        existing_keys.add(unique_key)
+        added.append(
+            {
+                "id": question.id,
+                "key": question.key,
+                "title": question.title,
+                "kind": question.kind,
+            }
+        )
+
+    db.commit()
+    return {"added": added, "section_id": section.id}
+
+
 @router.delete("/forms/{form_id}", status_code=204)
 def delete_form(
     form_id: int,
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    forms.delete_draft_form(db, form_id, admin.id)
+    """Delete a form and its associated data, preserving question bank questions."""
+    from app.services.forms import delete_draft_form, get_form
+
+    form = get_form(db, form_id, True)
+
+    # Check if form is published and has submissions
+    published_versions = [v for v in form.versions if v.status == "published"]
+    if published_versions:
+        # Check for existing submissions
+        from sqlalchemy import select
+
+        from app.models.forms import Submission
+
+        submission_count = (
+            db.query(Submission)
+            .filter(Submission.version_id.in_( [v.id for v in published_versions ]))
+            .count()
+        )
+        if submission_count > 0:
+            raise HTTPException(
+                409,
+                f"Cannot delete form: {submission_count} submission(s) exist. Archive the form instead.",
+            )
+
+    # Delete the form (this will cascade delete versions, sections, questions)
+    # But we need to be careful not to delete question bank questions
+    audit(db, admin.id, "form.delete", "form", form.id, title=form.title)
+
+    # Delete form and all associated data
+    ids = [v.id for v in form.versions]
+    db.query(FormField).filter(FormField.version_id.in_(ids)).delete(synchronize_session=False)
+    db.query(FormSection).filter(FormSection.version_id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db.query(FormVersion).filter(FormVersion.id.in_(ids)).delete(
+        synchronize_session=False
+    )
+    db.delete(form)
+    db.commit()
+
+
+# Ministry/University management using persistent schema tables
+ministry_table = persistent_metadata.tables["ministry"]
+university_table = persistent_metadata.tables["university"]
+
+
+class OrgInput(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    type: str = Field(default="", max_length=100)  # for university: uniType
+
+
+@router.get("/ministries")
+def list_ministries(
+    search: str = "",
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    conn = db.native
+    query = conn.query(ministry_table) if hasattr(conn, "query") else select(ministry_table)
+    if search:
+        query = query.filter(ministry_table.c.ministryName.contains(search))
+    total = query.count() if hasattr(query, "count") else conn.execute(select(func.count()).select_from(query.subquery())).scalar()
+    rows = (
+        query.order_by(ministry_table.c.ministryName)
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    ) if hasattr(query, "order_by") else conn.execute(
+        query.order_by(ministry_table.c.ministryName).offset((page - 1) * limit).limit(limit)
+    ).fetchall()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": r.ministryId,
+                "name": r.ministryName,
+                "type": "ministry",
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.post("/ministries", status_code=201)
+def create_ministry(
+    data: OrgInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    exists = db.query(ministry_table).filter_by(ministryName=data.name).first()
+    if exists:
+        raise HTTPException(409, "Ministry with this name already exists.")
+    result = db.execute(ministry_table.insert().values(ministryName=data.name))
+    db.commit()
+    new_id = result.inserted_primary_key[0]
+    forms.audit(db, admin.id, "ministry.create", "ministry", new_id, name=data.name)
+    return {"id": new_id, "name": data.name}
+
+
+@router.put("/ministries/{ministry_id}")
+def update_ministry(
+    ministry_id: int,
+    data: OrgInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    ministry = db.query(ministry_table).filter_by(ministryId=ministry_id).first()
+    if not ministry:
+        raise HTTPException(404, "Ministry not found.")
+    if data.name != ministry.ministryName and db.query(ministry_table).filter_by(ministryName=data.name).first():
+        raise HTTPException(409, "Ministry with this name already exists.")
+    db.execute(
+        ministry_table.update()
+        .where(ministry_table.c.ministryId == ministry_id)
+        .values(ministryName=data.name)
+    )
+    forms.audit(db, admin.id, "ministry.update", "ministry", ministry_id, name=data.name)
+    db.commit()
+    return {"id": ministry_id, "name": data.name}
+
+
+@router.delete("/ministries/{ministry_id}", status_code=204)
+def delete_ministry(
+    ministry_id: int,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    ministry = db.query(ministry_table).filter_by(ministryId=ministry_id).first()
+    if not ministry:
+        raise HTTPException(404, "Ministry not found.")
+    # Check if ministry is used by any forms
+    form_count = db.query(SurveyForm).filter(SurveyForm.audience == "ministry").count()
+    if form_count > 0:
+        raise HTTPException(
+            409,
+            f"Cannot delete ministry: {form_count} form(s) use ministry audience. Update or archive them first.",
+        )
+    forms.audit(db, admin.id, "ministry.delete", "ministry", ministry_id, name=ministry.ministryName)
+    db.execute(ministry_table.delete().where(ministry_table.c.ministryId == ministry_id))
+    db.commit()
+
+
+@router.get("/universities")
+def list_universities(
+    search: str = "",
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    query = db.query(university_table)
+    if search:
+        query = query.filter(university_table.c.uniName.contains(search))
+    total = query.count()
+    rows = (
+        query.order_by(university_table.c.uniName)
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": r.uniId,
+                "name": r.uniName,
+                "type": r.uniType,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.post("/universities", status_code=201)
+def create_university(
+    data: OrgInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    exists = db.query(university_table).filter_by(uniName=data.name).first()
+    if exists:
+        raise HTTPException(409, "University with this name already exists.")
+    uni_type = data.type or "Unspecified"
+    result = db.execute(university_table.insert().values(uniName=data.name, uniType=uni_type))
+    db.commit()
+    new_id = result.inserted_primary_key[0]
+    forms.audit(db, admin.id, "university.create", "university", new_id, name=data.name, type=uni_type)
+    return {"id": new_id, "name": data.name, "type": uni_type}
+
+
+@router.put("/universities/{uni_id}")
+def update_university(
+    uni_id: int,
+    data: OrgInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    uni = db.query(university_table).filter_by(uniId=uni_id).first()
+    if not uni:
+        raise HTTPException(404, "University not found.")
+    if data.name != uni.uniName and db.query(university_table).filter_by(uniName=data.name).first():
+        raise HTTPException(409, "University with this name already exists.")
+    uni_type = data.type or uni.uniType
+    db.execute(
+        university_table.update()
+        .where(university_table.c.uniId == uni_id)
+        .values(uniName=data.name, uniType=uni_type)
+    )
+    forms.audit(db, admin.id, "university.update", "university", uni_id, name=data.name, type=uni_type)
+    db.commit()
+    return {"id": uni_id, "name": data.name, "type": uni_type}
+
+
+@router.delete("/universities/{uni_id}", status_code=204)
+def delete_university(
+    uni_id: int,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    uni = db.query(university_table).filter_by(uniId=uni_id).first()
+    if not uni:
+        raise HTTPException(404, "University not found.")
+    # Check if university is used by any forms
+    form_count = db.query(SurveyForm).filter(SurveyForm.audience == "university").count()
+    if form_count > 0:
+        raise HTTPException(
+            409,
+            f"Cannot delete university: {form_count} form(s) use university audience. Update or archive them first.",
+        )
+    forms.audit(db, admin.id, "university.delete", "university", uni_id, name=uni.uniName)
+    db.execute(university_table.delete().where(university_table.c.uniId == uni_id))
+    db.commit()
+
+
+class BulkDeleteFormsInput(BaseModel):
+    ids: list[int] = Field(min_length=1, max_length=100)
+
+
+@router.post("/forms/bulk-delete", status_code=204)
+def bulk_delete_forms(
+    data: BulkDeleteFormsInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Delete multiple forms and their associated data."""
+    from app.services.forms import get_form
+
+    forms_to_delete = []
+    for form_id in data.ids:
+        form = get_form(db, form_id, True)
+        # Check if form is published and has submissions
+        published_versions = [v for v in form.versions if v.status == "published"]
+        if published_versions:
+            from app.models.forms import Submission
+            submission_count = (
+                db.query(Submission)
+                .filter(Submission.version_id.in_([v.id for v in published_versions]))
+                .count()
+            )
+            if submission_count > 0:
+                raise HTTPException(
+                    409,
+                    f"Cannot delete form '{form.title}': {submission_count} submission(s) exist. Archive the form instead.",
+                )
+        forms_to_delete.append(form)
+
+    for form in forms_to_delete:
+        audit(db, admin.id, "form.delete", "form", form.id, title=form.title)
+        ids = [v.id for v in form.versions]
+        db.query(FormField).filter(FormField.version_id.in_(ids)).delete(synchronize_session=False)
+        db.query(FormSection).filter(FormSection.version_id.in_(ids)).delete(
+            synchronize_session=False
+        )
+        db.query(FormVersion).filter(FormVersion.id.in_(ids)).delete(
+            synchronize_session=False
+        )
+        db.delete(form)
+
+    db.commit()
 
 
 @router.post("/imports/preview")
@@ -245,39 +650,6 @@ def source_answers(
             for i in imports
         ],
     }
-
-
-@router.get("/questions")
-def question_bank(
-    search: str = "",
-    page: int = Query(1, ge=1),
-    limit: int = Query(25, ge=1, le=100),
-    db: Session = Depends(get_db),
-):
-    query = db.query(FormField).join(FormVersion)
-    if search:
-        query = query.filter(
-            FormField.title.contains(search) | FormField.key.contains(search)
-        )
-    total = query.count()
-    items = []
-    for q in (
-        query.order_by(FormField.id.desc()).offset((page - 1) * limit).limit(limit)
-    ):
-        v = db.get(FormVersion, q.version_id)
-        items.append(
-            {
-                "key": q.key,
-                "title": q.title,
-                "kind": q.kind,
-                "required": q.required,
-                "form_id": v.form_id,
-                "form": v.title,
-                "version": v.number,
-                "status": v.status,
-            }
-        )
-    return {"total": total, "items": items}
 
 
 @router.get("/submissions")

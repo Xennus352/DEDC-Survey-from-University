@@ -196,6 +196,15 @@ class DraftInput(BaseModel):
 class CreateForm(BaseModel):
     title: str = Field(min_length=1, max_length=255)
     audience: Literal["university", "ministry", "general"] = "university"
+    template: Literal["blank", "university_dedc", "kid_survey"] = "blank"
+
+    @model_validator(mode="after")
+    def template_audience(self):
+        if self.template == "university_dedc" and self.audience != "university":
+            raise ValueError("The university workbook template requires the University audience.")
+        if self.template == "kid_survey" and self.audience != "general":
+            raise ValueError("The kid survey template requires the General audience.")
+        return self
 
 
 class SubmissionInput(BaseModel):

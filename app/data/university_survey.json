@@ -1,0 +1,1469 @@
+{
+  "title": "ကွန်ပျူတာတက္ကသိုလ်(တောင်ငူ)တွင် ဆောင်ရွက်လျက်ရှိသည့် ဒီဂျစ်တယ်စီးပွားရေးဖွံ့ဖြိုးတိုးတက်မှုဆိုင်ရာ စစ်တမ်း — University (2021-2026)",
+  "description": "University digital development survey. Questions from the University of Computer Studies, Taungoo workbook (2021–2026).",
+  "language": "my",
+  "starts_at": null,
+  "ends_at": null,
+  "reporting_start": "2021-01-01",
+  "reporting_end": "2026-03-31",
+  "revision": 1,
+  "sections": [
+    {
+      "title": "လူ့စွမ်းအားအရင်းအမြစ် ဖွံ့ဖြိုးတိုးတက်ရေးဆောင်ရွက်မှုများ\n(Human Capital)",
+      "description": "",
+      "enabled": true,
+      "conditions": null,
+      "questions": [
+        {
+          "key": "q1_present",
+          "title": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်) — ရှိ / မရှိ",
+          "title_my": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B6",
+            "source_number": "1",
+            "source_question": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q1_quantity",
+          "title": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်) — အရေအတွက်",
+          "title_my": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B6",
+            "source_number": "1",
+            "source_question": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q1_details",
+          "title": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်) — အကြောင်းအရာ",
+          "title_my": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B6",
+            "source_number": "1",
+            "source_question": "မွေးထုတ်ပေးသည့် IT ဘွဲ့ရ ကျောင်းသားဦးရေ (၂၀၂၁ ခုနှစ် မှ ၂၀၂၆ ခုနှစ်၊ မတ်လထိ) (Bachelor ဘွဲ့/ Master ဘွဲ့/ Ph.D ဘွဲ့/  Diploma ဘွဲ့ စသည်ဖြင့်  ခွဲခြားဖော်ပြရန်)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q2_present",
+          "title": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_my": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B7",
+            "source_number": "2",
+            "source_question": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q2_quantity",
+          "title": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_my": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B7",
+            "source_number": "2",
+            "source_question": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q2_details",
+          "title": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_my": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B7",
+            "source_number": "2",
+            "source_question": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သင်တန်းများဖွင့်လှစ်ပေးနိုင်မှုအခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q3_present",
+          "title": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ) — ရှိ / မရှိ",
+          "title_my": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B8",
+            "source_number": "3",
+            "source_question": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q3_quantity",
+          "title": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ) — အရေအတွက်",
+          "title_my": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B8",
+            "source_number": "3",
+            "source_question": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q3_details",
+          "title": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ) — အကြောင်းအရာ",
+          "title_my": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B8",
+            "source_number": "3",
+            "source_question": "ဒီဂျစ်တယ်ကျွမ်းကျင်မှု သက်မွေးပညာ လေ့ကျင့်ရေး အစီအစဉ်များတွင် ပါဝင်သည့်သင်တန်းသား အရေအတွက်။ (Certificate သင်တန်းများ)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q4_present",
+          "title": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက် — ရှိ / မရှိ",
+          "title_my": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက် — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B9",
+            "source_number": "4",
+            "source_question": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက်",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q4_quantity",
+          "title": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက် — အရေအတွက်",
+          "title_my": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက် — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B9",
+            "source_number": "4",
+            "source_question": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက်",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q4_details",
+          "title": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက် — အကြောင်းအရာ",
+          "title_my": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက် — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B9",
+            "source_number": "4",
+            "source_question": "ဒီဂျစ်တယ်စီးပွားရေးလုပ်ငန်းများတွင် အလုပ်အကိုင်ရရှိမှု အရေအတွက်",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q5_present",
+          "title": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_my": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B10",
+            "source_number": "5",
+            "source_question": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q5_quantity",
+          "title": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_my": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B10",
+            "source_number": "5",
+            "source_question": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q5_details",
+          "title": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_my": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B10",
+            "source_number": "5",
+            "source_question": "ဆရာ၊ဆရာမများအား ဒီဂျစ်တယ်ပညာရပ်နှင့် နည်းပညာဘာသာရပ် သင်ကြားမှုစွမ်းရည်အတွက် Capacity Building သင်တန်းများ သင်ကြားပေးနိုင်မှုအခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q6_present",
+          "title": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ — ရှိ / မရှိ",
+          "title_my": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B11",
+            "source_number": "6",
+            "source_question": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q6_quantity",
+          "title": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ — အရေအတွက်",
+          "title_my": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B11",
+            "source_number": "6",
+            "source_question": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q6_details",
+          "title": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ — အကြောင်းအရာ",
+          "title_my": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B11",
+            "source_number": "6",
+            "source_question": "ပြည်သူများအကြား ဒီဂျစ်တယ်တတ်မြောက်မှု မြှင့်တင်ရန် အသိပညာပေး ဆောင်ရွက်မှုများ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q7_present",
+          "title": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု — ရှိ / မရှိ",
+          "title_my": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B12",
+            "source_number": "7",
+            "source_question": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q7_quantity",
+          "title": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု — အရေအတွက်",
+          "title_my": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B12",
+            "source_number": "7",
+            "source_question": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q7_details",
+          "title": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု — အကြောင်းအရာ",
+          "title_my": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B12",
+            "source_number": "7",
+            "source_question": "တက္ကသိုလ်ဘာသာရပ်များတွင် Industrial Placement အစီအစဉ်ပါဝင်သည့် ဘာသာရပ်များကိုထည့်သွင်းသင်ကြားနိုင်မှု",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q8_present",
+          "title": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်) — ရှိ / မရှိ",
+          "title_my": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B13",
+            "source_number": "8",
+            "source_question": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q8_quantity",
+          "title": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်) — အရေအတွက်",
+          "title_my": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B13",
+            "source_number": "8",
+            "source_question": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q8_details",
+          "title": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်) — အကြောင်းအရာ",
+          "title_my": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B13",
+            "source_number": "8",
+            "source_question": "ကျောင်းသူ/ ကျောင်းသားများ အတွက် Internship Program များစီစဉ်ဆောင်ရွက်နိုင်မှု (ဝန်ကြီးဌာနများ/ ပြင်ပကုမ္ပဏီများနှင့် ချိတ်ဆက်သွားရောက်နိုင်မှုအား ခွဲခြားရေးသားပေးပါရန်)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q9_present",
+          "title": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု — ရှိ / မရှိ",
+          "title_my": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B14",
+            "source_number": "9",
+            "source_question": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q9_quantity",
+          "title": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု — အရေအတွက်",
+          "title_my": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B14",
+            "source_number": "9",
+            "source_question": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q9_details",
+          "title": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု — အကြောင်းအရာ",
+          "title_my": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B14",
+            "source_number": "9",
+            "source_question": "LMS အသုံးပြုနိုင်ရန် Digital Content များဖန်တီးနိုင်မှု",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q10_present",
+          "title": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_my": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B15",
+            "source_number": "10",
+            "source_question": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q10_quantity",
+          "title": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_my": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B15",
+            "source_number": "10",
+            "source_question": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q10_details",
+          "title": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_my": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B15",
+            "source_number": "10",
+            "source_question": "ပြည်ပမှ Educational Digital Content များအသုံးပြုနိုင်ရန် ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        }
+      ]
+    },
+    {
+      "title": "ချိတ်ဆက်ဆောင်ရွက်နိုင်မှုများ (Connectivity)",
+      "description": "",
+      "enabled": true,
+      "conditions": null,
+      "questions": [
+        {
+          "key": "q11_present",
+          "title": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ — ရှိ / မရှိ",
+          "title_my": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B17",
+            "source_number": "11",
+            "source_question": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q11_quantity",
+          "title": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ — အရေအတွက်",
+          "title_my": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B17",
+            "source_number": "11",
+            "source_question": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q11_details",
+          "title": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ — အကြောင်းအရာ",
+          "title_my": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B17",
+            "source_number": "11",
+            "source_question": "တက္ကသိုလ်များတွင် ဖိုင်ဘာကွန်ရက်၊ အင်တာနက်ကွန်ရက် ချိတ်ဆက်ပြီးစီးမှု အခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q12_present",
+          "title": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ) — ရှိ / မရှိ",
+          "title_my": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B18",
+            "source_number": "12",
+            "source_question": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q12_quantity",
+          "title": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ) — အရေအတွက်",
+          "title_my": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B18",
+            "source_number": "12",
+            "source_question": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q12_details",
+          "title": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ) — အကြောင်းအရာ",
+          "title_my": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B18",
+            "source_number": "12",
+            "source_question": "တက္ကသိုလ်များတွင် ဒီဂျစ်တယ် အခြေခံအဆောက်အဦများ တည်ထောင်နိုင်မှု အခြေအနေ\n(4G အသုံးချမှုနှင့် Mobile/ Broadband၊ Cloud Computing နှင့် Data Center အခြေခံအဆောက်အဦများ)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        }
+      ]
+    },
+    {
+      "title": "ဒီဂျစ်တယ်နည်းပညာနှင့် ပေါင်းစပ်ဆောင်ရွက်မှုများ\n(Integration of Digital Technology)",
+      "description": "",
+      "enabled": true,
+      "conditions": null,
+      "questions": [
+        {
+          "key": "q13_present",
+          "title": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ — ရှိ / မရှိ",
+          "title_my": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B20",
+            "source_number": "13",
+            "source_question": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q13_quantity",
+          "title": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ — အရေအတွက်",
+          "title_my": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B20",
+            "source_number": "13",
+            "source_question": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q13_details",
+          "title": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ — အကြောင်းအရာ",
+          "title_my": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B20",
+            "source_number": "13",
+            "source_question": "နည်းပညာအသုံးပြုမှု တီထွင်ဖန်တီးနိုင်မှုနှင့် စွန့်ဦးတီထွင်နိုင်မှု စွမ်းရည်များတိုးတက်လာစေရန် သုတေသနဌာနများ၊ Innovation Center များဖွင့်လှစ်ဆောင်ရွက်နိုင်မှု အခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q14_present",
+          "title": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ — ရှိ / မရှိ",
+          "title_my": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B21",
+            "source_number": "14",
+            "source_question": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q14_quantity",
+          "title": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ — အရေအတွက်",
+          "title_my": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B21",
+            "source_number": "14",
+            "source_question": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q14_details",
+          "title": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ — အကြောင်းအရာ",
+          "title_my": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B21",
+            "source_number": "14",
+            "source_question": "နည်းပညာနှင့် စွန့်ဦးတီထွင်မှုစွမ်းရည် ပြပွဲ၊ ပြိုင်ပွဲများ ကျင်းပနိုင်မှု အခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q15_present",
+          "title": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ) — ရှိ / မရှိ",
+          "title_my": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B22",
+            "source_number": "15",
+            "source_question": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q15_quantity",
+          "title": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ) — အရေအတွက်",
+          "title_my": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B22",
+            "source_number": "15",
+            "source_question": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q15_details",
+          "title": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ) — အကြောင်းအရာ",
+          "title_my": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B22",
+            "source_number": "15",
+            "source_question": "နည်းပညာရပ်များဖွံ့ဖြိုးတိုးတက်ရန် နိုင်ငံတကာနှင့်  MOUရေးထိုးနိုင်ရေး စီစဉ်ဆောင်ရွက်နိုင်မှုအခြေအနေ (ဆောင်ရွက်ပြီး/ ဆောင်ရွက်ဆဲ)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q16_present",
+          "title": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_my": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B23",
+            "source_number": "16",
+            "source_question": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q16_quantity",
+          "title": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_my": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B23",
+            "source_number": "16",
+            "source_question": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q16_details",
+          "title": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_my": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B23",
+            "source_number": "16",
+            "source_question": "နိုင်ငံတကာအဖွဲ့အစည်းများနှင့် ပူးပေါင်း၍ နည်းပညာရပ်ဆိုင်ရာ Affiliation Project များ၊ Joint Program များ၊ Online Class များ ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q17_present",
+          "title": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_my": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B24",
+            "source_number": "17",
+            "source_question": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q17_quantity",
+          "title": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_my": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B24",
+            "source_number": "17",
+            "source_question": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q17_details",
+          "title": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_my": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B24",
+            "source_number": "17",
+            "source_question": "နည်းပညာဆိုင်ရာ စွန့်ဦးတီထွင်မှုများ မြှင့်တင်နိုင်ရန်နှင့် နောက်ဆုံးပေါ် နည်းပညာအသစ်များကို စမ်းသပ်သုတေသန ပြုလုပ်ရန်အကောင်အထည် ဖော်နိုင်မှုအခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q18_present",
+          "title": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ — ရှိ / မရှိ",
+          "title_my": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B25",
+            "source_number": "18",
+            "source_question": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q18_quantity",
+          "title": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ — အရေအတွက်",
+          "title_my": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B25",
+            "source_number": "18",
+            "source_question": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q18_details",
+          "title": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ — အကြောင်းအရာ",
+          "title_my": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B25",
+            "source_number": "18",
+            "source_question": "AI နှင့် အလိုအလျောက်စနစ် အသုံးပြုမှုများ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q19_present",
+          "title": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ — ရှိ / မရှိ",
+          "title_my": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B26",
+            "source_number": "19",
+            "source_question": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q19_quantity",
+          "title": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ — အရေအတွက်",
+          "title_my": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B26",
+            "source_number": "19",
+            "source_question": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q19_details",
+          "title": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ — အကြောင်းအရာ",
+          "title_my": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B26",
+            "source_number": "19",
+            "source_question": "ဒီဂျစ်တယ်အခြေခံအဆောက်အအုံနှင့် ကာဗွန်ခြေရာ လျော့ပါး သက်သာစေရေး ဆောင်ရွက်ချက်များ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q20_present",
+          "title": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ — ရှိ / မရှိ",
+          "title_my": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B27",
+            "source_number": "20",
+            "source_question": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q20_quantity",
+          "title": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ — အရေအတွက်",
+          "title_my": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B27",
+            "source_number": "20",
+            "source_question": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q20_details",
+          "title": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ — အကြောင်းအရာ",
+          "title_my": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B27",
+            "source_number": "20",
+            "source_question": "အစိမ်းရောင် စီးပွားရေး လုပ်ငန်းများအတွက် သုတေသနဆောင်ရွက်ချက်များ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q21_present",
+          "title": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ) — ရှိ / မရှိ",
+          "title_my": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B28",
+            "source_number": "21",
+            "source_question": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q21_quantity",
+          "title": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ) — အရေအတွက်",
+          "title_my": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B28",
+            "source_number": "21",
+            "source_question": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q21_details",
+          "title": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ) — အကြောင်းအရာ",
+          "title_my": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B28",
+            "source_number": "21",
+            "source_question": "Data Integration အတွက် စံသတ်မှတ်ရေးစနစ် (Standardization) ထားရှိ ဆောင်ရွက်ချက်များ \n(ISO 8000 နှင့် သတင်းအချက်အလက်လုံခြုံရေး စီမံခန့်ခွဲမှု အတွက် ISO 27001 ကဲ့သို့သော နိုင်ငံတကာစံနှုန်းများကို အကောင်အထည်ဖော်မှု အခြေအနေ)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        }
+      ]
+    },
+    {
+      "title": "အများသုံးဒီဂျစ်တယ်ဝန်ဆောင်မှုများ\n(Digital Public Services)",
+      "description": "",
+      "enabled": true,
+      "conditions": null,
+      "questions": [
+        {
+          "key": "q22_present",
+          "title": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ) — ရှိ / မရှိ",
+          "title_my": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ) — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B30",
+            "source_number": "22",
+            "source_question": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ)",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q22_quantity",
+          "title": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ) — အရေအတွက်",
+          "title_my": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ) — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B30",
+            "source_number": "22",
+            "source_question": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ)",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q22_details",
+          "title": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ) — အကြောင်းအရာ",
+          "title_my": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ) — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B30",
+            "source_number": "22",
+            "source_question": "e-Government နှင့် ဒီဂျစ်တယ်ဝန်ဆောင်မှု ဆောင်ရွက်ထားရှိမှုများ\n(ဥပမာ၊ ဒီဂျစ်တယ် ID စနစ်များ၊ Online ငွေပေးချေမှုစနစ်များ)",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q23_present",
+          "title": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ — ရှိ / မရှိ",
+          "title_my": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B31",
+            "source_number": "23",
+            "source_question": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q23_quantity",
+          "title": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ — အရေအတွက်",
+          "title_my": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B31",
+            "source_number": "23",
+            "source_question": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q23_details",
+          "title": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ — အကြောင်းအရာ",
+          "title_my": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B31",
+            "source_number": "23",
+            "source_question": "နည်းပညာအသုံးပြုမှုများနှင့် ဝန်ဆောင်မှုများတွင် ဒီဂျစ်တယ်အသွင်ပြောင်းဆောင်ရွက်မှုများ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q24_present",
+          "title": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ — ရှိ / မရှိ",
+          "title_my": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B32",
+            "source_number": "24",
+            "source_question": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q24_quantity",
+          "title": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ — အရေအတွက်",
+          "title_my": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B32",
+            "source_number": "24",
+            "source_question": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q24_details",
+          "title": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ — အကြောင်းအရာ",
+          "title_my": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B32",
+            "source_number": "24",
+            "source_question": "ကိုယ်ရေးကိုယ်တာအချက်အလက်များနှင့် ဆိုက်ဘာတိုက်ခိုက်မှုများ ကာကွယ်ရန် ဆောင်ရွက်မှုများ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q25_present",
+          "title": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_my": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ — ရှိ / မရှိ",
+          "title_en": "",
+          "kind": "yes_no",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B33",
+            "source_number": "25",
+            "source_question": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "present"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q25_quantity",
+          "title": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_my": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ — အရေအတွက်",
+          "title_en": "",
+          "kind": "short_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B33",
+            "source_number": "25",
+            "source_question": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "quantity"
+          },
+          "conditions": null,
+          "options": []
+        },
+        {
+          "key": "q25_details",
+          "title": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_my": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ — အကြောင်းအရာ",
+          "title_en": "",
+          "kind": "long_text",
+          "help_text": "",
+          "placeholder": "",
+          "required": false,
+          "enabled": true,
+          "config": {
+            "source_cell": "B33",
+            "source_number": "25",
+            "source_question": "ဥပဒေ၊ နည်းဥပဒေများပြဋ္ဌာန်းပြီး ယင်းဥပဒေ၊ နည်းဥပဒေများကို Enforce လုပ်နိုင်ရန် အကောင်အထည် ဖော်ဆောင်ရွက်နိုင်မှုအခြေအနေ",
+            "source_component": "details"
+          },
+          "conditions": null,
+          "options": []
+        }
+      ]
+    }
+  ]
+}

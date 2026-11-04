@@ -1,4 +1,4 @@
-"""Normalized, version-specific definitions alongside the existing survey tables."""
+"""Memory-only relational projections of the eight-table JSON feature metadata."""
 
 from sqlalchemy import (
     Boolean,
@@ -101,7 +101,9 @@ class FormField(Base):
     config = Column(JSON, nullable=False, default=dict)
     conditions = Column(JSON)
     source_university_question_id = Column(Integer, ForeignKey("uniquestion.uQId"))
-    source_ministry_question_id = Column(Integer, ForeignKey("ministryquestion.mQId"))
+    question_bank_id = Column(
+        Integer, ForeignKey("question_bank_questions.id"), nullable=True
+    )
     section = relationship("FormSection", back_populates="questions")
     options = relationship(
         "FieldOption", order_by="FieldOption.position", cascade="all, delete-orphan"
@@ -187,6 +189,21 @@ class AuditLog(Base):
     target_id = Column(Integer)
     changes = Column(JSON, nullable=False, default=dict)
     created_at = Column(DateTime, nullable=False, server_default=func.now(), index=True)
+
+
+class QuestionBankQuestion(Base):
+    __tablename__ = "question_bank_questions"
+    id = Column(Integer, primary_key=True)
+    title = Column(Text, nullable=False)
+    title_my = Column(Text, nullable=False, default="")
+    title_en = Column(Text, nullable=False, default="")
+    kind = Column(String(40), nullable=False, default="short_text")
+    help_text = Column(Text, nullable=False, default="")
+    placeholder = Column(String(255), nullable=False, default="")
+    required = Column(Boolean, nullable=False, default=False)
+    enabled = Column(Boolean, nullable=False, default=True)
+    config = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, nullable=False, server_default=func.now())
 
 
 from sqlalchemy import LargeBinary

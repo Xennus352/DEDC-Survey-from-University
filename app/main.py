@@ -3,20 +3,18 @@ from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 from app.admin_auth import AdminAuthorizationMiddleware
-from app.middleware import BodySizeLimitMiddleware
-from app.routers import admin, forms, surveys, questions, responses
+from app.middleware import BodySizeLimitMiddleware, StaticCacheMiddleware
+from app.routers import admin, forms
 from app.routers.web import dashboard, portal, survey, views
 
 app = FastAPI(title="DEDC Survey API")
 app.add_middleware(AdminAuthorizationMiddleware)
 app.add_middleware(BodySizeLimitMiddleware)
+app.add_middleware(StaticCacheMiddleware)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 
-app.include_router(surveys.router)
-app.include_router(questions.router)
-app.include_router(responses.router)
 app.include_router(views.router)
 app.include_router(portal.router)
 app.include_router(dashboard.router)

@@ -21,8 +21,8 @@ from app.routers.web.views import templates
 
 @asynccontextmanager
 async def lifespan(app):
-    # Bootstrap only this feature's table; leave the existing survey tables alone.
-    AdminSession.__table__.create(bind=engine, checkfirst=True)
+    # Persistent sessions live in private files referenced by the eight-table
+    # store. Never create the ORM's transient projection tables in DATABASE_URL.
     yield
 
 

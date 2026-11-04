@@ -9,8 +9,7 @@ router = APIRouter(
 )
 PAGES = {
     "forms": "Survey forms",
-    "questions": "Question bank",
-    "submissions": "Form submissions",
+    "departments": "Departments",
     "reports": "Reports & analytics",
     "users": "Users & enumerators",
     "data": "Data management",

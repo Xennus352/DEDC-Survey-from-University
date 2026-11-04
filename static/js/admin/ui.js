@@ -6,6 +6,59 @@ export const escape = (value) =>
         c
       ],
   );
+
+
+/**
+ * Safely escape a string for use in a RegExp constructor.
+ * Escapes all special regex characters so the string matches literally.
+ * @param {string} string - The string to escape
+ * @returns {string} - The escaped string safe for RegExp
+ */
+export function escapeRegExp(string) {
+  return String(string ?? "").replace(/[.*+?^${}()|[\\]\\]/g, "\\$&");
+}
+
+/**
+ * Safely create a RegExp from a dynamic pattern string.
+ * Returns null if the pattern is invalid instead of throwing.
+ * @param {string} pattern - The regex pattern string
+ * @param {string} flags - Optional regex flags
+ * @returns {RegExp|null} - The RegExp object or null if invalid
+ */
+export function safeRegExp(pattern, flags) {
+  try {
+    return new RegExp(pattern, flags);
+  } catch (_) {
+    return null;
+  }
+}
+
+/**
+ * Test a string against a pattern safely.
+ * Returns false if the pattern is invalid instead of throwing.
+ * @param {string} value - The string to test
+ * @param {string} pattern - The regex pattern
+ * @param {string} flags - Optional regex flags
+ * @returns {boolean} - Whether the pattern matches, or false if invalid
+ */
+export function safeTest(value, pattern, flags) {
+  const re = safeRegExp(pattern, flags);
+  return re ? re.test(String(value ?? "")) : false;
+}
+
+/**
+ * Full match a string against a pattern safely (like regex.fullmatch in Python).
+ * Returns false if the pattern is invalid instead of throwing.
+ * @param {string} value - The string to test
+ * @param {string} pattern - The regex pattern
+ * @param {string} flags - Optional regex flags
+ * @returns {boolean} - Whether the pattern fully matches, or false if invalid
+ */
+export function safeFullMatch(value, pattern, flags) {
+  const re = safeRegExp(pattern, flags);
+  return re ? re.test(String(value ?? "")) : false;
+}
+
 export const badge = (value) =>
   `<span class="badge ${escape(value)}">${escape(String(value).replaceAll("_", " "))}</span>`;
 export const button = (label, href, primary = false) =>
