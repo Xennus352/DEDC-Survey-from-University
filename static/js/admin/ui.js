@@ -64,7 +64,7 @@ export const badge = (value) =>
 export const button = (label, href, primary = false) =>
   `<a class="button ${primary ? "primary" : ""}" href="${escape(href)}">${label}</a>`;
 export const empty = (title, description, action = "") =>
-  `<div class="empty"><div class="empty-symbol" aria-hidden="true">＋</div><h2>${escape(title)}</h2><p>${escape(description)}</p>${action}</div>`;
+  `<div class="empty"><h2>${escape(title)}</h2><p>${escape(description)}</p>${action}</div>`;
 export const date = (value) =>
   value
     ? new Date(value + "Z").toLocaleDateString(undefined, {
@@ -78,8 +78,6 @@ export const table = (headers, rows) =>
 export function setContent(html) {
   const content = document.querySelector("#content");
   content.innerHTML = html;
-  content.classList.remove("fade-in");
-  requestAnimationFrame(() => content.classList.add("fade-in"));
 }
 export function describe(text) {
   document.querySelector("#page-description").textContent = text;
@@ -96,11 +94,39 @@ export function toast(text) {
 }
 export function modal(title, html) {
   const dialog = document.querySelector("#workspace-dialog");
+  delete dialog.dataset.variant;
   document.querySelector("#dialog-title").textContent = title;
   document.querySelector("#dialog-content").innerHTML = html;
   dialog.showModal();
   return dialog;
 }
+export function confirmDelete(title, description, label, task) {
+  const dialog = modal(title, `<p id="delete-description">${escape(description)}</p><div class="dialog-actions"><button class="button" type="button" data-cancel-delete autofocus>Cancel</button><button class="button danger" type="button" data-confirm-delete>${escape(label)}</button></div>`);
+  dialog.setAttribute("aria-describedby", "delete-description");
+  const cleanup = () => dialog.removeAttribute("aria-describedby");
+  dialog.addEventListener("close", cleanup, { once: true });
+  dialog.querySelector("[data-cancel-delete]").onclick = () => dialog.close();
+  dialog.querySelector("[data-cancel-delete]").focus();
+  dialog.querySelector("[data-confirm-delete]").onclick = (event) => busy(event.currentTarget, async () => {
+    const preventClose = (event) => event.preventDefault();
+    const closeButton = dialog.querySelector("[data-close-dialog]");
+    closeButton.disabled = true;
+    dialog.dataset.deleting = "true";
+    dialog.addEventListener("cancel", preventClose);
+    try {
+      await task();
+      dialog.close();
+    } catch (error) {
+      errorMessage(error);
+    } finally {
+      closeButton.disabled = false;
+      delete dialog.dataset.deleting;
+      dialog.removeEventListener("cancel", preventClose);
+    }
+  });
+  return dialog;
+}
+
 export function errorMessage(error) {
   const content = document.querySelector("#dialog-content");
   let message = content.querySelector("[data-form-error]");

@@ -203,6 +203,7 @@ class QuestionBankQuestion(Base):
     required = Column(Boolean, nullable=False, default=False)
     enabled = Column(Boolean, nullable=False, default=True)
     config = Column(JSON, nullable=False, default=dict)
+    options = Column(JSON, nullable=False, default=list)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
 
 

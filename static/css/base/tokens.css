@@ -1,5 +1,17 @@
 :root {
   color-scheme: light;
+
+  /* Ministry brand palette shared by the home page and administration. */
+  --home-primary: #1556a6;
+  --home-primary-dark: #10447f;
+  --home-primary-soft: #eaf3ff;
+  --home-accent: #55a6f6;
+  --home-text: #172b45;
+  --home-muted: #68788d;
+  --home-border: #e4ebf3;
+  --home-surface: #ffffff;
+  --home-section: #f4f7fb;
+
   --color-background: #fff;
   --color-text: #171717;
   --color-primary: #232550;

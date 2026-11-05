@@ -11,6 +11,7 @@ import {
   actions,
   toast,
   modal,
+  confirmDelete,
   errorMessage,
   busy,
   pagination,
@@ -23,7 +24,7 @@ let loadEditor, loadPreview, loadImport;
 
 async function loadEditorModule() {
   try {
-    const mod = await import("./editor.js?v=20261103");
+    const mod = await import("./editor.js?v=20261105-questions");
     loadEditor = mod.loadEditor;
     loadPreview = mod.loadPreview;
   } catch (error) {
@@ -61,7 +62,7 @@ async function loadWorkbookModule() {
 // Initialize modules
 await Promise.all([loadEditorModule(), loadWorkbookModule()]);
 
-const page = document.body.dataset.page;
+let page = document.body.dataset.page;
 const content = document.querySelector("#content");
 
 try {
@@ -69,14 +70,17 @@ try {
     localStorage.getItem("dedc-theme") || "light";
 } catch {}
 
-document.querySelector("[data-sidebar-toggle]").onclick = (event) => {
-  if (matchMedia("(max-width:760px)").matches)
-    document.body.classList.toggle("sidebar-open");
-  else document.body.classList.toggle("sidebar-collapsed");
-  event.currentTarget.setAttribute(
-    "aria-expanded",
-    String(!document.body.classList.contains("sidebar-collapsed")),
-  );
+const compactNavigation = matchMedia("(max-width:1080px)");
+function updateNavigationState() {
+  document.querySelector("[data-sidebar-toggle]").setAttribute("aria-expanded", String(
+    compactNavigation.matches ? document.body.classList.contains("sidebar-open") : !document.body.classList.contains("sidebar-collapsed"),
+  ));
+}
+compactNavigation.addEventListener("change", updateNavigationState);
+updateNavigationState();
+document.querySelector("[data-sidebar-toggle]").onclick = () => {
+  document.body.classList.toggle(compactNavigation.matches ? "sidebar-open" : "sidebar-collapsed");
+  updateNavigationState();
 };
 
 document.querySelector(".topbar .search").onsubmit = async (event) => {
@@ -108,7 +112,7 @@ document.querySelector("[data-close-dialog]").onclick = () =>
   document.querySelector("dialog").close();
 
 document.querySelector("dialog").addEventListener("click", (event) => {
-  if (event.target === event.currentTarget) {
+  if (event.target === event.currentTarget && !event.currentTarget.dataset.deleting) {
     const r = event.currentTarget.getBoundingClientRect();
     if (
       event.clientX < r.left ||
@@ -128,7 +132,10 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     document.querySelector("#global-search").focus();
   }
-  if (event.key === "Escape") document.body.classList.remove("sidebar-open");
+  if (event.key === "Escape") {
+    document.body.classList.remove("sidebar-open");
+    updateNavigationState();
+  }
 });
 
 // Global error boundary for uncaught errors
@@ -171,9 +178,6 @@ export async function createForm() {
 
 async function overview() {
   describe("Your survey operations, in one place.");
-  actions(
-    `<button class="button" id="import-action">Import workbook</button><button class="button primary" id="create-action">＋ Create form</button>`,
-  );
   try {
     const [data, forms, recent] = await Promise.all([
       api("/overview"),
@@ -181,6 +185,9 @@ async function overview() {
       api("/audit?limit=5"),
     ]);
     const max = Math.max(1, ...data.trend.map((d) => d.count));
+    actions(
+      `<button class="button" id="import-action">Import workbook</button><button class="button primary" id="create-action">Create form</button>`,
+    );
     setContent(
       `<section class="stats" aria-label="Survey statistics">${[
         ["Survey forms", data.forms, `${data.published} published versions`],
@@ -198,7 +205,7 @@ async function overview() {
         )
         .join(
           "",
-        )}</section><div class="overview-grid"><section class="panel"><div class="panel-head"><div><h2>Submission activity</h2><p>Daily submissions over the last 30 days</p></div>${badge("live data")}</div><div class="panel-body"><div class="chart-summary"><strong>${data.trend.reduce((s, d) => s + d.count, 0)}</strong><span class="badge">Last 30 days</span></div><div class="chart" role="img" aria-label="${e(data.trend.map((d) => `${d.date}: ${d.count}`).join("; "))}">${data.trend.map((d) => `<div class="chart-column" tabindex="0" title="${d.date}: ${d.count} submissions"><div class="chart-bar" style="height:${Math.max(1, (d.count / max) * 100)}%"></div></div>`).join("")}</div><div class="chart-axis"><span>${data.trend[0].date}</span><span>${data.trend.at(-1).date}</span></div>${data.submissions === 0 ? '<p class="editor-meta">No submissions yet. Published forms will populate this chart as responses arrive.</p>' : ""}</div></section><section class="panel"><div class="panel-head"><div><h2>Keep things moving</h2><p>Your everyday survey workflow</p></div></div><div class="panel-body">${[
+        )}</section><div class="overview-grid"><section class="panel"><div class="panel-head"><div><h2>Submission activity</h2><p>Daily submissions over the last 30 days</p></div><a class="table-link" href="/dashboard/reports">View reports</a></div><div class="panel-body"><div class="chart-summary"><strong>${data.trend.reduce((s, d) => s + d.count, 0)}</strong><span class="badge">Last 30 days</span></div><div class="chart" role="img" aria-label="${e(data.trend.map((d) => `${d.date}: ${d.count}`).join("; "))}">${data.trend.map((d) => `<div class="chart-column" tabindex="0" title="${d.date}: ${d.count} submissions"><div class="chart-bar" style="height:${(d.count / max) * 100}%"></div></div>`).join("")}</div><div class="chart-axis"><span>${data.trend[0].date}</span><span>${data.trend.at(-1).date}</span></div>${data.submissions === 0 ? '<p class="editor-meta">No submissions yet. Published forms will populate this chart as responses arrive.</p>' : ""}</div></section><section class="panel"><div class="panel-head"><div><h2>Workspace shortcuts</h2><p>Create, import and review surveys</p></div></div><div class="panel-body">${[
         [
           "Survey forms",
           "Build, review and publish your surveys",
@@ -248,7 +255,7 @@ async function overview() {
     (location.href = "/dashboard/data");
 }
 
-function formTable(items) {
+function formTable(items, search = "") {
   return items.length
     ? table(
         [
@@ -264,10 +271,10 @@ function formTable(items) {
           const v = f.versions.at(-1);
           const total_questions = v?.fields ?? 0;
           const section_count = v?.sections?.length ?? v?.section_count ?? 0;
-          return `<tr><td><input type="checkbox" data-select-form="${f.id}" aria-label="Select form ${f.id}"></td><td class="title"><a class="table-link" href="/dashboard/forms/${f.id}">${e(f.title)}</a><small>Version ${v?.number || 1}</small></td><td>${e(f.audience)}</td><td>${badge(f.archived ? "archived" : v?.status || "draft")}</td><td class="numeric">${section_count}</td><td class="numeric">${total_questions}</td><td><a href="/dashboard/forms/${f.id}" class="button small">Open builder ↗</a></td></tr>`;
+          return `<tr><td><input type="checkbox" data-select-form="${f.id}" aria-label="Select form ${f.id}"></td><td class="title"><a class="table-link" href="/dashboard/forms/${f.id}">${e(f.title)}</a><small>Version ${v?.number || 1}</small></td><td>${e(f.audience)}</td><td>${badge(f.archived ? "archived" : v?.status || "draft")}</td><td class="numeric">${section_count}</td><td class="numeric">${total_questions}</td><td><a href="/dashboard/forms/${f.id}" class="button small">Open builder</a></td></tr>`;
         }),
       )
-    : empty(
+    : search ? empty("No matching forms", "Try another title or clear your search to see all survey forms.", button("Clear search", "/dashboard/forms")) : empty(
         "Your next survey starts here",
         "Create a form from scratch or import your existing DEDC workbook.",
         button("Import workbook", "/dashboard/data"),
@@ -276,14 +283,14 @@ function formTable(items) {
 
 async function formsPage() {
   describe("Build once. Publish with confidence. Keep every version.");
-  actions(
-    `<a class="button" href="/dashboard/data">Import workbook</a><button class="button primary" id="create-action">＋ Create form</button>`,
-  );
   try {
     const p = new URLSearchParams(location.search),
       data = await api("/forms?" + p);
+    actions(
+      `<a class="button" href="/dashboard/data">Import workbook</a><button class="button primary" id="create-action">Create form</button>`,
+    );
     setContent(
-      `<section class="panel">${searchFilter(p.get("search") || "")}${formTable(data.items)}${pagination(data.total)}</section>`,
+      `<section class="panel">${searchFilter(p.get("search") || "")}${formTable(data.items, p.get("search"))}${pagination(data.total)}</section>`,
     );
   } catch (error) {
     setContent(
@@ -330,169 +337,144 @@ function setupBulkDelete() {
         btn.id = "bulk-delete-forms";
         btn.className = "button danger small";
         btn.textContent = `Delete ${selected.length} selected`;
-        btn.onclick = () => bulkDeleteForms(selected);
         document.querySelector("#page-actions").appendChild(btn);
       } else {
         btn.textContent = `Delete ${selected.length} selected`;
       }
+      btn.onclick = () => bulkDeleteForms(selected);
     } else if (btn) {
       btn.remove();
     }
   }
 }
 
-async function bulkDeleteForms(ids) {
-  if (
-    !confirm(
-      `Are you sure you want to delete ${ids.length} form(s)? This action cannot be undone.`
-    )
-  )
-    return;
-  try {
-    await api("/forms/bulk-delete", {
-      method: "POST",
-      body: { ids },
-    });
-    toast(`${ids.length} form(s) deleted.`);
-    load();
-  } catch (error) {
-    errorMessage(error);
-  }
+function bulkDeleteForms(ids) {
+  confirmDelete(
+    `Delete ${ids.length} selected form${ids.length === 1 ? "" : "s"}?`,
+    "The selected forms and their questions will be permanently deleted. This action cannot be undone. Forms with submissions or preserved workbook observations must be archived instead.",
+    `Delete ${ids.length} form${ids.length === 1 ? "" : "s"}`,
+    async () => {
+      await api("/forms/bulk-delete", { method: "POST", body: { ids } });
+      toast(`${ids.length} form(s) deleted.`);
+      await load();
+    },
+  );
 }
-
 
 
 async function departments() {
-  describe("Manage ministries and universities for survey audiences.");
-  actions(
-    `<button class="button primary" id="add-org">＋ Add ministry or university</button>`,
-  );
+  describe("Ministries and universities participating in your surveys.");
   try {
-    const p = new URLSearchParams(location.search);
-    const [ministriesData, universitiesData] = await Promise.all([
-      api("/ministries?" + p),
-      api("/universities?" + p),
+    const params = new URLSearchParams(location.search);
+    const [ministries, universities] = await Promise.all([
+      api("/ministries?" + params), api("/universities?" + params),
     ]);
-    setContent(
-      `<section class="panel">${searchFilter(p.get("search") || "")}<div class="filters"><label>Filter by type<select id="org-filter"><option value="all" ${p.get("type") === "all" || !p.get("type") ? "selected" : ""}>All</option><option value="ministry" ${p.get("type") === "ministry" ? "selected" : ""}>Ministry</option><option value="university" ${p.get("type") === "university" ? "selected" : ""}>University</option></select></label><button class="button small" id="apply-org-filter">Apply</button></div></section>
-      ${ (p.get("type") === "all" || !p.get("type") || p.get("type") === "ministry") && ministriesData.items.length
-        ? `<section class="panel" style="margin-top:22px"><h3>Ministries</h3>${table(
-            ["Ministry", ""],
-            ministriesData.items.map(
-              (m) =>
-                `<tr><td class="title">${e(m.name)}</td><td><button class="button small" data-edit-ministry='${JSON.stringify(m).replace(/'/g, "'")}'>Edit</button><button class="button small danger" data-delete-ministry="${m.id}">Delete</button></td></tr>`,
-            ),
-          )}</section>`
-        : (p.get("type") === "ministry" && !ministriesData.items.length)
-        ? `<section class="panel" style="margin-top:22px">${empty("No ministries yet", "Add ministries to organize survey audiences.")}</section>`
-        : ""
-      }
-      ${ (p.get("type") === "all" || !p.get("type") || p.get("type") === "university") && universitiesData.items.length
-        ? `<section class="panel" style="margin-top:22px"><h3>Universities</h3>${table(
-            ["University", "Type", ""],
-            universitiesData.items.map(
-              (u) =>
-                `<tr><td class="title">${e(u.name)}</td><td>${e(u.type) || "—"}</td><td><button class="button small" data-edit-university='${JSON.stringify(u).replace(/'/g, "'")}'>Edit</button><button class="button small danger" data-delete-university="${u.id}">Delete</button></td></tr>`,
-            ),
-          )}</section>`
-        : (p.get("type") === "university" && !universitiesData.items.length)
-        ? `<section class="panel" style="margin-top:22px">${empty("No universities yet", "Add universities to organize survey audiences.")}</section>`
-        : ""
-      }`,
-    );
+    const type = params.get("type") || "";
+    const rows = [
+      ...(type !== "university" ? ministries.items.map((org) => ({ ...org, organization: "ministry" })) : []),
+      ...(type !== "ministry" ? universities.items.map((org) => ({ ...org, organization: "university" })) : []),
+    ].sort((left, right) => left.name.localeCompare(right.name));
+    const total = (type !== "university" ? ministries.total : 0) + (type !== "ministry" ? universities.total : 0);
+    const filtered = !!params.get("search") || !!type;
+    actions('<button class="button primary" id="add-org">Add department</button>');
+    setContent(`<div class="organization-grid single-column"><section class="panel directory-panel">
+      <div class="panel-head"><div><h2>Department directory <span class="inline-count">${total}</span></h2><p>${ministries.total} ${ministries.total === 1 ? "ministry" : "ministries"} · ${universities.total} ${universities.total === 1 ? "university" : "universities"}</p></div></div>
+      <form class="filters" data-filter-form><input type="search" name="search" aria-label="Search organizations" placeholder="Search departments…" value="${e(params.get("search") || "")}"><label><span id="directory-type-label">Type</span><select name="type" aria-labelledby="directory-type-label"><option value="">All types</option><option value="university" ${type === "university" ? "selected" : ""}>University</option><option value="ministry" ${type === "ministry" ? "selected" : ""}>Ministry</option></select></label><button class="button" type="submit">Search</button>${filtered ? '<a class="button text-button" href="/dashboard/departments">Clear filters</a>' : ""}</form>
+      ${rows.length ? table(["Name", "Organization", "Category", "Actions"], rows.map((org) => `<tr><td class="title">${e(org.name)}</td><td>${org.organization === "university" ? "University" : "Ministry"}</td><td>${org.organization === "university" ? e(org.type || "Unspecified") : "—"}</td><td><div class="row-actions"><button class="button small" data-edit-org="${org.id}" data-org-type="${org.organization}">Edit</button><button class="button small danger" data-delete-org="${org.id}" data-org-type="${org.organization}">Delete</button></div></td></tr>`)) : empty(filtered ? "No matching departments" : "No departments added yet", filtered ? "Try a different name or clear the filters to see all departments." : "Add a university or ministry to organize the participants in your surveys.", filtered ? button("Clear filters", "/dashboard/departments") : '<button class="button" data-add-department>Add your first department</button>')}
+      ${rows.length && total > rows.length ? `<p class="directory-note">Showing ${rows.length} of ${total} departments. Search by name to narrow the list.</p>` : ""}
+    </section></div>`);
+    document.querySelector("#add-org").onclick = () => openAddOrgDialog();
+    document.querySelector("[data-add-department]")?.addEventListener("click", () => openAddOrgDialog());
+    document.querySelectorAll("[data-edit-org]").forEach((button) => button.onclick = () => {
+      const data = button.dataset.orgType === "ministry" ? ministries : universities;
+      openAddOrgDialog(button.dataset.orgType, data.items.find((org) => org.id === Number(button.dataset.editOrg)));
+    });
+    document.querySelectorAll("[data-delete-org]").forEach((button) => button.onclick = () => deleteOrg(button.dataset.orgType, Number(button.dataset.deleteOrg), button));
+    bindFilters(load);
   } catch (error) {
-    setContent(
-      `<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">Retry</button>`,
-    );
+    setContent(`<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">Retry</button>`);
     document.querySelector("#retry").onclick = departments;
-    return;
   }
-  document.querySelector("#add-org").onclick = () => openAddOrgDialog();
-  document.querySelector("#apply-org-filter")?.addEventListener("click", () => {
-    const type = document.querySelector("#org-filter")?.value || "all";
-    const search = document.querySelector("input[type=search]")?.value || "";
-    const url = new URL(location.href);
-    if (type !== "all") url.searchParams.set("type", type); else url.searchParams.delete("type");
-    if (search) url.searchParams.set("search", search); else url.searchParams.delete("search");
-    location.href = url.toString();
-  });
-  bindFilters(load);
-  document.querySelectorAll("[data-edit-ministry]").forEach((btn) => {
-    btn.onclick = () => openAddOrgDialog("ministry", JSON.parse(btn.dataset.editMinistry));
-  });
-  document.querySelectorAll("[data-edit-university]").forEach((btn) => {
-    btn.onclick = () => openAddOrgDialog("university", JSON.parse(btn.dataset.editUniversity));
-  });
-  document.querySelectorAll("[data-delete-ministry]").forEach((btn) => {
-    btn.onclick = () => deleteOrg("ministry", Number(btn.dataset.deleteMinistry), btn);
-  });
-  document.querySelectorAll("[data-delete-university]").forEach((btn) => {
-    btn.onclick = () => deleteOrg("university", Number(btn.dataset.deleteUniversity), btn);
-  });
 }
 
-function openAddOrgDialog(orgType = null, org = null) {
+function openAddOrgDialog(orgType = "", org = null) {
   const isEdit = !!org;
-  const initialType = orgType || "";
-  const dialog = modal(
-    isEdit ? (initialType === "ministry" ? "Edit ministry" : "Edit university") : "Add ministry or university",
-    `<form id="org-select-form" class="field-stack"><input type="hidden" name="id" value="${org?.id || ""}"><label>Type<select name="org_type" required ${isEdit ? "disabled" : ""}><option value="">Choose...</option><option value="ministry" ${initialType === "ministry" ? "selected" : ""}>Ministry</option><option value="university" ${initialType === "university" ? "selected" : ""}>University</option></select></label><div id="org-details" class="field-stack" style="display:${isEdit || initialType ? "block" : "none"}"><label>Name<input name="name" required maxlength="255" value="${e(org?.name || "")}"></label><label id="uni-type-label" style="display:${initialType === "university" ? "block" : "none"}">University type<input name="uni_type" maxlength="100" placeholder="e.g. Public, Private" value="${e(org?.type || "Unspecified")}"></label></div><div class="dialog-actions"><button class="button primary" type="submit">${isEdit ? "Save" : "Create"}</button></div></form>`,
-  );
-  const typeSel = dialog.querySelector('select[name="org_type"]');
-  const details = dialog.querySelector('#org-details');
-  const uniLabel = dialog.querySelector('#uni-type-label');
-  if (!isEdit) {
-    typeSel.onchange = () => {
-      if (typeSel.value) {
-        details.style.display = 'block';
-        uniLabel.style.display = typeSel.value === 'university' ? 'block' : 'none';
-      } else {
-        details.style.display = 'none';
-      }
-    };
+  const dialog = modal(isEdit ? "Edit department" : "Add department", `
+    <form id="org-select-form" class="field-stack">
+      <label><span id="org-type-label">Type</span><select name="org_type" aria-labelledby="org-type-label" required ${isEdit ? "disabled" : ""}><option value="">Choose type</option><option value="university" ${orgType === "university" ? "selected" : ""}>University</option><option value="ministry" ${orgType === "ministry" ? "selected" : ""}>Ministry</option></select></label>
+      <label><span id="org-name-label">Name</span><input name="name" aria-labelledby="org-name-label" required maxlength="255" autocomplete="organization" placeholder="Enter university or ministry name" value="${e(org?.name || "")}"></label>
+      <details id="org-university-details" ${isEdit && orgType === "university" && org.type !== "Unspecified" ? "open" : ""} hidden><summary>University details</summary><label><span id="org-category-label">Category (optional)</span><input name="uni_type" aria-labelledby="org-category-label" maxlength="100" placeholder="e.g. Public or Private" value="${e(org?.type === "Unspecified" ? "" : org?.type || "")}"></label></details>
+      <div class="dialog-actions"><button class="button" type="button" data-cancel-org>Cancel</button><button class="button primary" type="submit">${isEdit ? "Save" : "Create"}</button></div>
+    </form>`);
+  dialog.dataset.variant = "organization";
+  const form = dialog.querySelector("#org-select-form");
+  const type = form.elements.org_type;
+  const name = form.elements.name;
+  function updateFields() {
+    const chosen = type.value;
+    dialog.querySelector("#org-name-label").textContent = chosen === "university" ? "University name" : chosen === "ministry" ? "Ministry name" : "Name";
+    name.placeholder = chosen === "university" ? "Enter university name" : chosen === "ministry" ? "Enter ministry name" : "Enter university or ministry name";
+    dialog.querySelector("#org-university-details").hidden = chosen !== "university";
   }
-  document.querySelector("#org-select-form").onsubmit = async (event) => {
+  type.onchange = updateFields;
+  updateFields();
+  form.querySelector("[data-cancel-org]").onclick = () => dialog.close();
+  if (!isEdit) type.focus();
+  else name.focus();
+  form.onsubmit = (event) => {
     event.preventDefault();
+    const title = name.value.trim();
+    name.setCustomValidity(title ? "" : "Enter a department name.");
+    if (!form.reportValidity()) return;
     busy(event.submitter, async () => {
       try {
-        const values = Object.fromEntries(new FormData(event.target));
-        const orgTypeVal = values.org_type || initialType;
-        const id = values.id;
-        if (orgTypeVal === 'ministry') {
-          if (id) {
-            await api('/ministries/' + id, { method: 'PUT', body: { name: values.name } });
-            toast('Ministry updated.');
-          } else {
-            await api('/ministries', { method: 'POST', body: { name: values.name } });
-            toast('Ministry created.');
-          }
-        } else if (orgTypeVal === 'university') {
-          if (id) {
-            await api('/universities/' + id, { method: 'PUT', body: { name: values.name, type: values.uni_type || 'Unspecified' } });
-            toast('University updated.');
-          } else {
-            await api('/universities', { method: 'POST', body: { name: values.name, type: values.uni_type || 'Unspecified' } });
-            toast('University created.');
-          }
-        }
+        const university = type.value === "university";
+        const path = university ? "/universities" : "/ministries";
+        const body = { name: title, ...(university ? { type: form.elements.uni_type.value.trim() || "Unspecified" } : {}) };
+        await api(path + (isEdit ? "/" + org.id : ""), { method: isEdit ? "PUT" : "POST", body });
         dialog.close();
-        load();
+        toast(`${university ? "University" : "Ministry"} ${isEdit ? "updated" : "created"}.`);
+        await load();
       } catch (error) {
         errorMessage(error);
       }
     });
   };
+  name.oninput = () => name.setCustomValidity("");
 }
-async function deleteOrg(orgType, id, btn) {
+
+function deleteOrg(orgType, id, btn) {
   const isMinistry = orgType === "ministry";
-  if (!confirm(`Are you sure you want to delete this ${isMinistry ? "ministry" : "university"}? This action cannot be undone.`)) return;
-  try {
-    await api(`/${isMinistry ? "ministries" : "universities"}/${id}`, { method: "DELETE" });
-    toast(`${isMinistry ? "Ministry" : "University"} deleted.`);
-    load();
-  } catch (error) {
-    errorMessage(error);
-  }
+  const name = btn.closest("tr").querySelector(".title").textContent;
+  confirmDelete(
+    `Delete ${isMinistry ? "ministry" : "university"}?`,
+    `“${name}” will be permanently deleted. This action cannot be undone.`,
+    "Delete " + (isMinistry ? "ministry" : "university"),
+    async () => {
+      await api(`/${isMinistry ? "ministries" : "universities"}/${id}`, { method: "DELETE" });
+      toast(`${isMinistry ? "Ministry" : "University"} deleted.`);
+      await load();
+    },
+  );
+}
+
+function reportFilters(p, formData, users) {
+  const advanced = ["version_id", "user_id", "start", "end", "question", "operator"].some((key) => p.get(key));
+  return `<form class="filters report-filters" data-filter-form>
+    <input type="search" aria-label="Search submissions" name="search" placeholder="Search form or user…" value="${e(p.get("search") || "")}">
+    <label>Form<select name="form_id"><option value="">All forms</option>${formData.items.map((form) => `<option value="${form.id}" ${p.get("form_id") == form.id ? "selected" : ""}>${e(form.title)}</option>`).join("")}</select></label>
+    <label>Status<select name="status"><option value="">All statuses</option>${["completed", "pending_review", "approved", "rejected"].map((status) => `<option value="${status}" ${p.get("status") === status ? "selected" : ""}>${status.replaceAll("_", " ")}</option>`).join("")}</select></label>
+    <button class="button" type="submit">Apply filters</button>
+    ${location.search ? '<a class="button" href="/dashboard/reports">Clear filters</a>' : ""}
+    <details class="report-more-filters" ${advanced ? "open" : ""}><summary>More filters</summary><div class="advanced-filters">
+      <label>Version<select name="version_id"><option value="">All versions</option>${formData.items.flatMap((form) => form.versions.map((version) => `<option value="${version.id}" ${p.get("version_id") == version.id ? "selected" : ""}>${e(form.title)} · v${version.number}</option>`)).join("")}</select></label>
+      <label>User<select name="user_id"><option value="">All users</option>${users.items.map((user) => `<option value="${user.id}" ${p.get("user_id") == user.id ? "selected" : ""}>${e(user.username)}</option>`).join("")}</select></label>
+      <label>From<input type="date" name="start" value="${e(p.get("start") || "")}"></label>
+      <label>To<input type="date" name="end" value="${e(p.get("end") || "")}"></label>
+      <label>Question key<input name="question" placeholder="e.g. q1_present" value="${e(p.get("question") || "")}"></label>
+      <label>Match<select name="operator"><option value="">Default (equals)</option>${["equals", "contains", "greater_than", "less_than"].map((operator) => `<option value="${operator}" ${p.get("operator") === operator ? "selected" : ""}>${operator.replaceAll("_", " ")}</option>`).join("")}</select></label>
+    </div></details>
+  </form>`;
 }
 
 async function reportsPage() {
@@ -500,18 +482,18 @@ async function reportsPage() {
     "Filter actual submissions, review answers and export the same result set.",
   );
   let data, formData, users;
+  const p = new URLSearchParams(location.search);
   try {
-    const p = new URLSearchParams(location.search);
     [data, formData, users] = await Promise.all([
       api("/reports?" + p),
       api("/forms?limit=100"),
       api("/users?limit=100"),
     ]);
     actions(
-      `<a class="button" href="/api/admin/reports/export/csv?${e(p)}">Export CSV</a><a class="button" href="/api/admin/reports/export/xlsx?${e(p)}">Export Excel</a><a class="button" href="/api/admin/reports/export/pdf?${e(p)}">Export PDF</a>`,
+      `<details class="export-menu"><summary class="button">Export report</summary><div><a href="/api/admin/reports/export/csv?${e(p)}">Export CSV</a><a href="/api/admin/reports/export/xlsx?${e(p)}">Export Excel</a><a href="/api/admin/reports/export/pdf?${e(p)}">Export PDF</a></div></details>`,
     );
     setContent(
-      `<section class="stats"><div class="stat"><p>Matching submissions</p><strong>${data.total}</strong></div><div class="stat"><p>Completed</p><strong>${data.statuses.completed || 0}</strong></div><div class="stat"><p>Approved</p><strong>${data.statuses.approved || 0}</strong></div><div class="stat"><p>Rejected</p><strong>${data.statuses.rejected || 0}</strong></div></section><section class="panel" style="margin-top:22px"><form class="filters" data-filter-form><input type="search" aria-label="Search submissions" name="search" placeholder="Search form or user…" value="${e(p.get("search") || "")}"><label>Form<select name="form_id"><option value="">All forms</option>${formData.items.map((f) => `<option value="${f.id}" ${p.get("form_id") == f.id ? "selected" : ""}>${e(f.title)}</option>`).join("")}</select></label><label>Version<select name="version_id"><option value="">All versions</option>${formData.items.flatMap((f) => f.versions.map((v) => `<option value="${v.id}" ${p.get("version_id") == v.id ? "selected" : ""}>${e(f.title)} · v${v.number}</option>`)).join("")}</select></label><label>Status<select name="status"><option value="">All statuses</option>${["completed", "pending_review", "approved", "rejected"].map((s) => `<option ${p.get("status") === s ? "selected" : ""} value="${s}">${s.replace(/_/g, " ")}</option>`).join("")}</select></label><label>User<select name="user_id"><option value="">All users</option>${users.items.map((u) => `<option value="${u.id}" ${p.get("user_id") == u.id ? "selected" : ""}>${e(u.username)}</option>`).join("")}</select></label><label>From<input type="date" name="start" value="${e(p.get("start") || "")}"></label><label>To<input type="date" name="end" value="${e(p.get("end") || "")}"></label><label>Question key<input name="question" placeholder="e.g. q1_present" value="${e(p.get("question") || "")}"></label><label>Match<select name="operator">${["equals", "contains", "greater_than", "less_than"].map((op) => `<option value="${op}" ${p.get("operator") === op ? "selected" : ""}>${op.replace(/_/g, " ")}</option>`).join("")}</select></label><button class="button small" type="submit">Apply</button></form>${data.items.length
+      `<section class="stats"><div class="stat"><p>Matching submissions</p><strong>${data.total}</strong></div><div class="stat"><p>Completed</p><strong>${data.statuses.completed || 0}</strong></div><div class="stat"><p>Approved</p><strong>${data.statuses.approved || 0}</strong></div><div class="stat"><p>Rejected</p><strong>${data.statuses.rejected || 0}</strong></div></section><section class="panel" style="margin-top:22px">${reportFilters(p, formData, users)}${data.items.length
         ? table(
             [
               "",
@@ -611,21 +593,22 @@ async function reportsPage() {
 }
 
 async function usersPage() {
+  let data;
   describe("Manage real accounts, roles and administrator access.");
   try {
-    const p = new URLSearchParams(location.search),
-      data = await api("/users?" + p);
+    const p = new URLSearchParams(location.search);
+    data = await api("/users?" + p);
     actions(
-      `<a class="button" href="/api/admin/users/export/csv?${e(p)}">Export users</a><button class="button" id="add-role">Add role</button><button class="button primary" id="add-user">＋ Add user</button>`,
+      `<a class="button" href="/api/admin/users/export/csv?${e(p)}">Export users</a><button class="button" id="add-role">Add role</button><button class="button primary" id="add-user">Add user</button>`,
     );
     setContent(
-      `<section class="panel">${searchFilter(p.get("search") || "")}${table(
+      `<section class="panel">${searchFilter(p.get("search") || "")}${data.items.length ? table(
         ["User", "Role", "Status", "Created", ""],
         data.items.map(
           (u) =>
             `<tr><td><a class="table-link" href="/dashboard/reports?user_id=${u.id}">${e(u.username)}</a><small>User #${u.id} · View submissions</small></td><td>${e(data.roles.find((r) => r.id === u.role_id)?.name || u.role_id)}</td><td>${badge(u.is_active ? "active" : "disabled")}</td><td>${date(u.created_at)}</td><td><button class="button small" data-edit-user="${u.id}">Edit user</button></td></tr>`,
         ),
-      )}${pagination(data.total)}</section>`,
+      ) : empty("No matching users", "Try another username or clear your search to see all accounts.", button("Clear search", "/dashboard/users"))}${pagination(data.total)}</section>`,
     );
   } catch (error) {
     setContent(
@@ -707,7 +690,7 @@ async function audit() {
               ["Action", "Actor", "Target", "Changes", "When"],
               data.items.map(
                 (a) =>
-                  `<tr><td>${e(a.action)}</td><td>User #${a.actor_id ?? "—"}</td><td>${e(a.entity)} #${a.target_id ?? "—"}</td><td class="title">${e(JSON.stringify(a.changes))}</td><td>${date(a.created_at)}</td></tr>`,
+                  `<tr><td>${e(a.action)}</td><td>User #${a.actor_id ?? "—"}</td><td>${e(a.entity)} #${a.target_id ?? "—"}</td><td class="title"><details class="audit-changes"><summary>View details</summary><pre>${e(JSON.stringify(a.changes, null, 2))}</pre></details></td><td>${date(a.created_at)}</td></tr>`,
               ),
             )
           : empty(
@@ -731,7 +714,7 @@ async function settings() {
   try {
     const user = await api("/session");
     setContent(
-      `<div class="overview-grid"><section class="panel"><div class="panel-head"><h2>Appearance</h2></div><div class="panel-body field-stack"><label>Workspace theme<select id="theme-setting"><option value="light">Light</option><option value="dark">Dark</option></select><small>Saved in this browser. No account credentials are stored.</small></label></div></section><section class="panel"><div class="panel-head"><h2>Your account</h2></div><div class="panel-body"><h3>${e(user.username)}</h3><p class="editor-meta">Administrator · User #${user.id}</p><a class="button" href="/dashboard/users">Manage accounts</a></div></div>`,
+      `<div class="settings-layout"><section class="settings-row"><div class="settings-copy"><h2>Appearance</h2><p>Choose how the workspace looks on this device.</p></div><div class="settings-control"><label><span id="theme-setting-label">Workspace theme</span><select id="theme-setting" aria-labelledby="theme-setting-label"><option value="light">Light</option><option value="dark">Dark</option></select></label><p class="field-hint">Your preference is saved in this browser.</p></div></section><section class="settings-row"><div class="settings-copy"><h2>Your account</h2><p>Your administrator profile and access.</p></div><div class="settings-control"><h3>${e(user.username)}</h3><p class="editor-meta">Administrator · User #${user.id}</p><a class="button" href="/dashboard/users">Manage accounts</a></div></section></div>`,
     );
   } catch (error) {
     setContent(
@@ -802,5 +785,66 @@ async function load() {
   }
 }
 
-window.addEventListener("popstate", load);
-load();
+const workspacePages = {
+  "/dashboard": ["overview", "Overview"],
+  "/dashboard/forms": ["forms", "Survey forms"],
+  "/dashboard/departments": ["departments", "Departments"],
+  "/dashboard/reports": ["reports", "Reports & analytics"],
+  "/dashboard/users": ["users", "Users & enumerators"],
+  "/dashboard/audit": ["audit", "Audit trail"],
+  "/dashboard/settings": ["settings", "Settings"],
+};
+let navigating = false;
+let navigationTask = Promise.resolve();
+function showWorkspacePage() {
+  navigationTask = navigationTask.then(renderWorkspacePage);
+  return navigationTask;
+}
+async function renderWorkspacePage() {
+  const target = workspacePages[location.pathname];
+  if (!target) return location.reload();
+  [page] = target;
+  document.body.dataset.page = page;
+  document.title = `${target[1]} · DEDC`;
+  document.querySelector("h1").textContent = target[1];
+  document.querySelector(".breadcrumb strong").textContent = target[1];
+  document.querySelectorAll(".sidebar nav a").forEach((link) => {
+    if (new URL(link.href).pathname === location.pathname) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
+  });
+  document.body.classList.remove("sidebar-open");
+  updateNavigationState();
+  actions("");
+  content.setAttribute("aria-busy", "true");
+  content.inert = true;
+  navigating = true;
+  try { await load(); }
+  finally {
+    navigating = false;
+    content.removeAttribute("aria-busy");
+    content.inert = false;
+  }
+}
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("a[href]");
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target || link.hasAttribute("download")) return;
+  const url = new URL(link.href);
+  if (url.origin !== location.origin || !workspacePages[url.pathname] || !workspacePages[location.pathname] || url.hash) return;
+  if (document.querySelector("#workspace-dialog").open) return;
+  event.preventDefault();
+  if (navigating || url.href === location.href) return;
+  history.pushState({}, "", url);
+  showWorkspacePage();
+});
+window.addEventListener("popstate", () => {
+  if (workspacePages[location.pathname]) showWorkspacePage();
+  else location.reload();
+});
+navigating = true;
+content.setAttribute("aria-busy", "true");
+content.inert = true;
+navigationTask = load().finally(() => {
+  navigating = false;
+  content.removeAttribute("aria-busy");
+  content.inert = false;
+});

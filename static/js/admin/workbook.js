@@ -17,7 +17,7 @@ export async function loadImport() {
     "Bring in your DEDC workbook. Review the structure and preserve the original answers.",
   );
   actions(
-    `<a class="button" href="/dashboard/data">Import workbook</a><a class="button" href="/dashboard/data?tab=answers">View source answers</a><a class="button" href="/api/admin/workbook/export/excel">Original format: questions</a><a class="button" href="/api/admin/workbook/export/excel?answers=true">Original format: questions & answers</a>`,
+    `<a class="button" href="/dashboard/data">Import workbook</a><a class="button" href="/dashboard/data?tab=answers">View source answers</a><details class="export-menu"><summary class="button">Export workbook</summary><div><a href="/api/admin/workbook/export/excel">Original format: questions</a><a href="/api/admin/workbook/export/excel?answers=true">Original format: questions & answers</a></div></details>`,
   );
   const params = new URLSearchParams(location.search);
   if (params.get("tab") === "answers") return sourceAnswers(params);

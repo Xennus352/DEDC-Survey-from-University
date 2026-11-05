@@ -213,3 +213,155 @@ class AdminApiTests(PortalFixture):
         self.assertEqual(status, 201)
         _, _, directory = await self.admin_request("/users")
         self.assertIn(role, directory["roles"])
+
+    async def test_organization_crud_persists_and_records_audit(self):
+        await self.login()
+        for path, kind in (("/ministries", "ministry"), ("/universities", "university")):
+            with self.subTest(kind=kind):
+                status, _, created = await self.admin_request(path, "POST", {"name": "Teacher's institute", "type": "Public"})
+                self.assertEqual(status, 201, created)
+                identifier = created["id"]
+                status, _, duplicate = await self.admin_request(path, "POST", {"name": "Teacher's institute"})
+                self.assertEqual(status, 409, duplicate)
+                status, _, listing = await self.admin_request(path + "?search=Teacher&limit=1")
+                self.assertEqual(status, 200, listing)
+                self.assertEqual(listing["total"], 1)
+                self.assertEqual(listing["items"][0]["id"], identifier)
+                status, _, updated = await self.admin_request(f"{path}/{identifier}", "PUT", {"name": "Updated institute", "type": "Private"})
+                self.assertEqual(status, 200, updated)
+                status, _, listing = await self.admin_request(path + "?search=Updated")
+                self.assertEqual(listing["items"][0]["name"], "Updated institute")
+                if kind == "university":
+                    self.assertEqual(listing["items"][0]["type"], "Private")
+                status, _, body = await self.admin_request(f"{path}/{identifier}", "DELETE")
+                self.assertEqual(status, 204, body)
+                _, _, listing = await self.admin_request(path)
+                self.assertEqual(listing["total"], 0)
+                with self.sessions() as db:
+                    self.assertEqual(db.query(AuditLog).filter(AuditLog.action.in_([kind + ".create", kind + ".update", kind + ".delete"])).count(), 3)
+
+    async def test_bulk_delete_is_atomic_and_cascades_field_options(self):
+        from app.models.forms import FieldOption, FormSection, FormVersion, SurveyForm
+        await self.login()
+        identifiers = []
+        for title in ("First draft", "Second draft"):
+            _, _, form = await self.admin_request("/forms", "POST", {"title": title})
+            identifiers.append(form["id"])
+            version = form["versions"][0]["id"]
+            status, _, result = await self.admin_request(f"/forms/{form['id']}/versions/{version}", "PUT", {
+                "title": title, "revision": 1,
+                "sections": [{"title": "Section", "questions": [{"key": "choice", "title": "Choose", "kind": "single_choice", "options": [{"value": "yes", "label": "Yes"}]}]}],
+            })
+            self.assertEqual(status, 200, result)
+        status, _, _ = await self.admin_request("/forms/bulk-delete", "POST", {"ids": [identifiers[0], 99999]})
+        self.assertEqual(status, 404)
+        _, _, listing = await self.admin_request("/forms")
+        self.assertEqual(listing["total"], 2)
+        status, _, result = await self.admin_request("/forms/bulk-delete", "POST", {"ids": identifiers + [identifiers[0]]})
+        self.assertEqual(status, 204, result)
+        with self.sessions() as db:
+            for model in (SurveyForm, FormVersion, FormSection, FormField, FieldOption):
+                self.assertEqual(db.query(model).count(), 0, model.__name__)
+            self.assertEqual(db.query(AuditLog).filter_by(action="form.delete").count(), 2)
+
+    async def test_delete_rejects_forms_with_submissions_without_deleting_other_selection(self):
+        await self.login()
+        _, _, draft = await self.admin_request("/forms", "POST", {"title": "Keep draft"})
+        _, _, protected = await self.admin_request("/forms", "POST", {"title": "With submissions"})
+        with self.sessions() as db:
+            db.add(Submission(version_id=protected["versions"][0]["id"], user_id=1))
+            db.commit()
+        for path, method, data in (
+            ("/forms/bulk-delete", "POST", {"ids": [draft["id"], protected["id"]]}),
+            (f"/forms/{protected['id']}", "DELETE", None),
+        ):
+            status, _, result = await self.admin_request(path, method, data)
+            self.assertEqual(status, 409, result)
+        _, _, listing = await self.admin_request("/forms")
+        self.assertEqual(listing["total"], 2)
+
+    async def test_respondent_cannot_manage_organizations_or_bulk_delete(self):
+        import re
+        _, _, body = await self.request("/survey/login")
+        token = re.search(r'name="csrf_token" value="([^"]+)"', body).group(1)
+        status, _, _ = await self.request("/survey/login", "POST", {
+            "csrf_token": token, "username": "member", "password": self.password,
+        })
+        self.assertEqual(status, 303)
+        for path, method, data in (
+            ("/ministries", "GET", None), ("/universities", "GET", None),
+            ("/ministries", "POST", {"name": "Forbidden"}),
+            ("/universities", "POST", {"name": "Forbidden"}),
+            ("/forms/bulk-delete", "POST", {"ids": [1]}),
+        ):
+            status, _, _ = await self.admin_request(path, method, data)
+            self.assertEqual(status, 403)
+
+    async def test_question_library_persists_options_and_reuses_duplicate_definitions(self):
+        await self.login()
+        question = {
+            "key": "institution", "title": "  Which institution?  ",
+            "kind": "single_choice", "required": True, "title_my": "အဖွဲ့အစည်း",
+            "options": [{"value": "public", "label": "Public"}, {"value": "private", "label": "Private"}],
+        }
+        status, _, saved = await self.admin_request("/question-library", "POST", question)
+        self.assertEqual(status, 200, saved)
+        self.assertTrue(saved["created"])
+        _, _, duplicate = await self.admin_request("/question-library", "POST", {
+            **question, "key": "another_key", "title": "WHICH institution?",
+        })
+        self.assertFalse(duplicate["created"])
+        self.assertEqual(saved["id"], duplicate["id"])
+        _, _, result = await self.admin_request("/question-library?search=INSTITUTION")
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["question"]["options"], question["options"])
+        self.assertTrue(result["items"][0]["question"]["required"])
+        from urllib.parse import quote
+        _, _, translated = await self.admin_request("/question-library?search=" + quote("အဖွဲ့အစည်း"))
+        self.assertEqual(translated["total"], 1)
+        with self.sessions() as db:
+            from app.models.forms import QuestionBankQuestion
+            self.assertEqual(db.query(QuestionBankQuestion).count(), 1)
+        # Same title with a different answer definition must not modify the saved template.
+        _, _, alternative = await self.admin_request("/question-library", "POST", {
+            **question, "kind": "short_text", "options": [],
+        })
+        self.assertTrue(alternative["created"])
+        _, _, result = await self.admin_request("/question-library?search=institution&limit=1")
+        self.assertEqual(result["total"], 2)
+        self.assertEqual(len(result["items"]), 1)
+
+    async def test_question_library_searches_existing_forms_and_burmese_titles(self):
+        await self.login()
+        _, _, created = await self.admin_request("/forms", "POST", {"title": "Existing survey"})
+        question = {"key": "count", "title": "ကျောင်းသား အရေအတွက်", "kind": "number", "config": {"min": 0}}
+        status, _, result = await self.admin_request(
+            f"/forms/{created['id']}/versions/{created['versions'][0]['id']}", "PUT", {
+                "title": "Existing survey", "revision": 1,
+                "sections": [{"title": "Enrollment", "questions": [question]}],
+            },
+        )
+        self.assertEqual(status, 200, result)
+        from urllib.parse import quote
+        _, _, result = await self.admin_request("/question-library?search=" + quote("ကျောင်းသား"))
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["source"], "form")
+        self.assertEqual(result["items"][0]["question"]["config"], {"min": 0})
+        await self.admin_request("/question-library", "POST", question)
+        _, _, result = await self.admin_request("/question-library?search=" + quote("ကျောင်းသား"))
+        self.assertEqual(result["total"], 1)
+        self.assertEqual(result["items"][0]["source"], "library")
+        status, _, result = await self.admin_request("/question-library", "POST", {"key": "blank", "title": "   "})
+        self.assertEqual(status, 422, result)
+        status, _, result = await self.admin_request("/question-library", "POST", {"key": "invalid", "title": "Choose", "kind": "single_choice"})
+        self.assertEqual(status, 422, result)
+        _, _, result = await self.admin_request("/question-library?search=")
+        self.assertEqual(result["items"], [])
+
+    async def test_question_library_requires_admin_and_csrf(self):
+        for method, data in (("GET", None), ("POST", {"key": "q", "title": "Question"})):
+            status, _, _ = await self.admin_request("/question-library", method, data)
+            self.assertEqual(status, 401)
+        await self.login()
+        status, _, _ = await self.request("/api/admin/question-library", "POST", raw_body=b'{"key":"q","title":"Question"}', content_type="application/json")
+        self.assertEqual(status, 403)

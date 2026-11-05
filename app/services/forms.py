@@ -374,6 +374,22 @@ def delete_draft_form(db, form_id, actor):
     db.commit()
 
 
+def delete_forms(db, form_ids, actor):
+    """Validate the whole selection before deleting form-owned records atomically."""
+    selected = [get_form(db, identifier, True) for identifier in dict.fromkeys(form_ids)]
+    for form in selected:
+        version_ids = [version.id for version in form.versions]
+        if db.query(Submission).filter(Submission.version_id.in_(version_ids)).first():
+            raise HTTPException(409, f"Cannot delete form '{form.title}': submissions exist. Archive the form instead.")
+        if db.query(WorkbookImport).filter(WorkbookImport.version_id.in_(version_ids)).first():
+            raise HTTPException(409, f"Cannot delete form '{form.title}': preserved workbook observations exist. Archive the form instead.")
+    for form in selected:
+        audit(db, actor, "form.delete", "form", form.id, title=form.title)
+        # ORM cascades include field options; question bank entries remain independent.
+        db.delete(form)
+    db.commit()
+
+
 def published_version(db, form_id):
     form = get_form(db, form_id)
     versions = [v for v in form.versions if v.status == "published"]

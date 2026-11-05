@@ -50,6 +50,42 @@ retired in migration `0005`; see [the table guide](database-tables.md).
 
 Run the portal checks with `.venv/bin/python -m unittest discover -s tests -v`.
 
+## Department directory and appearance
+
+The Department directory combines universities and ministries in one searchable
+list. **Add department** opens a single dialog: **Type** first, then **Name**.
+Both fields are visible immediately. Choosing a type updates the name label;
+university category is optional under **University details**. Editing keeps the
+organization type fixed. Duplicate-name errors stay inside the same dialog.
+
+Admin colors come from the homepage palette in `static/css/base/tokens.css`
+(`--home-*`). The home page and workspace share the same primary blue,
+`#1556a6`. The workspace uses a quiet frame, a white working surface, compact
+controls, and responsive navigation. Report and workbook export options are
+grouped in menus; advanced report filters and audit details remain expandable.
+
+## Reusing questions
+
+In the form builder, choose **Add question** and type a title. Suggestions below
+it search saved library questions and questions already used in forms, including
+Burmese titles. Choosing a suggestion copies its answer type, choices and
+validation settings. The form gets its own question key.
+
+**Save question** saves the definition to the reusable library and adds it to the
+local draft. **Save changes** persists the form itself. Typing or cancelling a
+question does not create a library entry. Equivalent titles and definitions reuse
+one entry; different answer settings remain separate and never overwrite an
+existing template. Existing form visibility rules are kept when editing; rules
+that reference other questions are not copied between forms.
+
+The authenticated `/api/admin/question-library` GET and POST endpoints use the
+same session and CSRF protections as the other admin APIs. Library definitions,
+including answer choices, persist through the existing eight-table feature
+metadata; no extra persistent SQL table or schema migration is needed.
+
+Run the isolated browser checks with
+`DEDC_EDITOR_FIXES=1 uv run --with playwright python scripts/check_admin_session_browser.py`.
+
 ## Working with a landing-page contributor
 
 Commit order alone does not cause conflicts. Conflicts generally happen when Git

@@ -208,7 +208,7 @@ async function _loadEditor(formId) {
         .querySelectorAll("[data-add-question]")
         .forEach(
           (b) =>
-            (b.onclick = () => selectQuestionsFromBank(Number(b.dataset.addQuestion))),
+            (b.onclick = () => editQuestion(Number(b.dataset.addQuestion))),
         );
       document
         .querySelectorAll("[data-edit-question]")
@@ -466,18 +466,21 @@ async function _loadEditor(formId) {
   }
   function editQuestion(si, qi) {
     syncMeta();
-    const questions = si === undefined ? [] : draft.sections[si].questions,
-      q =
+    const questions = si === undefined ? [] : draft.sections[si].questions;
+    const originalQuestion = qi === undefined ? null : questions[qi];
+    let q =
         qi === undefined
           ? newQuestion()
           : questions[qi];
     const dialog = modal(
       qi === undefined ? "Add question" : "Edit question",
       `<form id="question-form" class="field-stack">
-        <label>Question title<textarea name="title" required maxlength="10000" autofocus placeholder="Type your question in Burmese or English…">${e(q.title)}</textarea></label>
-        <label>Answer type<select name="kind">${kindOptions(q.kind)}</select></label>
+        <label><span id="question-title-label">Question title</span><textarea aria-labelledby="question-title-label" name="title" required maxlength="10000" autofocus aria-describedby="question-library-hint" placeholder="Type your question in Burmese or English…">${e(q.title)}</textarea></label>
+        <p class="field-hint" id="question-library-hint">Saved questions appear as you type. New questions are saved to the library when you add them.</p>
+        <div class="question-suggestions" id="question-suggestions" aria-live="polite" hidden></div>
+        <label><span id="question-kind-label">Answer type</span><select aria-labelledby="question-kind-label" name="kind">${kindOptions(q.kind)}</select></label>
         <label class="check-label"><input type="checkbox" name="required" ${q.required ? "checked" : ""}>Required</label>
-        <label data-choice-options ${choiceKinds.includes(q.kind) ? "" : "hidden"}>Answer choices<textarea name="options" aria-describedby="choices-hint" placeholder="One choice per line">${q.options.map((o) => e(o.value === o.label ? o.label : o.value + " | " + o.label)).join("\n")}</textarea><span class="field-hint" id="choices-hint">One choice per line. For a separate stored value, use value | label.</span></label>
+        <label data-choice-options ${choiceKinds.includes(q.kind) ? "" : "hidden"}><span id="question-options-label">Answer choices</span><textarea name="options" aria-labelledby="question-options-label" aria-describedby="choices-hint" placeholder="One choice per line">${q.options.map((o) => e(o.value === o.label ? o.label : o.value + " | " + o.label)).join("\n")}</textarea><span class="field-hint" id="choices-hint">One choice per line. For a separate stored value, use value | label.</span></label>
         <div class="form-grid" data-number-settings ${["number", "decimal"].includes(q.kind) ? "" : "hidden"}>
           <label>Minimum value<input type="number" step="any" name="min" value="${e(q.config.min ?? "")}"></label>
           <label>Maximum value<input type="number" step="any" name="max" value="${e(q.config.max ?? "")}"></label>
@@ -487,8 +490,8 @@ async function _loadEditor(formId) {
             <label>Help text<input name="help_text" maxlength="5000" value="${e(q.help_text)}"></label>
             <label>Placeholder<input name="placeholder" maxlength="255" value="${e(q.placeholder)}"></label>
             <div class="form-grid">
-              <label>Burmese title<textarea name="title_my" maxlength="10000">${e(q.title_my)}</textarea></label>
-              <label>English title<textarea name="title_en" maxlength="10000">${e(q.title_en)}</textarea></label>
+              <label><span id="question-burmese-label">Burmese title</span><textarea aria-labelledby="question-burmese-label" name="title_my" maxlength="10000">${e(q.title_my)}</textarea></label>
+              <label><span id="question-english-label">English title</span><textarea aria-labelledby="question-english-label" name="title_en" maxlength="10000">${e(q.title_en)}</textarea></label>
             </div>
             <div class="form-grid" data-text-settings>
               <label>Minimum text length<input type="number" min="0" max="20000" name="min_length" value="${e(q.config.min_length ?? "")}"></label>
@@ -499,7 +502,7 @@ async function _loadEditor(formId) {
             <label data-formula>Calculated field configuration (JSON)<textarea name="formula" class="code-input" placeholder='{"operation":"sum","questions":["first_count","second_count"]}'>${q.config.formula ? e(JSON.stringify(q.config.formula, null, 2)) : ""}</textarea></label>
             <label data-repeat>Repeating group fields (JSON array)<textarea name="repeat_fields" class="code-input" placeholder='[{"key":"name","title":"Name","kind":"short_text"}]'>${q.config.fields ? e(JSON.stringify(q.config.fields, null, 2)) : ""}</textarea></label>
             <div id="question-conditions" class="field-stack"></div>
-            <label>Unique key<input name="key" required pattern="[a-z][a-z0-9_]{0,99}" value="${e(q.key)}" aria-describedby="key-hint"><span class="field-hint" id="key-hint">Generated automatically. Keep this key when editing an existing question.</span></label>
+            <label><span id="question-key-label">Unique key</span><input aria-labelledby="question-key-label" name="key" required pattern="[a-z][a-z0-9_]{0,99}" value="${e(q.key)}" aria-describedby="key-hint"><span class="field-hint" id="key-hint">Generated automatically. Keep this key when editing an existing question.</span></label>
             <label class="check-label"><input type="checkbox" name="enabled" ${q.enabled ? "checked" : ""}>Enabled</label>
           </div>
         </details>
@@ -528,64 +531,109 @@ async function _loadEditor(formId) {
         .filter((other) => other.key !== q.key),
       q.conditions,
     );
+    const suggestions = document.querySelector("#question-suggestions");
+    let searchTimer, searchRequest = 0;
+    const applySuggestion = (template) => {
+      q = { ...q, ...structuredClone(template) };
+      for (const name of ["title", "title_my", "title_en", "kind", "help_text", "placeholder"]) questionForm.elements[name].value = q[name] || "";
+      questionForm.elements.required.checked = q.required;
+      questionForm.elements.enabled.checked = q.enabled;
+      questionForm.elements.options.value = q.options.map((o) => o.value === o.label ? o.label : `${o.value} | ${o.label}`).join("\n");
+      for (const name of ["min", "max", "min_length", "max_length", "pattern"]) questionForm.elements[name].value = q.config[name] ?? "";
+      questionForm.elements.default_value.value = q.config.default === undefined ? "" : JSON.stringify(q.config.default);
+      questionForm.elements.formula.value = q.config.formula ? JSON.stringify(q.config.formula) : "";
+      questionForm.elements.repeat_fields.value = q.config.fields ? JSON.stringify(q.config.fields) : "";
+      searchRequest++;
+      suggestions.hidden = true;
+      updateFields();
+      document.querySelector("#question-library-hint").textContent = "Saved question selected. Review its settings, then add it to this form.";
+      questionForm.elements.kind.focus();
+    };
+    questionForm.elements.title.addEventListener("input", () => {
+      clearTimeout(searchTimer);
+      const request = ++searchRequest;
+      const text = questionForm.elements.title.value.trim();
+      suggestions.hidden = !text;
+      if (!text) return;
+      suggestions.innerHTML = '<p class="field-hint" role="status">Looking for saved questions…</p>';
+      searchTimer = setTimeout(async () => {
+        try {
+          const result = await api("/question-library?search=" + encodeURIComponent(text));
+          if (request !== searchRequest || !dialog.open || !suggestions.isConnected) return;
+          suggestions.innerHTML = result.items.length
+            ? `<p class="suggestion-heading">${result.total} matching saved question${result.total === 1 ? "" : "s"}</p><div class="suggestion-list">${result.items.map((item, index) => `<button type="button" class="question-suggestion" data-suggestion="${index}"><span>${e(item.question.title)}</span><small>${e(kindLabels[item.question.kind] || item.question.kind)} · Use question</small></button>`).join("")}</div>`
+            : '<p class="field-hint">No saved question matches. Add this question to save it for reuse.</p>';
+          suggestions.querySelectorAll("[data-suggestion]").forEach((button) => {
+            button.onclick = () => applySuggestion(result.items[Number(button.dataset.suggestion)].question);
+          });
+        } catch (error) {
+          if (request === searchRequest && suggestions.isConnected) suggestions.innerHTML = '<p class="field-hint">Suggestions are unavailable. You can still write your question and retry adding it.</p>';
+        }
+      }, 250);
+    });
+    dialog.addEventListener("close", () => { clearTimeout(searchTimer); searchRequest++; }, { once: true });
     document.querySelector("#question-form").onsubmit = (event) => {
       event.preventDefault();
-      try {
-        const values = Object.fromEntries(new FormData(event.target)),
-          config = { ...q.config };
-        for (const key of ["min", "max", "min_length", "max_length"]) {
-          if (values[key] !== "") config[key] = Number(values[key]);
-          else delete config[key];
-        }
-        if (values.pattern) config.pattern = values.pattern;
-        else delete config.pattern;
-        if (values.default_value !== "")
-          config.default = JSON.parse(values.default_value);
-        else delete config.default;
-        if (values.formula) config.formula = JSON.parse(values.formula);
-        else delete config.formula;
-        if (values.repeat_fields)
-          config.fields = JSON.parse(values.repeat_fields);
-        else delete config.fields;
-        if (!values.title.trim()) throw new Error("Enter a question title.");
-        if (draft.sections.flatMap((s) => s.questions).some((other) => other !== q && other.key === values.key))
-          throw new Error("This unique key is already used by another question.");
-        const options = choiceKinds.includes(values.kind) ? readOptions(values.options) : [];
-        const updated = {
-          ...q,
-          ...Object.fromEntries(
-            [
-              "key",
-              "title",
-              "title_my",
-              "title_en",
-              "kind",
-              "help_text",
-              "placeholder",
-            ].map((k) => [k, values[k]]),
-          ),
-          required: event.target.required.checked,
-          enabled: event.target.enabled.checked,
-          config,
-          conditions: readQuestionConditions(),
-          options,
-        };
-        if (qi === undefined) {
-          checkCapacity(si, 1);
-          questions.push(updated);
-          if (si === undefined) {
-            draft.sections.push({ title: "Questions", description: "", enabled: true, conditions: null, questions });
-            si = draft.sections.length - 1;
+      busy(event.submitter, async () => {
+        try {
+          const values = Object.fromEntries(new FormData(event.target)),
+            config = { ...q.config };
+          for (const key of ["min", "max", "min_length", "max_length"]) {
+            if (values[key] !== "") config[key] = Number(values[key]);
+            else delete config[key];
           }
+          if (values.pattern) config.pattern = values.pattern;
+          else delete config.pattern;
+          if (values.default_value !== "")
+            config.default = JSON.parse(values.default_value);
+          else delete config.default;
+          if (values.formula) config.formula = JSON.parse(values.formula);
+          else delete config.formula;
+          if (values.repeat_fields)
+            config.fields = JSON.parse(values.repeat_fields);
+          else delete config.fields;
+          if (!values.title.trim()) throw new Error("Enter a question title.");
+          if (draft.sections.flatMap((s) => s.questions).some((other) => other !== originalQuestion && other.key === values.key))
+            throw new Error("This unique key is already used by another question.");
+          const options = choiceKinds.includes(values.kind) ? readOptions(values.options) : [];
+          const updated = {
+            ...q,
+            ...Object.fromEntries(
+              [
+                "key",
+                "title",
+                "title_my",
+                "title_en",
+                "kind",
+                "help_text",
+                "placeholder",
+              ].map((k) => [k, values[k]]),
+            ),
+            required: event.target.required.checked,
+            enabled: event.target.enabled.checked,
+            config,
+            conditions: readQuestionConditions(),
+            options,
+          };
+          if (qi === undefined) checkCapacity(si, 1);
+          await api("/question-library", { method: "POST", body: updated });
+          if (qi === undefined) {
+            questions.push(updated);
+            if (si === undefined) {
+              draft.sections.push({ title: "Questions", description: "", enabled: true, conditions: null, questions });
+              si = draft.sections.length - 1;
+            }
+          }
+          else questions[qi] = updated;
+          mark();
+          dialog.close();
+          draw();
+          toast("Question saved in the library. Save changes to keep the form updated.");
+          if (event.submitter?.name === "next") editQuestion(si);
+        } catch (error) {
+          errorMessage(error);
         }
-        else questions[qi] = updated;
-        mark();
-        dialog.close();
-        draw();
-        if (event.submitter?.name === "next") editQuestion(si);
-      } catch (error) {
-        errorMessage(error);
-      }
+      });
     };
     if (qi !== undefined) {
       document.querySelector("#remove-question").onclick = () => {
@@ -607,212 +655,6 @@ async function _loadEditor(formId) {
     }
   }
   draw();
-}
-export async function selectQuestionsFromBank(sectionIndex) {
-  try {
-    return await _selectQuestionsFromBank(sectionIndex);
-  } catch (error) {
-    console.error("Question bank error:", error);
-    toast("Failed to load question bank: " + error.message);
-  }
-}
-
-async function _selectQuestionsFromBank(sectionIndex) {
-  syncMeta();
-  let selectedIds = [];
-  let creatingNew = false;
-
-  async function loadQuestions(searchQuery = "") {
-    const result = await api(`/questions?search=${encodeURIComponent(
-      searchQuery
-    )}&limit=100`);
-    return result;
-  }
-
-  function renderQuestions(items, total, page = 1, limit = 100) {
-    const hasBank = items.some((q) => q.question_bank_id);
-    return `<div class="question-bank-selector">
-      <div class="selector-header">
-        <input type="search" id="bank-search" class="search-input" placeholder="Search questions..." value="${e(
-          document.querySelector("#bank-search")?.value || ""
-        )}" aria-label="Search questions">
-        <span class="selected-count">0 selected</span>
-        ${!creatingNew ? `<button class="button small" id="create-new-btn">Create new question</button>` : ""}
-      </div>
-      <div class="selector-list">
-        ${hasBank
-          ? `<p class="hint">Questions with <kbd>✓</kbd> can be reused across forms.</p>`
-          : ""}
-        ${items.length
-          ? `<div class="question-list">
-              ${items
-                .map((q) => {
-                  const isSelected = selectedIds.includes(q.id.toString());
-                  const bankBadge = q.question_bank_id
-                    ? `<span class="badge secondary">bank</span>`
-                    : "";
-                  const checked = isSelected ? "checked" : "";
-                  return `<label class="question-item">
-                    <input type="checkbox" class="question-checkbox" value="${q.id}" ${checked} data-key="${q.key}" data-title="${e(
-                    q.title
-                  )}" ${q.required ? "required" : ""}>
-                    <span class="question-text">${e(q.title)}</span>
-                    ${bankBadge}
-                    <span class="question-type">${e(
-                      q.kind.replace(/_/g, " ")
-                    )}</span>
-                  </label>`;
-                })
-                .join("")}
-            </div>`
-          : `<p class="empty">No questions found. Try typing a different search term.</p>`}
-        </div>
-        <div class="selector-actions">
-          <button class="button primary" id="add-selected-btn" ${selectedIds.length === 0 ? "disabled" : ""}>
-            Add Selected Questions(${selectedIds.length})
-          </button>
-          <button class="button" type="button" id="cancel-select-btn">Cancel</button>
-        </div>
-      </div>`;
-  }
-
-  function updateSelectedCount() {
-    const countEl = document.querySelector(".selected-count");
-    if (countEl) {
-      countEl.textContent = selectedIds.length;
-    }
-    const addBtn = document.querySelector("#add-selected-btn");
-    if (addBtn) {
-      addBtn.disabled = selectedIds.length === 0;
-      addBtn.textContent = `Add Selected Questions(${selectedIds.length})`;
-    }
-  }
-
-  // Initialize
-  const dialog = modal(
-    "Add Questions",
-    `<div id="question-bank-selector-wrapper"></div>`,
-  );
-  const wrapper = document.querySelector("#question-bank-selector-wrapper");
-  wrapper.innerHTML = renderQuestions([], 0);
-
-  // Event listeners
-  document.querySelector("#bank-search").oninput = async (e) => {
-    const results = await loadQuestions(e.target.value);
-    wrapper.innerHTML = renderQuestions(results.items, results.total);
-    // Re-attach listeners for new checkboxes
-    attachCheckboxListeners();
-    updateSelectedCount();
-  };
-
-  document.querySelector("#create-new-btn").onclick = () => {
-    creatingNew = true;
-    wrapper.innerHTML = `<div class="create-new-question">
-      <input type="text" id="new-question-title" class="search-input" 
-             placeholder="Type your new question title..." 
-             aria-label="New question title">
-      <p class="hint">Press Enter or click "Create" to save this question to the bank.</p>
-      <div class="dialog-actions">
-        <button class="button primary" id="save-new-question">Create</button>
-        <button class="button" type="button" id="cancel-new-question">Cancel</button>
-      </div>
-    </div>`;
-    // Re-attach listeners
-    document.querySelector("#save-new-question").onclick = async () => {
-      const title = document.querySelector("#new-question-title").value.trim();
-      if (!title) {
-        toast("Enter a question title.");
-        return;
-      }
-      try {
-        const result = await api("/questions", {
-          method: "POST",
-          body: {
-            title: title,
-          },
-        });
-        toast("Question created and added to bank.");
-        creatingNew = false;
-        document.querySelector("#bank-search").dispatchEvent(
-          new Event("input", { bubbles: true })
-        );
-        dialog.close();
-      } catch (error) {
-        errorMessage(error);
-      }
-    };
-    document.querySelector("#cancel-new-question").onclick = () => {
-      creatingNew = false;
-      document.querySelector("#bank-search").dispatchEvent(
-        new Event("input", { bubbles: true })
-      );
-      dialog.close();
-    };
-    // Handle Enter key
-    const input = document.querySelector("#new-question-title");
-    if (input) {
-      input.onkeydown = (e) => {
-        if (e.key === "Enter") {
-          document.querySelector("#save-new-question").click();
-        }
-      };
-    }
-    updateSelectedCount();
-  };
-
-  function attachCheckboxListeners() {
-    // Handle checkbox selections
-    document.querySelectorAll(".question-checkbox").forEach((checkbox) => {
-      checkbox.onchange = () => {
-        const id = checkbox.value;
-        if (checkbox.checked) {
-          selectedIds.push(id);
-        } else {
-          selectedIds = selectedIds.filter((id) => id !== checkbox.value);
-        }
-        updateSelectedCount();
-      };
-    });
-
-    // Add selected questions
-    document.querySelector("#add-selected-btn").onclick = async () => {
-      if (selectedIds.length === 0) return;
-      busy(document.querySelector("#add-selected-btn"), async () => {
-        try {
-          // Add questions to the form section via API
-          const formId = document.body.dataset.formId;
-          const result = await api(`/api/admin/forms/${formId}/sections/${sectionIndex}/questions`, {
-            method: "POST",
-            body: JSON.stringify({
-              question_ids: selectedIds.map(Number),
-            }),
-          });
-          toast(`${selectedIds.length} questions added to section.`);
-          dialog.close();
-          load(); // Reload the page
-        } catch (error) {
-          errorMessage(error);
-        }
-      });
-    };
-
-    // Cancel
-    document.querySelector("#cancel-select-btn").onclick = () => {
-      dialog.close();
-    };
-  }
-
-  attachCheckboxListeners();
-
-  // Attach global escape key handler for the selector
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      const dialog = document.querySelector("dialog");
-      if (dialog && dialog.open) {
-        dialog.close();
-      }
-    }
-  });
 }
 export async function loadPreview(formId) {
   try {

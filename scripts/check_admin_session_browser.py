@@ -86,6 +86,20 @@ def main():
                     check(page, context, base)
                     page.goto(base + '/dashboard')
                     page.get_by_role('heading', name='Overview', exact=True).wait_for(state='visible')
+                if os.environ.get('DEDC_DASHBOARD_FIXES'):
+                    from dashboard_browser_checks import check
+                    check(page, context, base)
+                if os.environ.get('DEDC_EDITOR_FIXES'):
+                    from editor_browser_checks import check
+                    try:
+                        check(page, context, base)
+                    except Exception:
+                        page.screenshot(path='/tmp/dedc-editor-failure.png', full_page=True)
+                        print('EDITOR FAILURE:', page.url, page.locator('body').inner_text()[-5000:], errors, flush=True)
+                        raise
+                if os.environ.get('DEDC_MINIMAL_ADMIN'):
+                    from minimal_admin_browser_checks import check
+                    check(page, context, base)
                 saved_cookies = context.cookies()
                 assert any(c["httpOnly"] and c["sameSite"] == "Strict" for c in saved_cookies if c["name"] == "dedc_portal_session")
                 second = context.new_page()

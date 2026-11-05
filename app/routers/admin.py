@@ -34,9 +34,33 @@ from app.models.forms import (
 from app.storage.schema import metadata as persistent_metadata
 from app.models.user import User, UserRole
 from app.portal_auth import hash_password
-from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput
+from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
 from app.services import forms, reports, workbook
 from pydantic import BaseModel, Field, ValidationError
+
+
+@router.get("/question-library")
+def question_suggestions(
+    search: str = Query("", max_length=10000),
+    limit: int = Query(8, ge=1, le=25),
+    db: Session = Depends(get_db),
+):
+    from app.services import question_library
+    return question_library.search(db, search, limit)
+
+
+@router.post("/question-library")
+def remember_question(
+    data: QuestionInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from app.services import question_library
+    question, created = question_library.remember(db, data)
+    if created:
+        forms.audit(db, admin.id, "question.create", "question", question.id, title=question.title)
+    db.commit()
+    return {"id": question.id, "created": created, "question": question_library.question_definition(question)}
 
 
 @router.get("/overview")
@@ -301,45 +325,7 @@ def delete_form(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete a form and its associated data, preserving question bank questions."""
-    from app.services.forms import delete_draft_form, get_form
-
-    form = get_form(db, form_id, True)
-
-    # Check if form is published and has submissions
-    published_versions = [v for v in form.versions if v.status == "published"]
-    if published_versions:
-        # Check for existing submissions
-        from sqlalchemy import select
-
-        from app.models.forms import Submission
-
-        submission_count = (
-            db.query(Submission)
-            .filter(Submission.version_id.in_( [v.id for v in published_versions ]))
-            .count()
-        )
-        if submission_count > 0:
-            raise HTTPException(
-                409,
-                f"Cannot delete form: {submission_count} submission(s) exist. Archive the form instead.",
-            )
-
-    # Delete the form (this will cascade delete versions, sections, questions)
-    # But we need to be careful not to delete question bank questions
-    audit(db, admin.id, "form.delete", "form", form.id, title=form.title)
-
-    # Delete form and all associated data
-    ids = [v.id for v in form.versions]
-    db.query(FormField).filter(FormField.version_id.in_(ids)).delete(synchronize_session=False)
-    db.query(FormSection).filter(FormSection.version_id.in_(ids)).delete(
-        synchronize_session=False
-    )
-    db.query(FormVersion).filter(FormVersion.id.in_(ids)).delete(
-        synchronize_session=False
-    )
-    db.delete(form)
-    db.commit()
+    forms.delete_forms(db, [form_id], admin.id)
 
 
 # Ministry/University management using persistent schema tables
@@ -359,19 +345,14 @@ def list_ministries(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    conn = db.native
-    query = conn.query(ministry_table) if hasattr(conn, "query") else select(ministry_table)
+    query = select(ministry_table)
     if search:
-        query = query.filter(ministry_table.c.ministryName.contains(search))
-    total = query.count() if hasattr(query, "count") else conn.execute(select(func.count()).select_from(query.subquery())).scalar()
-    rows = (
+        query = query.where(ministry_table.c.ministryName.contains(search))
+    total = db.native.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+    rows = db.native.execute(
         query.order_by(ministry_table.c.ministryName)
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    ) if hasattr(query, "order_by") else conn.execute(
-        query.order_by(ministry_table.c.ministryName).offset((page - 1) * limit).limit(limit)
-    ).fetchall()
+        .offset((page - 1) * limit).limit(limit)
+    ).all()
     return {
         "total": total,
         "items": [
@@ -391,13 +372,13 @@ def create_ministry(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    exists = db.query(ministry_table).filter_by(ministryName=data.name).first()
+    exists = db.native.execute(select(ministry_table).where(ministry_table.c.ministryName == data.name)).first()
     if exists:
         raise HTTPException(409, "Ministry with this name already exists.")
-    result = db.execute(ministry_table.insert().values(ministryName=data.name))
-    db.commit()
+    result = db.native.execute(ministry_table.insert().values(ministryName=data.name))
     new_id = result.inserted_primary_key[0]
     forms.audit(db, admin.id, "ministry.create", "ministry", new_id, name=data.name)
+    db.commit()
     return {"id": new_id, "name": data.name}
 
 
@@ -408,12 +389,12 @@ def update_ministry(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    ministry = db.query(ministry_table).filter_by(ministryId=ministry_id).first()
+    ministry = db.native.execute(select(ministry_table).where(ministry_table.c.ministryId == ministry_id)).first()
     if not ministry:
         raise HTTPException(404, "Ministry not found.")
-    if data.name != ministry.ministryName and db.query(ministry_table).filter_by(ministryName=data.name).first():
+    if data.name != ministry.ministryName and db.native.execute(select(ministry_table).where(ministry_table.c.ministryName == data.name)).first():
         raise HTTPException(409, "Ministry with this name already exists.")
-    db.execute(
+    db.native.execute(
         ministry_table.update()
         .where(ministry_table.c.ministryId == ministry_id)
         .values(ministryName=data.name)
@@ -429,7 +410,7 @@ def delete_ministry(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    ministry = db.query(ministry_table).filter_by(ministryId=ministry_id).first()
+    ministry = db.native.execute(select(ministry_table).where(ministry_table.c.ministryId == ministry_id)).first()
     if not ministry:
         raise HTTPException(404, "Ministry not found.")
     # Check if ministry is used by any forms
@@ -440,7 +421,7 @@ def delete_ministry(
             f"Cannot delete ministry: {form_count} form(s) use ministry audience. Update or archive them first.",
         )
     forms.audit(db, admin.id, "ministry.delete", "ministry", ministry_id, name=ministry.ministryName)
-    db.execute(ministry_table.delete().where(ministry_table.c.ministryId == ministry_id))
+    db.native.execute(ministry_table.delete().where(ministry_table.c.ministryId == ministry_id))
     db.commit()
 
 
@@ -451,16 +432,14 @@ def list_universities(
     limit: int = Query(50, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    query = db.query(university_table)
+    query = select(university_table)
     if search:
-        query = query.filter(university_table.c.uniName.contains(search))
-    total = query.count()
-    rows = (
+        query = query.where(university_table.c.uniName.contains(search))
+    total = db.native.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+    rows = db.native.execute(
         query.order_by(university_table.c.uniName)
-        .offset((page - 1) * limit)
-        .limit(limit)
-        .all()
-    )
+        .offset((page - 1) * limit).limit(limit)
+    ).all()
     return {
         "total": total,
         "items": [
@@ -480,14 +459,14 @@ def create_university(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    exists = db.query(university_table).filter_by(uniName=data.name).first()
+    exists = db.native.execute(select(university_table).where(university_table.c.uniName == data.name)).first()
     if exists:
         raise HTTPException(409, "University with this name already exists.")
     uni_type = data.type or "Unspecified"
-    result = db.execute(university_table.insert().values(uniName=data.name, uniType=uni_type))
-    db.commit()
+    result = db.native.execute(university_table.insert().values(uniName=data.name, uniType=uni_type))
     new_id = result.inserted_primary_key[0]
     forms.audit(db, admin.id, "university.create", "university", new_id, name=data.name, type=uni_type)
+    db.commit()
     return {"id": new_id, "name": data.name, "type": uni_type}
 
 
@@ -498,13 +477,13 @@ def update_university(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    uni = db.query(university_table).filter_by(uniId=uni_id).first()
+    uni = db.native.execute(select(university_table).where(university_table.c.uniId == uni_id)).first()
     if not uni:
         raise HTTPException(404, "University not found.")
-    if data.name != uni.uniName and db.query(university_table).filter_by(uniName=data.name).first():
+    if data.name != uni.uniName and db.native.execute(select(university_table).where(university_table.c.uniName == data.name)).first():
         raise HTTPException(409, "University with this name already exists.")
     uni_type = data.type or uni.uniType
-    db.execute(
+    db.native.execute(
         university_table.update()
         .where(university_table.c.uniId == uni_id)
         .values(uniName=data.name, uniType=uni_type)
@@ -520,7 +499,7 @@ def delete_university(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    uni = db.query(university_table).filter_by(uniId=uni_id).first()
+    uni = db.native.execute(select(university_table).where(university_table.c.uniId == uni_id)).first()
     if not uni:
         raise HTTPException(404, "University not found.")
     # Check if university is used by any forms
@@ -531,7 +510,7 @@ def delete_university(
             f"Cannot delete university: {form_count} form(s) use university audience. Update or archive them first.",
         )
     forms.audit(db, admin.id, "university.delete", "university", uni_id, name=uni.uniName)
-    db.execute(university_table.delete().where(university_table.c.uniId == uni_id))
+    db.native.execute(university_table.delete().where(university_table.c.uniId == uni_id))
     db.commit()
 
 
@@ -545,41 +524,7 @@ def bulk_delete_forms(
     admin: AdminIdentity = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Delete multiple forms and their associated data."""
-    from app.services.forms import get_form
-
-    forms_to_delete = []
-    for form_id in data.ids:
-        form = get_form(db, form_id, True)
-        # Check if form is published and has submissions
-        published_versions = [v for v in form.versions if v.status == "published"]
-        if published_versions:
-            from app.models.forms import Submission
-            submission_count = (
-                db.query(Submission)
-                .filter(Submission.version_id.in_([v.id for v in published_versions]))
-                .count()
-            )
-            if submission_count > 0:
-                raise HTTPException(
-                    409,
-                    f"Cannot delete form '{form.title}': {submission_count} submission(s) exist. Archive the form instead.",
-                )
-        forms_to_delete.append(form)
-
-    for form in forms_to_delete:
-        audit(db, admin.id, "form.delete", "form", form.id, title=form.title)
-        ids = [v.id for v in form.versions]
-        db.query(FormField).filter(FormField.version_id.in_(ids)).delete(synchronize_session=False)
-        db.query(FormSection).filter(FormSection.version_id.in_(ids)).delete(
-            synchronize_session=False
-        )
-        db.query(FormVersion).filter(FormVersion.id.in_(ids)).delete(
-            synchronize_session=False
-        )
-        db.delete(form)
-
-    db.commit()
+    forms.delete_forms(db, data.ids, admin.id)
 
 
 @router.post("/imports/preview")

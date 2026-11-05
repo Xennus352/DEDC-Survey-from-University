@@ -4,15 +4,6 @@
    ========================================================= */
 
 :root {
-  --home-primary: #1556a6;
-  --home-primary-dark: #10447f;
-  --home-primary-soft: #eaf3ff;
-  --home-accent: #55a6f6;
-  --home-text: #172b45;
-  --home-muted: #68788d;
-  --home-border: #e4ebf3;
-  --home-surface: #ffffff;
-  --home-section: #f4f7fb;
   --home-shadow: 0 16px 45px rgba(24, 57, 96, .09);
   --home-radius: 22px;
 }

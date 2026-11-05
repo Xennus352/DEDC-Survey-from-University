@@ -45,7 +45,11 @@
     if (event.key === 'dedc-logout' && event.newValue) leaveWorkspace();
   });
   window.addEventListener('pagehide', () => { document.body.hidden = true; });
-  window.addEventListener('pageshow', verifySession);
+  window.addEventListener('pageshow', event => {
+    if (signingOut) leaveWorkspace();
+    // Fresh responses already passed server authorization; revalidate cached restores.
+    else if (event.persisted) verifySession();
+  });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) document.body.hidden = true;
     else verifySession();

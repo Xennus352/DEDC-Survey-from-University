@@ -83,6 +83,7 @@ def check(page, context, base):
     page.get_by_role("button", name="View answers", exact=True).click()
     page.get_by_text("How many households?", exact=True).wait_for()
     page.get_by_role("button", name="Close dialog").click()
+    page.get_by_text("Export report", exact=True).click()
     with page.expect_download() as download:
         page.get_by_role("link", name="Export CSV", exact=True).click()
     assert "households" in Path(download.value.path()).read_text()
@@ -116,6 +117,7 @@ def check(page, context, base):
 
     page.goto(base + "/dashboard/data?tab=answers")
     page.get_by_role("heading", name="Original workbook answers").wait_for()
+    page.get_by_text("Export workbook", exact=True).click()
     with page.expect_download() as exact_export:
         page.get_by_role(
             "link", name="Original format: questions & answers", exact=True
