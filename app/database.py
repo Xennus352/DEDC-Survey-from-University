@@ -11,6 +11,6 @@ Base = declarative_base()
 
 
 def SessionLocal():
-    """Open an eight-table unit of work; Base is a transient query model only."""
+    """Use existing DEDC tables; Base is a transient query model only."""
     from app.storage.compact import CompactSession
-    return CompactSession(engine, settings.PRIVATE_STORAGE_DIR)
+    return CompactSession(engine, settings.PRIVATE_STORAGE_DIR, settings.METADATA_STORAGE)

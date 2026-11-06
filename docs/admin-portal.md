@@ -25,7 +25,7 @@ tables, requires `isActive`, and requires a role matching `ADMIN_ROLE_NAME`
 (default `Admin`). Accounts created by the setup command use the supported
 `pbkdf2_sha256$600000$salt$hash` password format. Unsupported password formats fail
 authentication. Role changes and deactivation also revoke access on the next
-portal request. Sessions are stored in private files referenced by the eight-table SQL metadata. Startup creates no extra SQL tables. Import the supplied `dedc.sql` for a new workspace; convert an existing workspace using [the table guide](database-tables.md).
+portal request. Sessions are stored in private files referenced by metadata in existing SQL text columns. Startup creates no extra SQL tables or columns. The supplied ten-table database works directly without conversion; see [the table guide](database-tables.md).
 
 | Method | Route | Behavior |
 | --- | --- | --- |
@@ -60,9 +60,19 @@ organization type fixed. Duplicate-name errors stay inside the same dialog.
 
 Admin colors come from the homepage palette in `static/css/base/tokens.css`
 (`--home-*`). The home page and workspace share the same primary blue,
-`#1556a6`. The workspace uses a quiet frame, a white working surface, compact
-controls, and responsive navigation. Report and workbook export options are
+`#1556a6`. Dashboard routes use `static/css/admin/dashboard.css`: white navigation,
+a neutral working canvas, compact controls, and task-specific layouts. Login and
+respondent pages keep `workspace.css`. Report and workbook export options are
 grouped in menus; advanced report filters and audit details remain expandable.
+
+Run the isolated redesign review with
+`uv run --with playwright python scripts/check_dashboard_redesign.py`.
+It creates temporary ten-table data, checks every dashboard view at 1440, 1024,
+768 and 390 pixels, exercises the administration and workbook workflows, and saves
+screenshots under `/tmp/dedc-redesign-review/after`. Use `--interactions` to check
+only workflows, or `--before` to capture a visual baseline. The configured MySQL
+database is never used. The workbook portion uses the existing local reference
+file when available.
 
 ## Reusing questions
 
@@ -80,7 +90,7 @@ that reference other questions are not copied between forms.
 
 The authenticated `/api/admin/question-library` GET and POST endpoints use the
 same session and CSRF protections as the other admin APIs. Library definitions,
-including answer choices, persist through the existing eight-table feature
+including answer choices, persist through the existing SQL feature
 metadata; no extra persistent SQL table or schema migration is needed.
 
 Run the isolated browser checks with
@@ -100,14 +110,14 @@ git switch main
 git pull --ff-only origin main
 git switch -c feature/admin-portal
 # Make and commit the portal changes.
-git add app/config.py app/database.py app/main.py app/portal_auth.py app/models/admin_session.py app/models/user.py app/crud/admin_session.py app/crud/user.py app/routers/web/portal.py templates/portal static/css/pages/portal.css static/js/portal.js tests/test_portal.py docs/admin-portal.md .env.example .gitignore pyproject.toml uv.lock requirements.txt README.md
+git add app/config.py app/database.py app/main.py app/portal_auth.py app/models/admin_session.py app/models/user.py app/crud/admin_session.py app/crud/user.py app/routers/web/portal.py templates/portal static/css/admin/dashboard.css static/js/portal.js tests/test_portal.py docs/admin-portal.md .env.example .gitignore pyproject.toml uv.lock requirements.txt README.md
 git commit -m "Add administrator portal login and logout"
 git push -u origin feature/admin-portal
 ```
 
 Your partner should use a separate branch such as `feature/landing-page`. Open
 pull requests into the shared branch. Agree that your work owns `templates/portal/`,
-`static/css/pages/portal.css`, and `app/routers/web/portal.py`, while your partner
+`static/css/admin/dashboard.css`, and `app/routers/web/portal.py`, while your partner
 owns `templates/index.html` and the home-page styles. Coordinate changes to shared
 files such as `app/main.py`, `app/config.py`, and CSS tokens.
 
@@ -150,4 +160,4 @@ committed to `.env`, rotate them; removing the file does not remove Git history.
 
 ## Current administration workspace
 
-The dynamic builder, versioned forms, reporting-period-first respondent experience, original-format workbook exports and reporting/user/audit pages are documented in [the implementation report](../context/IMPLEMENTATION_REPORT.md). The application now uses the eight-table schema; follow [the table guide](database-tables.md) to convert an existing database. Back up the SQL database and private files together. Historical Alembic migrations must not be applied to the eight-table database.
+The dynamic builder, versioned forms, reporting-period-first respondent experience, original-format workbook exports and reporting/user/audit pages are documented in [the implementation report](../context/IMPLEMENTATION_REPORT.md). The application detects the supplied ten-table schema and the previous eight-table layout automatically; see [the table guide](database-tables.md). Back up the SQL database and private files together. Do not apply historical Alembic migrations to these databases.

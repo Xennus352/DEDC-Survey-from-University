@@ -12,13 +12,15 @@ from app.models.forms import (
     SurveyForm,
     WorkbookAnswer,
     WorkbookImport,
+    AnswerFile,
 )
+from app.services.presentation import answer_text, value_text
 from app.models.user import User
 
 
 def overview(db):
     count = lambda model: db.query(func.count()).select_from(model).scalar() or 0
-    since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=29)
+    since = datetime.now(timezone.utc).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=29)
     trends = (
         db.query(func.date(Submission.created_at), func.count())
         .filter(Submission.created_at >= since)
@@ -144,6 +146,10 @@ def submission_row(db, row):
 def submission_detail(db, row):
     result = submission_row(db, row)
     values = {a.field_id: a.value for a in row.answers}
+    def display(question):
+        value = values.get(question.id)
+        attachment = db.get(AnswerFile, value['file_id']) if question.kind in {'file', 'image'} and isinstance(value, dict) and value.get('file_id') else None
+        return answer_text(question, value, attachment.filename if attachment else None)
     result["sections"] = [
         {
             "title": s.title,
@@ -153,6 +159,7 @@ def submission_detail(db, row):
                     "title": q.title,
                     "kind": q.kind,
                     "value": values.get(q.id),
+                    "display_value": display(q),
                 }
                 for q in s.questions
             ],
@@ -199,6 +206,17 @@ def analytics(db, query, question=None):
     )
     distribution = []
     if question:
+        definitions = db.query(FormField).filter(
+            FormField.key == question,
+            FormField.version_id.in_(query.with_entities(Submission.version_id)),
+        ).all()
+
+        def distribution_text(value):
+            labels = {answer_text(field, value) for field in definitions}
+            if len(labels) == 1:
+                return labels.pop()
+            return value_text(value) + (' (labels vary by version)' if labels else '')
+
         answers = (
             db.query(FieldAnswer.value, func.count())
             .join(FormField, FormField.id == FieldAnswer.field_id)
@@ -208,7 +226,7 @@ def analytics(db, query, question=None):
             )
         )
         distribution = [
-            {"answer": value, "count": count}
+            {"answer": value, "display_value": distribution_text(value), "count": count}
             for value, count in answers.group_by(FieldAnswer.value)
             .order_by(func.count().desc())
             .limit(20)

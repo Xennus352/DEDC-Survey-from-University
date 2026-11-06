@@ -11,6 +11,78 @@ from app.routers.web.portal import COOKIE_NAME
 
 
 class AdminApiTests(PortalFixture):
+    async def test_directory_paginates_both_organizations_without_omitting_records(self):
+        from app.storage import schema
+        with self.sessions() as db:
+            db.native.execute(schema.university.insert(), [
+                {'uniName': f'University {i:03}', 'uniType': 'Public'} for i in range(61)
+            ])
+            db.native.execute(schema.ministry.insert(), [
+                {'ministryName': f'Ministry {i:03}'} for i in range(31)
+            ])
+            db.native.commit()
+        status, _, _ = await self.request('/api/admin/departments')
+        self.assertEqual(status, 401)
+        await self.login()
+        identities = []
+        for page in range(1, 5):
+            status, _, data = await self.admin_request(f'/departments?page={page}')
+            self.assertEqual(status, 200)
+            self.assertEqual(data['total'], 92)
+            self.assertEqual(data['counts'], {'university': 61, 'ministry': 31})
+            identities.extend((row['organization'], row['id']) for row in data['items'])
+        self.assertEqual(len(identities), 92)
+        self.assertEqual(len(set(identities)), 92)
+        status, _, data = await self.admin_request('/departments?type=university&search=060')
+        self.assertEqual(data['total'], 1)
+        self.assertEqual(data['items'][0]['name'], 'University 060')
+        status, _, _ = await self.admin_request('/departments?type=invalid')
+        self.assertEqual(status, 422)
+
+    async def test_saved_answers_have_readable_details_and_matching_report_export(self):
+        await self.login()
+        _, _, created = await self.admin_request('/forms', 'POST', {'title': 'Readable answers'})
+        form_id, version_id = created['id'], created['versions'][0]['id']
+        questions = [
+            {'key': 'count', 'title': 'Count', 'kind': 'number'},
+            {'key': 'present', 'title': 'Present', 'kind': 'yes_no'},
+            {'key': 'choice', 'title': 'Choice', 'kind': 'multiple_choice',
+             'options': [{'value': 'code', 'label': 'မြန်မာ label'}]},
+            {'key': 'notes', 'title': 'Notes', 'kind': 'short_text'},
+            {'key': 'missing', 'title': 'Missing', 'kind': 'short_text'},
+            {'key': 'members', 'title': 'Members', 'kind': 'repeating_group',
+             'config': {'fields': [{'key': 'name', 'title': 'Member name', 'kind': 'short_text'}]}},
+        ]
+        status, _, saved = await self.admin_request(f'/forms/{form_id}/versions/{version_id}', 'PUT', {
+            'title': 'Readable answers', 'revision': 1,
+            'sections': [{'title': 'Answers', 'questions': questions}],
+        })
+        self.assertEqual(status, 200, saved)
+        await self.admin_request(f'/forms/{form_id}/versions/{version_id}/publish', 'POST', {'revision': saved['revision']})
+        status, _, result = await self.admin_request(f'/forms/{form_id}/submit', 'POST', {
+            'answers': {'count': 0, 'present': False, 'choice': ['code'], 'notes': '', 'members': [{'name': 'Test person'}]},
+        })
+        self.assertEqual(status, 201, result)
+        _, _, detail = await self.admin_request(f'/submissions/{result["id"]}')
+        values = {a['key']: a for a in detail['sections'][0]['answers']}
+        self.assertEqual(values['count']['value'], 0)
+        self.assertIs(values['present']['value'], False)
+        self.assertEqual(values['count']['display_value'], '0')
+        self.assertEqual(values['present']['display_value'], 'No')
+        self.assertEqual(values['choice']['display_value'], 'မြန်မာ label')
+        self.assertEqual(values['notes']['display_value'], 'Empty text')
+        self.assertEqual(values['missing']['display_value'], 'No answer')
+        self.assertIn('Member name: Test person', values['members']['display_value'])
+        _, _, exported = await self.admin_request(f'/reports/export/csv?form_id={form_id}')
+        rows = list(csv.reader(StringIO(exported.lstrip('\ufeff'))))
+        answers = {row[9]: row[11] for row in rows[6:]}
+        for key, item in values.items():
+            self.assertEqual(answers[key], item['display_value'])
+        _, _, report = await self.admin_request(f'/reports?form_id={form_id}&question=choice')
+        self.assertEqual(report['analytics']['question_distribution'][0]['display_value'], 'မြန်မာ label')
+        _, _, history = await self.admin_request('/audit')
+        self.assertTrue(all(item['actor_name'] == 'admin' for item in history['items']))
+
     async def admin_request(self, path, method="GET", data=None):
         if path.endswith("/submit") and data is not None:
             data = {

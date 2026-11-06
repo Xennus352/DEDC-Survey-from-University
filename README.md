@@ -13,7 +13,9 @@ uv sync
 uv run uvicorn app.main:app --reload
 ```
 
-The application uses exactly the eight tables in the supplied `dedc.sql`, with JSON form metadata and private session/upload files. See [the database table guide](docs/database-tables.md) for conversion, backup and storage details. Historical Alembic migrations are for the previous schema; do not apply them to the eight-table database.
+The application uses the existing ten tables in `dedc.sql` directly, including `year` and `questiontitle`. It adds no tables or columns and requires no conversion. The previous eight-table layout is also supported. See [the database table guide](docs/database-tables.md) for storage and backup details. Do not apply historical Alembic migrations to this database.
+
+To remove synthetic category rows while preserving features, use the explicit [private metadata migration](docs/private-metadata.md). Keep `METADATA_STORAGE=sql` until the verified cutover is approved.
 
 Use `.env.example` for configuration names. Do not overwrite existing credentials or commit secrets. If no administrator exists, create one interactively with `uv run python -m app.portal_auth`.
 

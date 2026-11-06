@@ -5,6 +5,9 @@ import {
   button,
   empty,
   date,
+  dateTime,
+  label,
+  valueText,
   table,
   setContent,
   describe,
@@ -24,7 +27,7 @@ let loadEditor, loadPreview, loadImport;
 
 async function loadEditorModule() {
   try {
-    const mod = await import("./editor.js?v=20261105-questions");
+    const mod = await import("./editor.js?v=20261106-redesign");
     loadEditor = mod.loadEditor;
     loadPreview = mod.loadPreview;
   } catch (error) {
@@ -75,6 +78,9 @@ function updateNavigationState() {
   document.querySelector("[data-sidebar-toggle]").setAttribute("aria-expanded", String(
     compactNavigation.matches ? document.body.classList.contains("sidebar-open") : !document.body.classList.contains("sidebar-collapsed"),
   ));
+  const sidebar = document.querySelector("#sidebar");
+  sidebar.inert = compactNavigation.matches && !document.body.classList.contains("sidebar-open");
+  document.body.classList.toggle("navigation-modal", compactNavigation.matches && document.body.classList.contains("sidebar-open"));
 }
 compactNavigation.addEventListener("change", updateNavigationState);
 updateNavigationState();
@@ -82,10 +88,13 @@ document.querySelector("[data-sidebar-toggle]").onclick = () => {
   document.body.classList.toggle(compactNavigation.matches ? "sidebar-open" : "sidebar-collapsed");
   updateNavigationState();
 };
+document.querySelector("[data-close-navigation]").onclick = () => {
+  document.body.classList.remove("sidebar-open");
+  updateNavigationState();
+  document.querySelector("[data-sidebar-toggle]").focus();
+};
 
-document.querySelector(".topbar .search").onsubmit = async (event) => {
-  event.preventDefault();
-  const query = document.querySelector("#global-search").value;
+async function searchWorkspace(query) {
   if (query.trim().length < 2) return toast("Enter at least two characters.");
   try {
     const data = await api("/search?q=" + encodeURIComponent(query));
@@ -106,6 +115,19 @@ document.querySelector(".topbar .search").onsubmit = async (event) => {
   } catch (error) {
     toast(error.message);
   }
+}
+document.querySelector(".topbar .search").onsubmit = (event) => {
+  event.preventDefault();
+  searchWorkspace(document.querySelector("#global-search").value);
+};
+document.querySelector("[data-mobile-search]").onclick = () => {
+  const dialog = modal("Search workspace", `<form id="mobile-search-form" class="field-stack"><label>Search forms, questions and users<input name="query" type="search" minlength="2" required placeholder="Enter at least two characters"></label><div class="dialog-actions"><button class="button primary" type="submit">Search</button></div></form>`);
+  const form = dialog.querySelector("form");
+  form.elements.query.focus();
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    searchWorkspace(form.elements.query.value);
+  };
 };
 
 document.querySelector("[data-close-dialog]").onclick = () =>
@@ -130,11 +152,23 @@ document.addEventListener("keydown", (event) => {
     !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)
   ) {
     event.preventDefault();
-    document.querySelector("#global-search").focus();
+    if (matchMedia("(max-width:600px)").matches) document.querySelector("[data-mobile-search]").click();
+    else document.querySelector("#global-search").focus();
   }
   if (event.key === "Escape") {
+    const wasOpen = document.body.classList.contains("sidebar-open");
     document.body.classList.remove("sidebar-open");
     updateNavigationState();
+    if (wasOpen) document.querySelector("[data-sidebar-toggle]").focus();
+  }
+  if (event.key === "Tab" && compactNavigation.matches && document.body.classList.contains("sidebar-open")) {
+    const links = [...document.querySelectorAll(".sidebar a,.sidebar button")].filter(el => !el.disabled);
+    const first = links[0], last = links.at(-1);
+    if (event.shiftKey && (document.activeElement === first || !document.activeElement.closest(".sidebar"))) {
+      event.preventDefault(); last.focus();
+    } else if (!event.shiftKey && (document.activeElement === last || !document.activeElement.closest(".sidebar"))) {
+      event.preventDefault(); first.focus();
+    }
   }
 });
 
@@ -177,82 +211,36 @@ export async function createForm() {
 }
 
 async function overview() {
-  describe("Your survey operations, in one place.");
+  describe("A clear view of your surveys, responses and recent work.");
   try {
     const [data, forms, recent] = await Promise.all([
-      api("/overview"),
-      api("/forms?limit=5"),
-      api("/audit?limit=5"),
+      api("/overview"), api("/forms?limit=5"), api("/audit?limit=5"),
     ]);
     const max = Math.max(1, ...data.trend.map((d) => d.count));
-    actions(
-      `<button class="button" id="import-action">Import workbook</button><button class="button primary" id="create-action">Create form</button>`,
-    );
-    setContent(
-      `<section class="stats" aria-label="Survey statistics">${[
+    const received = data.trend.reduce((sum, day) => sum + day.count, 0);
+    actions(`<a class="button" href="/dashboard/data">Import workbook</a><button class="button primary" id="create-action">Create form</button>`);
+    setContent(`
+      <section class="stats" aria-label="Survey statistics">${[
         ["Survey forms", data.forms, `${data.published} published versions`],
-        [
-          "Questions",
-          data.questions,
-          `${data.answer_fields} answer fields across versions`,
-        ],
-        ["Submissions", data.submissions, "Submitted through published forms"],
+        ["Questions", data.questions, `${data.answer_fields} answer fields`],
+        ["Submissions", data.submissions, "Responses from published surveys"],
         ["Workbook records", data.source_rows, "Original answers preserved"],
-      ]
-        .map(
-          ([label, value, note]) =>
-            `<div class="stat"><p>${label}</p><strong>${value.toLocaleString()}</strong><small>${note}</small></div>`,
-        )
-        .join(
-          "",
-        )}</section><div class="overview-grid"><section class="panel"><div class="panel-head"><div><h2>Submission activity</h2><p>Daily submissions over the last 30 days</p></div><a class="table-link" href="/dashboard/reports">View reports</a></div><div class="panel-body"><div class="chart-summary"><strong>${data.trend.reduce((s, d) => s + d.count, 0)}</strong><span class="badge">Last 30 days</span></div><div class="chart" role="img" aria-label="${e(data.trend.map((d) => `${d.date}: ${d.count}`).join("; "))}">${data.trend.map((d) => `<div class="chart-column" tabindex="0" title="${d.date}: ${d.count} submissions"><div class="chart-bar" style="height:${(d.count / max) * 100}%"></div></div>`).join("")}</div><div class="chart-axis"><span>${data.trend[0].date}</span><span>${data.trend.at(-1).date}</span></div>${data.submissions === 0 ? '<p class="editor-meta">No submissions yet. Published forms will populate this chart as responses arrive.</p>' : ""}</div></section><section class="panel"><div class="panel-head"><div><h2>Workspace shortcuts</h2><p>Create, import and review surveys</p></div></div><div class="panel-body">${[
-        [
-          "Survey forms",
-          "Build, review and publish your surveys",
-          "/dashboard/forms",
-        ],
-        [
-          "Import your workbook",
-          "Keep the original questions and answers",
-          "/dashboard/data",
-        ],
-        [
-          "Review submissions",
-          "Explore answers and export reports",
-          "/dashboard/reports",
-        ],
-      ]
-        .map(
-          ([t, d, url]) =>
-            `<a class="quick-link" href="${url}"><div><strong>${t}</strong><p>${d}</p></div><span aria-hidden="true">↗</span></a>`,
-        )
-        .join(
-          "",
-        )}<p class="editor-meta">${data.active_users} active accounts · ${data.users} total accounts</p></div></section></div><section class="panel" style="margin-top:22px"><div class="panel-head"><div><h2>Your survey forms</h2><p>Drafts, published versions and archived forms</p></div><a class="button small" href="/dashboard/forms">View all forms</a></div>${formTable(forms.items)}</section><section class="panel" style="margin-top:22px"><div class="panel-head"><h2>Recent activity</h2><a href="/dashboard/audit" class="button small">View audit trail</a></div>${
-        recent.items.length
-          ? table(
-              ["Action", "Entity", "When"],
-              recent.items.map(
-                (a) =>
-                  `<tr><td>${e(a.action.replace(/\./g, " "))}</td><td>${e(a.entity)} #${a.target_id ?? "—"}</td><td>${date(a.created_at)}</td></tr>`,
-              ),
-            )
-          : empty(
-              "No activity yet",
-              "Administrator actions will appear here as you work.",
-            )
-      }</section>`,
-    );
+      ].map(([label,value,note]) => `<div class="stat"><p>${label}</p><strong>${value.toLocaleString()}</strong><small>${note}</small></div>`).join("")}</section>
+      <div class="overview-main">
+        <section class="panel"><div class="panel-head"><div><h2>Submission activity</h2><p>Responses received over the last 30 days</p></div><a class="table-link" href="/dashboard/reports">View reports ↗</a></div><div class="panel-body"><div class="chart-summary"><strong>${received}</strong><span>responses this month</span></div><div class="chart" role="img" aria-label="${e(data.trend.map(d => `${d.date}: ${d.count}`).join('; '))}">${data.trend.map(d => `<div class="chart-column" tabindex="0" title="${d.date}: ${d.count} submissions"><div class="chart-bar" style="height:${d.count / max * 100}%"></div></div>`).join('')}</div><div class="chart-axis"><span>${data.trend[0].date}</span><span>${data.trend.at(-1).date}</span></div>${received === 0 ? '<p class="editor-meta">Responses will appear here as people complete your published surveys.</p>' : ''}</div></section>
+        <section class="panel"><div class="panel-head"><h2>Continue your work</h2></div><div class="panel-body">${[
+          ['Survey forms','Build and publish your next survey','/dashboard/forms'],
+          ['Import a workbook','Bring existing questions into a draft','/dashboard/data'],
+          ['Review responses','Check answers and prepare reports','/dashboard/reports'],
+        ].map(([title,description,url]) => `<a class="quick-link" href="${url}"><div><strong>${title}</strong><p>${description}</p></div><span aria-hidden="true">↗</span></a>`).join('')}<p class="editor-meta">${data.active_users} active accounts · ${data.users} total</p></div></section>
+      </div>
+      <div class="overview-lower"><section class="panel"><div class="panel-head"><div><h2>Your survey forms</h2><p>Pick up a draft or review a published survey</p></div><a class="table-link" href="/dashboard/forms">View all ↗</a></div>${formTable(forms.items)}</section><section class="panel"><div class="panel-head"><h2>Recent activity</h2><a class="table-link" href="/dashboard/audit">View all ↗</a></div>${recent.items.length ? `<ul class="activity-list">${recent.items.map(a => `<li><strong>${e(a.action_label || label(a.action))}</strong><small>${e(a.actor_name || "System")} · ${dateTime(a.created_at)}</small></li>`).join('')}</ul>` : empty('No activity yet','Administrator actions will appear here as you work.')}</section></div>
+    `);
+    document.querySelector('#create-action').onclick = createForm;
   } catch (error) {
-    setContent(
-      `<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">Retry</button>`,
-    );
-    document.querySelector("#retry").onclick = overview;
-    return;
+    setContent(`<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">Retry</button>`);
+    document.querySelector('#retry').onclick = overview;
   }
-  document.querySelector("#create-action").onclick = createForm;
-  document.querySelector("#import-action").onclick = () =>
-    (location.href = "/dashboard/data");
 }
 
 function formTable(items, search = "") {
@@ -271,7 +259,7 @@ function formTable(items, search = "") {
           const v = f.versions.at(-1);
           const total_questions = v?.fields ?? 0;
           const section_count = v?.sections?.length ?? v?.section_count ?? 0;
-          return `<tr><td><input type="checkbox" data-select-form="${f.id}" aria-label="Select form ${f.id}"></td><td class="title"><a class="table-link" href="/dashboard/forms/${f.id}">${e(f.title)}</a><small>Version ${v?.number || 1}</small></td><td>${e(f.audience)}</td><td>${badge(f.archived ? "archived" : v?.status || "draft")}</td><td class="numeric">${section_count}</td><td class="numeric">${total_questions}</td><td><a href="/dashboard/forms/${f.id}" class="button small">Open builder</a></td></tr>`;
+          return `<tr><td><input type="checkbox" data-select-form="${f.id}" aria-label="Select form ${f.id}"></td><td class="title"><div class="form-identity"><span class="record-mark" aria-hidden="true">▤</span><div><a class="table-link" href="/dashboard/forms/${f.id}">${e(f.title)}</a><small>Version ${v?.number || 1}</small></div></div></td><td>${e(label(f.audience))}</td><td>${badge(f.archived ? "archived" : v?.status || "draft")}</td><td class="numeric">${section_count}</td><td class="numeric">${total_questions}</td><td><a href="/dashboard/forms/${f.id}" class="button small">Open builder</a></td></tr>`;
         }),
       )
     : search ? empty("No matching forms", "Try another title or clear your search to see all survey forms.", button("Clear search", "/dashboard/forms")) : empty(
@@ -282,7 +270,7 @@ function formTable(items, search = "") {
 }
 
 async function formsPage() {
-  describe("Build once. Publish with confidence. Keep every version.");
+  describe("Create, organize and publish surveys. Every version stays in your control.");
   try {
     const p = new URLSearchParams(location.search),
       data = await api("/forms?" + p);
@@ -290,7 +278,7 @@ async function formsPage() {
       `<a class="button" href="/dashboard/data">Import workbook</a><button class="button primary" id="create-action">Create form</button>`,
     );
     setContent(
-      `<section class="panel">${searchFilter(p.get("search") || "")}${formTable(data.items, p.get("search"))}${pagination(data.total)}</section>`,
+      `<div class="collection-intro"><div><h2>Form library</h2><p>Drafts, published surveys and archived work</p></div><span class="collection-count">${data.total} forms</span></div><section class="panel">${searchFilter(p.get("search") || "")}${formTable(data.items, p.get("search"))}${pagination(data.total)}</section>`,
     );
   } catch (error) {
     setContent(
@@ -366,28 +354,21 @@ async function departments() {
   describe("Ministries and universities participating in your surveys.");
   try {
     const params = new URLSearchParams(location.search);
-    const [ministries, universities] = await Promise.all([
-      api("/ministries?" + params), api("/universities?" + params),
-    ]);
+    const data = await api("/departments?" + params);
     const type = params.get("type") || "";
-    const rows = [
-      ...(type !== "university" ? ministries.items.map((org) => ({ ...org, organization: "ministry" })) : []),
-      ...(type !== "ministry" ? universities.items.map((org) => ({ ...org, organization: "university" })) : []),
-    ].sort((left, right) => left.name.localeCompare(right.name));
-    const total = (type !== "university" ? ministries.total : 0) + (type !== "ministry" ? universities.total : 0);
+    const rows = data.items, total = data.total;
     const filtered = !!params.get("search") || !!type;
     actions('<button class="button primary" id="add-org">Add department</button>');
     setContent(`<div class="organization-grid single-column"><section class="panel directory-panel">
-      <div class="panel-head"><div><h2>Department directory <span class="inline-count">${total}</span></h2><p>${ministries.total} ${ministries.total === 1 ? "ministry" : "ministries"} · ${universities.total} ${universities.total === 1 ? "university" : "universities"}</p></div></div>
-      <form class="filters" data-filter-form><input type="search" name="search" aria-label="Search organizations" placeholder="Search departments…" value="${e(params.get("search") || "")}"><label><span id="directory-type-label">Type</span><select name="type" aria-labelledby="directory-type-label"><option value="">All types</option><option value="university" ${type === "university" ? "selected" : ""}>University</option><option value="ministry" ${type === "ministry" ? "selected" : ""}>Ministry</option></select></label><button class="button" type="submit">Search</button>${filtered ? '<a class="button text-button" href="/dashboard/departments">Clear filters</a>' : ""}</form>
+      <div class="panel-head"><div><h2>Department directory <span class="inline-count">${total}</span></h2><p>Keep participating organizations in one place</p></div></div>
+      <div class="directory-summary"><span><strong>${data.counts.university || 0}</strong> Universities</span><span><strong>${data.counts.ministry || 0}</strong> Ministries</span></div><form class="filters" data-filter-form><input type="search" name="search" aria-label="Search organizations" placeholder="Search departments…" value="${e(params.get("search") || "")}"><label><span id="directory-type-label">Type</span><select name="type" aria-labelledby="directory-type-label"><option value="">All types</option><option value="university" ${type === "university" ? "selected" : ""}>University</option><option value="ministry" ${type === "ministry" ? "selected" : ""}>Ministry</option></select></label><button class="button" type="submit">Search</button>${filtered ? '<a class="button text-button" href="/dashboard/departments">Clear filters</a>' : ""}</form>
       ${rows.length ? table(["Name", "Organization", "Category", "Actions"], rows.map((org) => `<tr><td class="title">${e(org.name)}</td><td>${org.organization === "university" ? "University" : "Ministry"}</td><td>${org.organization === "university" ? e(org.type || "Unspecified") : "—"}</td><td><div class="row-actions"><button class="button small" data-edit-org="${org.id}" data-org-type="${org.organization}">Edit</button><button class="button small danger" data-delete-org="${org.id}" data-org-type="${org.organization}">Delete</button></div></td></tr>`)) : empty(filtered ? "No matching departments" : "No departments added yet", filtered ? "Try a different name or clear the filters to see all departments." : "Add a university or ministry to organize the participants in your surveys.", filtered ? button("Clear filters", "/dashboard/departments") : '<button class="button" data-add-department>Add your first department</button>')}
-      ${rows.length && total > rows.length ? `<p class="directory-note">Showing ${rows.length} of ${total} departments. Search by name to narrow the list.</p>` : ""}
+      ${pagination(total)}
     </section></div>`);
     document.querySelector("#add-org").onclick = () => openAddOrgDialog();
     document.querySelector("[data-add-department]")?.addEventListener("click", () => openAddOrgDialog());
     document.querySelectorAll("[data-edit-org]").forEach((button) => button.onclick = () => {
-      const data = button.dataset.orgType === "ministry" ? ministries : universities;
-      openAddOrgDialog(button.dataset.orgType, data.items.find((org) => org.id === Number(button.dataset.editOrg)));
+      openAddOrgDialog(button.dataset.orgType, rows.find((org) => org.organization === button.dataset.orgType && org.id === Number(button.dataset.editOrg)));
     });
     document.querySelectorAll("[data-delete-org]").forEach((button) => button.onclick = () => deleteOrg(button.dataset.orgType, Number(button.dataset.deleteOrg), button));
     bindFilters(load);
@@ -493,7 +474,7 @@ async function reportsPage() {
       `<details class="export-menu"><summary class="button">Export report</summary><div><a href="/api/admin/reports/export/csv?${e(p)}">Export CSV</a><a href="/api/admin/reports/export/xlsx?${e(p)}">Export Excel</a><a href="/api/admin/reports/export/pdf?${e(p)}">Export PDF</a></div></details>`,
     );
     setContent(
-      `<section class="stats"><div class="stat"><p>Matching submissions</p><strong>${data.total}</strong></div><div class="stat"><p>Completed</p><strong>${data.statuses.completed || 0}</strong></div><div class="stat"><p>Approved</p><strong>${data.statuses.approved || 0}</strong></div><div class="stat"><p>Rejected</p><strong>${data.statuses.rejected || 0}</strong></div></section><section class="panel" style="margin-top:22px">${reportFilters(p, formData, users)}${data.items.length
+      `<section class="stats"><div class="stat"><p>Matching submissions</p><strong>${data.total}</strong></div><div class="stat"><p>Completed</p><strong>${data.statuses.completed || 0}</strong></div><div class="stat"><p>Approved</p><strong>${data.statuses.approved || 0}</strong></div><div class="stat"><p>Rejected</p><strong>${data.statuses.rejected || 0}</strong></div></section><section class="panel report-results">${reportFilters(p, formData, users)}${data.items.length
         ? table(
             [
               "",
@@ -506,7 +487,7 @@ async function reportsPage() {
             ],
             data.items.map(
               (r) =>
-                `<tr><td><input type="checkbox" data-select-submission="${r.id}" aria-label="Select submission ${r.id}"></td><td>#${r.id}</td><td class="title">${e(r.form)}<small>Version ${r.version} · ${e(r.reporting_start || "—")} → ${e(r.reporting_end || "—")}</small></td><td>${e(r.username)}</td><td>${badge(r.status)}</td><td>${date(r.created_at)}</td><td><button class="button small" data-view-submission="${r.id}">View answers</button></td></tr>`,
+                `<tr><td><input type="checkbox" data-select-submission="${r.id}" aria-label="Select submission ${r.id}"></td><td>#${r.id}</td><td class="title">${e(r.form)}<small>Version ${r.version} · ${date(r.reporting_start)} → ${date(r.reporting_end)}</small></td><td>${e(r.username)}</td><td>${badge(r.status)}</td><td>${date(r.created_at)}</td><td><button class="button small" data-view-submission="${r.id}">View answers</button></td></tr>`,
             ),
           )
         : empty(
@@ -527,7 +508,7 @@ async function reportsPage() {
   const peak = Math.max(1, ...analytics.trend.map((day) => day.count));
   document.querySelector("#content").insertAdjacentHTML(
     "beforeend",
-    `<div class="overview-grid"><section class="panel"><div class="panel-head"><div><h2>Filtered submission trend</h2><p>${analytics.completion_percent}% completed · Average completion time: ${analytics.average_seconds === null ? "—" : analytics.average_seconds + " seconds"}</p></div></div><div class="panel-body">${analytics.trend.length ? `<div class="chart" role="img" aria-label="${e(analytics.trend.map((day) => day.date + ": " + day.count).join("; "))}">${analytics.trend.map((day) => `<div class="chart-column" tabindex="0" title="${day.date}: ${day.count}"><div class="chart-bar" style="height:${Math.max(1, (day.count / peak) * 100)}%"></div></div>`).join("")}</div>` : empty("No activity in this selection", "Change the filters to include submitted responses.")}</div></section><section class="panel"><div class="panel-head"><h2>Respondent activity</h2></div>${
+    `<div class="overview-grid report-insights"><section class="panel"><div class="panel-head"><div><h2>Filtered submission trend</h2><p>${analytics.completion_percent}% completed · Average completion time: ${analytics.average_seconds === null ? "—" : analytics.average_seconds + " seconds"}</p></div></div><div class="panel-body">${analytics.trend.length ? `<div class="chart" role="img" aria-label="${e(analytics.trend.map((day) => day.date + ": " + day.count).join("; "))}">${analytics.trend.map((day) => `<div class="chart-column" tabindex="0" title="${day.date}: ${day.count}"><div class="chart-bar" style="height:${Math.max(1, (day.count / peak) * 100)}%"></div></div>`).join("")}</div>` : empty("No activity in this selection", "Change the filters to include submitted responses.")}</div></section><section class="panel"><div class="panel-head"><h2>Respondent activity</h2></div>${
       analytics.by_user.length
         ? table(
             ["User", "Submissions"],
@@ -546,12 +527,20 @@ async function reportsPage() {
             ["Answer", "Responses"],
             analytics.question_distribution.map(
               (item) =>
-                `<tr><td>${e(typeof item.answer === "object" ? JSON.stringify(item.answer) : item.answer)}</td><td class="numeric">${item.count}</td></tr>`,
+                `<tr><td>${e(item.display_value ?? valueText(item.answer))}</td><td class="numeric">${item.count}</td></tr>`,
             ),
           )}</section>`
         : ""
     }`,
   );
+  const results = document.querySelector('.report-results');
+  const filters = results.querySelector('.report-filters');
+  const filterPanel = document.createElement('section');
+  filterPanel.className = 'panel report-filter-panel';
+  filterPanel.setAttribute('aria-label', 'Report filters');
+  filterPanel.append(filters);
+  document.querySelector('#content').prepend(filterPanel);
+  results.before(document.querySelector('.report-insights'));
   bindFilters(load);
   document.querySelectorAll("[data-view-submission]").forEach(
     (b) =>
@@ -563,7 +552,7 @@ async function reportsPage() {
             );
             modal(
               "Submission #" + detail.id,
-              `<p class="editor-meta">${e(detail.form)} · Version ${detail.version} · ${e(detail.username)}</p>${detail.sections.map((s) => `<section class="stack"><h3>${e(s.title)}</h3>${s.answers.map((a) => `<div class="notice"><strong>${e(a.title)}</strong><p class="source-text">${["file", "image"].includes(a.kind) && a.value?.file_id ? `<a class="table-link" href="/api/files/${Number(a.value.file_id)}">Download attachment ↗</a>` : e(typeof a.value === "object" ? JSON.stringify(a.value) : (a.value ?? "—"))}</p></div>`).join("")}</section>`).join("")}`,
+              `<p class="editor-meta">${e(detail.form)} · Version ${detail.version} · ${e(detail.username)}</p>${detail.sections.map((s) => `<section class="stack"><h3>${e(s.title)}</h3>${s.answers.map((a) => `<div class="notice"><strong>${e(a.title)}</strong><p class="source-text">${["file", "image"].includes(a.kind) && a.value?.file_id ? `<a class="table-link" href="/api/files/${Number(a.value.file_id)}">${e(a.display_value || "Download attachment")} ↗</a>` : e(a.display_value ?? valueText(a.value))}</p></div>`).join("")}</section>`).join("")}`,
             );
           } catch (error) {
             toast(error.message);
@@ -602,11 +591,11 @@ async function usersPage() {
       `<a class="button" href="/api/admin/users/export/csv?${e(p)}">Export users</a><button class="button" id="add-role">Add role</button><button class="button primary" id="add-user">Add user</button>`,
     );
     setContent(
-      `<section class="panel">${searchFilter(p.get("search") || "")}${data.items.length ? table(
+      `<section class="panel"><div class="user-summary"><span><strong>${data.total}</strong> Accounts</span><span><strong>${data.roles.length}</strong> Roles</span><span>Manage access and account status</span></div>${searchFilter(p.get("search") || "")}${data.items.length ? table(
         ["User", "Role", "Status", "Created", ""],
         data.items.map(
           (u) =>
-            `<tr><td><a class="table-link" href="/dashboard/reports?user_id=${u.id}">${e(u.username)}</a><small>User #${u.id} · View submissions</small></td><td>${e(data.roles.find((r) => r.id === u.role_id)?.name || u.role_id)}</td><td>${badge(u.is_active ? "active" : "disabled")}</td><td>${date(u.created_at)}</td><td><button class="button small" data-edit-user="${u.id}">Edit user</button></td></tr>`,
+            `<tr><td><div class="user-identity"><span class="avatar" aria-hidden="true">${e(u.username.slice(0,1).toUpperCase())}</span><div><a class="table-link" href="/dashboard/reports?user_id=${u.id}">${e(u.username)}</a><small>User #${u.id} · View submissions</small></div></div></td><td>${e(data.roles.find((r) => r.id === u.role_id)?.name || u.role_id)}</td><td>${badge(u.is_active ? "active" : "disabled")}</td><td>${date(u.created_at)}</td><td><button class="button small" data-edit-user="${u.id}">Edit user</button></td></tr>`,
         ),
       ) : empty("No matching users", "Try another username or clear your search to see all accounts.", button("Clear search", "/dashboard/users"))}${pagination(data.total)}</section>`,
     );
@@ -621,7 +610,7 @@ async function usersPage() {
   const edit = (u) => {
     const dialog = modal(
       u ? "Edit user" : "Add user",
-      `<form id="user-form" class="field-stack"><label>Username<input name="username" required maxlength="100" autocomplete="off" value="${e(u?.username || "")}"></label><label>Role<select name="role_id">${data.roles.map((r) => `<option value="${r.id}" ${u?.role_id === r.id ? "selected" : ""}>${e(r.name)}</option>`).join("")}</select></label><label>${u ? "New password (leave blank to keep current password)" : "Password"}<input type="password" name="password" minlength="8" autocomplete="new-password" ${u ? "" : "required"}></label><label class="check-label"><input type="checkbox" name="is_active" ${u?.is_active !== false ? "checked" : ""}>Account active</label><div class="dialog-actions"><button class="button primary" type="submit">Save user</button></div></form>`,
+      `<form id="user-form" class="field-stack"><label>Username<input name="username" required maxlength="100" autocomplete="off" value="${e(u?.username || "")}"></label><label><span id="user-role-label">Role</span><select name="role_id" aria-labelledby="user-role-label">${data.roles.map((r) => `<option value="${r.id}" ${u?.role_id === r.id ? "selected" : ""}>${e(r.name)}</option>`).join("")}</select></label><label>${u ? "New password (leave blank to keep current password)" : "Password"}<input type="password" name="password" minlength="8" autocomplete="new-password" ${u ? "" : "required"}></label><label class="check-label"><input type="checkbox" name="is_active" ${u?.is_active !== false ? "checked" : ""}>Account active</label><div class="dialog-actions"><button class="button primary" type="submit">Save user</button></div></form>`,
     );
     document.querySelector("#user-form").onsubmit = (event) => {
       event.preventDefault();
@@ -657,9 +646,9 @@ async function usersPage() {
             method: "POST",
             body: Object.fromEntries(new FormData(event.target)),
           });
+          await load();
           dialog.close();
           toast("Role created.");
-          load();
         } catch (error) {
           errorMessage(error);
         }
@@ -684,13 +673,13 @@ async function audit() {
     const p = new URLSearchParams(location.search),
       data = await api("/audit?" + p);
     setContent(
-      `<section class="panel">${searchFilter(p.get("search") || "")}${
+      `<div class="collection-intro"><div><h2>Workspace history</h2><p>A chronological record of changes across your surveys</p></div><span class="collection-count">${data.total} events</span></div><section class="panel">${searchFilter(p.get("search") || "")}${
         data.items.length
           ? table(
               ["Action", "Actor", "Target", "Changes", "When"],
               data.items.map(
                 (a) =>
-                  `<tr><td>${e(a.action)}</td><td>User #${a.actor_id ?? "—"}</td><td>${e(a.entity)} #${a.target_id ?? "—"}</td><td class="title"><details class="audit-changes"><summary>View details</summary><pre>${e(JSON.stringify(a.changes, null, 2))}</pre></details></td><td>${date(a.created_at)}</td></tr>`,
+                  `<tr><td>${e(a.action_label || label(a.action))}</td><td>${e(a.actor_name || "System")}</td><td>${e(label(a.entity))}${a.target_id == null ? "" : " #" + a.target_id}</td><td class="title"><details class="audit-changes"><summary>View details</summary><dl class="audit-summary">${Object.entries(a.changes).map(([key,value]) => `<dt>${e(label(key))}</dt><dd>${e(valueText(value))}</dd>`).join("") || "<dt>No additional details</dt>"}</dl><details><summary>Technical details</summary><pre>${e(JSON.stringify(a.changes, null, 2))}</pre></details></details></td><td>${dateTime(a.created_at)}</td></tr>`,
               ),
             )
           : empty(
@@ -714,7 +703,7 @@ async function settings() {
   try {
     const user = await api("/session");
     setContent(
-      `<div class="settings-layout"><section class="settings-row"><div class="settings-copy"><h2>Appearance</h2><p>Choose how the workspace looks on this device.</p></div><div class="settings-control"><label><span id="theme-setting-label">Workspace theme</span><select id="theme-setting" aria-labelledby="theme-setting-label"><option value="light">Light</option><option value="dark">Dark</option></select></label><p class="field-hint">Your preference is saved in this browser.</p></div></section><section class="settings-row"><div class="settings-copy"><h2>Your account</h2><p>Your administrator profile and access.</p></div><div class="settings-control"><h3>${e(user.username)}</h3><p class="editor-meta">Administrator · User #${user.id}</p><a class="button" href="/dashboard/users">Manage accounts</a></div></section></div>`,
+      `<div class="settings-layout"><nav class="settings-index" aria-label="Settings sections"><a href="#appearance">Appearance</a><a href="#account">Your account</a></nav><div class="settings-sections"><section class="settings-row" id="appearance"><div class="settings-copy"><h2>Appearance</h2><p>Choose how the workspace looks on this device.</p></div><div class="settings-control"><label><span id="theme-setting-label">Workspace theme</span><select id="theme-setting" aria-labelledby="theme-setting-label"><option value="light">Light</option><option value="dark">Dark</option></select></label><p class="field-hint">Your preference is saved in this browser.</p></div></section><section class="settings-row" id="account"><div class="settings-copy"><h2>Your account</h2><p>Your administrator profile and access.</p></div><div class="settings-control"><div class="account-summary"><span class="avatar" aria-hidden="true">${e(user.username.slice(0,1).toUpperCase())}</span><div><h3>${e(user.username)}</h3><p class="field-hint">Administrator · User #${user.id}</p></div></div><a class="button" href="/dashboard/users">Manage accounts</a></div></section></div></div>`,
     );
   } catch (error) {
     setContent(
@@ -723,6 +712,15 @@ async function settings() {
     document.querySelector("#retry").onclick = settings;
     return;
   }
+  const settingLinks = [...document.querySelectorAll('.settings-index a')];
+  function selectSetting(hash) {
+    settingLinks.forEach(link => {
+      if (link.hash === hash) link.setAttribute('aria-current', 'location');
+      else link.removeAttribute('aria-current');
+    });
+  }
+  selectSetting(location.hash || '#appearance');
+  settingLinks.forEach(link => link.onclick = () => selectSetting(link.hash));
   document.querySelector("#theme-setting").value =
     document.documentElement.dataset.theme;
   document.querySelector("#theme-setting").onchange = (event) => {
@@ -791,6 +789,7 @@ const workspacePages = {
   "/dashboard/departments": ["departments", "Departments"],
   "/dashboard/reports": ["reports", "Reports & analytics"],
   "/dashboard/users": ["users", "Users & enumerators"],
+  "/dashboard/data": ["data", "Data management"],
   "/dashboard/audit": ["audit", "Audit trail"],
   "/dashboard/settings": ["settings", "Settings"],
 };
@@ -823,6 +822,10 @@ async function renderWorkspacePage() {
     navigating = false;
     content.removeAttribute("aria-busy");
     content.inert = false;
+    const heading = document.querySelector("h1");
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+    window.scrollTo({ top: 0 });
   }
 }
 document.addEventListener("click", (event) => {

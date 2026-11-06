@@ -167,7 +167,8 @@ def import_sheet(db, preview, worksheet, definition, actor):
     apply_definition(db, version, definition)
     periods = re.findall(r"(20\d{2})", worksheet)
     if len(periods) == 2:
-        start, end = date(int(periods[0]), 1, 1), date(int(periods[1]), 12, 31)
+        start = definition.reporting_start or date(int(periods[0]), 1, 1)
+        end = definition.reporting_end or date(int(periods[1]), 12, 31)
         period = db.query(ReportingYear).filter_by(start=start, end=end).first()
         if not period:
             period = ReportingYear(start=start, end=end)

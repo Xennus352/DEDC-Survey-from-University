@@ -70,6 +70,8 @@ class PrivateFiles:
                     stream.flush()
                     os.fsync(stream.fileno())
                 os.replace(temporary, path)
+                from app.storage.journal import sync_directory
+                sync_directory(self.root)
             finally:
                 if os.path.exists(temporary):
                     os.unlink(temporary)

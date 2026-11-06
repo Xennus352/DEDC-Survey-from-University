@@ -59,22 +59,41 @@ export function safeFullMatch(value, pattern, flags) {
   return re ? re.test(String(value ?? "")) : false;
 }
 
+export const label = (value) => {
+  const text = String(value ?? "").replaceAll("_", " ").replaceAll(".", " ");
+  return text ? text[0].toUpperCase() + text.slice(1) : "";
+};
+export const valueText = (value) => {
+  if (value === null || value === undefined) return "No answer";
+  if (value === true) return "Yes";
+  if (value === false) return "No";
+  if (value === "") return "Empty text";
+  if (Array.isArray(value)) return value.length ? value.map(valueText).join("; ") : "No selections";
+  if (typeof value === "object") return Object.entries(value).map(([key,item]) => `${label(key)}: ${valueText(item)}`).join("\n") || "No values";
+  return String(value);
+};
 export const badge = (value) =>
-  `<span class="badge ${escape(value)}">${escape(String(value).replaceAll("_", " "))}</span>`;
-export const button = (label, href, primary = false) =>
-  `<a class="button ${primary ? "primary" : ""}" href="${escape(href)}">${label}</a>`;
+  `<span class="badge ${escape(value)}">${escape(label(value))}</span>`;
+export const button = (text, href, primary = false) =>
+  `<a class="button ${primary ? "primary" : ""}" href="${escape(href)}">${text}</a>`;
 export const empty = (title, description, action = "") =>
   `<div class="empty"><h2>${escape(title)}</h2><p>${escape(description)}</p>${action}</div>`;
-export const date = (value) =>
-  value
-    ? new Date(value + "Z").toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "—";
+function formatDate(value, withTime = false) {
+  if (!value) return "—";
+  const dayOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const zoned = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
+  const parsed = new Date(dayOnly ? value + "T00:00:00Z" : zoned ? value : value + "Z");
+  if (Number.isNaN(parsed.getTime())) return "Unknown date";
+  return parsed.toLocaleString(undefined, {
+    year: "numeric", month: "short", day: "numeric",
+    ...(dayOnly ? { timeZone: "UTC" } : {}),
+    ...(withTime && !dayOnly ? { hour: "2-digit", minute: "2-digit" } : {}),
+  });
+}
+export const date = (value) => formatDate(value);
+export const dateTime = (value) => formatDate(value, true);
 export const table = (headers, rows) =>
-  `<div class="table-wrap"><table><thead><tr>${headers.map((h) => `<th scope="col">${h}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+  `<div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable data table"><table><thead><tr>${headers.map((h) => `<th scope="col">${h || '<span class="sr-only">Actions</span>'}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
 export function setContent(html) {
   const content = document.querySelector("#content");
   content.innerHTML = html;
@@ -151,18 +170,26 @@ export async function busy(button, task) {
   }
 }
 export function pagination(total, reload) {
-  const p = Number(new URLSearchParams(location.search).get("page") || 1),
-    count = Math.max(1, Math.ceil(total / 25));
+  const params = new URLSearchParams(location.search);
+  const p = Number(params.get("page") || 1),
+    size = Number(params.get("limit") || 25),
+    count = Math.max(1, Math.ceil(total / size));
   return `<div class="pagination"><span>${total.toLocaleString()} records · Page ${p} of ${count}</span><div class="actions"><button class="button small" data-pagination="${p - 1}" ${p <= 1 ? "disabled" : ""}>Previous</button><button class="button small" data-pagination="${p + 1}" ${p >= count ? "disabled" : ""}>Next</button></div></div>`;
 }
 export function bindFilters(reload) {
   document.querySelectorAll("[data-pagination]").forEach(
     (b) =>
-      (b.onclick = () => {
+      (b.onclick = async () => {
         const p = new URLSearchParams(location.search);
         p.set("page", b.dataset.pagination);
         history.pushState({}, "", `${location.pathname}?${p}`);
-        reload();
+        await reload();
+        // New pages start at the results, rather than leaving the user at
+        // the bottom of the previous page with focus on a removed button.
+        const results = document.querySelector("#content .table-wrap") || document.querySelector("#content");
+        results.tabIndex = 0;
+        results.focus({ preventScroll: true });
+        window.scrollTo({ top: 0 });
       }),
   );
   document.querySelectorAll("[data-filter-form]").forEach(
