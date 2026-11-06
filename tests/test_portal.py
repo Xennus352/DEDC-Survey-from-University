@@ -472,27 +472,38 @@ class PortalTests(PortalFixture):
         status, _, body = await self.request("/")
         self.assertEqual(status, 200)
         self.assertIn('id="login-dialog"', body)
-        self.assertIn('href="/RoadMap.html"', body)
+        self.assertIn('href="/roadmap"', body)
         self.assertIn('href="/#home" aria-current="page"', body)
         self.assertIn('href="/#contact"', body)
+        self.assertIn('class="nav-dropdown"', body)
+        self.assertIn('href="/roadmap#pillar-2"', body)
+        self.assertIn('class="nav-dropdown__all"', body)
+        self.assertNotIn("၂၀၃၀ ခုနှစ်", body)
+        self.assertNotIn('class="nav-dropdown__year"', body)
         status, _, _ = await self.request("/static/css/pages/portal.css")
         self.assertEqual(status, 200)
 
     async def test_roadmap_page_serves_separate_assets(self):
-        status, _, body = await self.request("/RoadMap.html")
+        status, _, body = await self.request("/roadmap")
         self.assertEqual(status, 200)
         self.assertIn("MYANMAR DIGITAL ECONOMY ROADMAP 2030", body)
         self.assertIn('href="/static/css/pages/roadmap.css"', body)
         self.assertIn('src="/static/js/roadmap.js"', body)
-        self.assertIn('href="/RoadMap.html" aria-current="page"', body)
+        self.assertIn('href="/roadmap" aria-current="page"', body)
         self.assertNotIn('href="/#home" aria-current="page"', body)
         self.assertIn('href="/#contact"', body)
         for path in (
             "/static/css/pages/roadmap.css",
             "/static/js/roadmap.js",
+            "/static/css/components/nav-dropdown.css",
         ):
             status, _, _ = await self.request(path)
             self.assertEqual(status, 200, path)
+
+    async def test_legacy_roadmap_url_redirects_without_html_extension(self):
+        status, headers, _ = await self.request("/RoadMap.html")
+        self.assertEqual(status, 301)
+        self.assertEqual(headers[b"location"], b"/roadmap")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 
@@ -21,9 +21,14 @@ async def index(request: Request):
     )
 
 
-@router.get("/RoadMap.html", response_class=HTMLResponse, include_in_schema=False)
+@router.get("/roadmap", response_class=HTMLResponse)
 async def roadmap(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="RoadMap.html"
     )
+
+
+@router.get("/RoadMap.html", include_in_schema=False)
+async def roadmap_legacy():
+    return RedirectResponse(url="/roadmap", status_code=301)
