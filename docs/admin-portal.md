@@ -8,10 +8,10 @@ Visit `/portal` directly to use administrator login.
 
 1. Add `ADMIN_ROLE_NAME` and `PORTAL_COOKIE_SECURE` from `.env.example` to your local
    `.env`. Set `DATABASE_URL` to the existing DEDC Docker MySQL database.
-   For the local `dedc` container exposing port 3307, use
-   `mysql+pymysql://dedc:dedc@127.0.0.1:3307/dedc`.
+   For a local MySQL server on port 3306, use
+   `mysql+pymysql://dedc:dedc@127.0.0.1:3306/dedc`.
    When the app runs in Docker on the same network, use the database service's
-   hostname and internal port 3306 instead of `127.0.0.1:3307`.
+   hostname and internal port 3306 instead of `127.0.0.1`.
 2. Confirm the `dedc` container is running with `docker ps`.
    Run `uv run python -m app.portal_auth`. Enter an administrator username, then
    enter and confirm a password with at least 8 characters. This creates an

@@ -32,7 +32,7 @@
 
 <header class="site-header" id="home">
   <div class="container header-inner">
-    <a class="brand" href="/" aria-label="ဝန်ကြီးဌာန ပင်မစာမျက်နှာ">
+    <a class="brand" href="/home" aria-label="ဝန်ကြီးဌာန ပင်မစာမျက်နှာ">
       <span class="brand-seals">
         <img src="/static/img/logo.png"
              alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်" width="48" height="48">
@@ -44,8 +44,56 @@
     </a>
 
     <nav class="desktop-nav" aria-label="ပင်မလမ်းညွှန်">
-      <a href="/#home" {% if current_path == "/" %}aria-current="page"{% endif %}>ပင်မစာမျက်နှာ</a>
-      <a href="/#survey">စစ်တမ်းများ</a>
+      <a href="/home" {% if current_path in ("/", "/home") %}aria-current="page"{% endif %}>ပင်မစာမျက်နှာ</a>
+      <div class="nav-dropdown">
+        <a class="nav-dropdown__trigger"
+           href="/surveys"
+           aria-haspopup="true"
+           {% if current_path.startswith("/surveys") %}aria-current="page"{% endif %}>
+          စစ်တမ်းများ
+          <span class="nav-dropdown__caret" aria-hidden="true">
+            <svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="m1 1.5 5 5 5-5"/>
+            </svg>
+          </span>
+        </a>
+
+        <div class="nav-dropdown__panel">
+          <p class="nav-dropdown__eyebrow">DEDC SURVEYS</p>
+
+          <ul class="nav-dropdown__items">
+            <li>
+              <a href="/surveys/ministry">
+                <span class="nav-dropdown__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-4h6v4M9 11h.01M15 11h.01M9 14h.01M15 14h.01"/>
+                  </svg>
+                </span>
+                <span class="nav-dropdown__label">
+                  ဝန်ကြီးဌာန စစ်တမ်း
+                  <small>Ministry survey</small>
+                </span>
+              </a>
+            </li>
+            <li>
+              <a href="/surveys/university">
+                <span class="nav-dropdown__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+                    <path d="m3 9 9-4 9 4-9 4-9-4Z"/>
+                    <path d="M7 11v5c0 1.1 2.2 2 5 2s5-.9 5-2v-5M21 9v5"/>
+                  </svg>
+                </span>
+                <span class="nav-dropdown__label">
+                  တက္ကသိုလ် စစ်တမ်း
+                  <small>University survey</small>
+                </span>
+              </a>
+            </li>
+          </ul>
+
+          <a class="nav-dropdown__all" href="/surveys">စစ်တမ်း ရွေးချယ်ရန်</a>
+        </div>
+      </div>
       <div class="nav-dropdown">
         <a class="nav-dropdown__trigger"
            href="/roadmap"
@@ -87,12 +135,19 @@
   </div>
 
   <nav id="mobile-nav" class="mobile-nav container" aria-label="မိုဘိုင်းလမ်းညွှန်" hidden>
-    <a href="/#home" {% if current_path == "/" %}aria-current="page"{% endif %}>ပင်မစာမျက်နှာ</a>
+    <a href="/home" {% if current_path in ("/", "/home") %}aria-current="page"{% endif %}>ပင်မစာမျက်နှာ</a>
+    <a href="/surveys" {% if current_path.startswith("/surveys") %}aria-current="page"{% endif %}>စစ်တမ်းများ</a>
+    <div class="mobile-nav__sub">
+      <a href="/surveys/ministry">ဝန်ကြီးဌာန စစ်တမ်း</a>
+      <a href="/surveys/university">တက္ကသိုလ် စစ်တမ်း</a>
+    </div>
     <a href="/#survey">မိတ်ဆက်</a>
     <a href="/#departments">ဦးစီးဌာနများ</a>
     <a href="/roadmap" {% if current_path == "/roadmap" %}aria-current="page"{% endif %}>မဏ္ဍိုင်များ</a>
     <a href="/#contact">ဆက်သွယ်ရန်</a>
+    {% if not current_path.startswith("/surveys") %}
     <button class="button button--pill" type="button" data-login-open>လော့အင် ဝင်ရန်</button>
+    {% endif %}
   </nav>
 </header>
 
@@ -102,12 +157,13 @@
 
 <footer class="site-footer">
   <div class="container footer-inner">
-    <a class="footer-brand" href="/">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</a>
+    <a class="footer-brand" href="/home">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</a>
     <p>© 2026 သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန။ မူပိုင်ခွင့်အားလုံး လက်ဝယ်ရှိသည်။</p>
     <!-- <a class="back-to-top" href="#home" aria-label="စာမျက်နှာထိပ်သို့ ပြန်သွားရန်">↑</a> -->
   </div>
 </footer>
 
+{% if not current_path.startswith("/surveys") %}
 <!-- Login dialog -->
 <dialog class="login-dialog" id="login-dialog" aria-labelledby="login-title">
   <div class="dialog-body">
@@ -128,6 +184,7 @@
 
   </div>
 </dialog>
+{% endif %}
 
 {% block extra_js %}{% endblock %}
 </body>

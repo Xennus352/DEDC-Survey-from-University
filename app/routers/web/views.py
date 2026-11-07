@@ -14,11 +14,26 @@ templates = Jinja2Templates(
 
 
 @router.get("/", response_class=HTMLResponse)
+@router.get("/home", response_class=HTMLResponse)
 async def index(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html"
     )
+
+
+@router.get("/surveys", response_class=HTMLResponse)
+async def surveys(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="survey/select.html"
+    )
+
+
+@router.get("/surveys/", response_class=HTMLResponse, include_in_schema=False)
+async def retired_surveys_api():
+    """Keep the retired trailing-slash JSON path unavailable."""
+    return HTMLResponse("Not Found", status_code=404)
 
 
 @router.get("/roadmap", response_class=HTMLResponse)

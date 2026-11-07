@@ -56,7 +56,7 @@ button { cursor: pointer; }
 .brand-seals img { width: 42px; height: 42px; object-fit: contain; border-radius: 50%; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.45; gap: 3px; }
 .brand-text strong { color: var(--home-primary-dark); font-size: 1rem; font-weight: 800; }
-.brand-text [lang="en"] { color: #8290a2; font: 700 .61rem/1.4 "DM Sans", sans-serif; letter-spacing: .09em; }
+.brand-text [lang="en"] { color: #5c6c80; font: 700 .61rem/1.4 "DM Sans", sans-serif; letter-spacing: .09em; }
 .desktop-nav { display: flex; align-items: center; gap: clamp(14px, 2.1vw, 30px); }
 .desktop-nav > a, .mobile-nav > a {
   position: relative;

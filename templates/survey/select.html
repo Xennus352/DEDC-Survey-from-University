@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}စစ်တမ်းများ | DEDC Survey Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/surveys.css">
+{% endblock %}
+
+{% block content %}
+<section class="survey-landing" aria-labelledby="survey-landing-title">
+  <span class="survey-landing__orb survey-landing__orb--one" aria-hidden="true"></span>
+  <span class="survey-landing__orb survey-landing__orb--two" aria-hidden="true"></span>
+
+  <div class="container survey-landing__inner section-fade-in">
+    <span class="survey-eyebrow">
+      <span class="survey-eyebrow__dot" aria-hidden="true"></span>
+      DEDC SURVEY PORTAL
+    </span>
+
+    <h1 id="survey-landing-title">စစ်တမ်းဖြေဆိုရန် ကဏ္ဍကို ရွေးချယ်ပါ</h1>
+    <p class="survey-landing__intro">
+      သင့်အဖွဲ့အစည်းနှင့် ကိုက်ညီသော စစ်တမ်းအမျိုးအစားကို ရွေးချယ်ပြီး ဖြေဆိုနိုင်ပါသည်။
+      ရွေးချယ်ထားသည့် ကဏ္ဍအလိုက် သီးခြားစစ်တမ်းစာမျက်နှာသို့ ဆက်လက်သွားပါမည်။
+    </p>
+
+    <div class="survey-choice-grid">
+      <a class="survey-choice-card survey-choice-card--ministry" href="/surveys/ministry">
+        <span class="survey-choice-card__topline">
+          <span class="survey-choice-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="M3 21h18M5 21V8l7-4 7 4v13M9 21v-4h6v4M9 11h.01M15 11h.01M9 14h.01M15 14h.01"/>
+            </svg>
+          </span>
+          <span class="survey-choice-card__kicker">MINISTRY</span>
+        </span>
+
+        <h2>ဝန်ကြီးဌာနအနေဖြင့် ဖြေဆိုရန်</h2>
+        <p>
+          ဝန်ကြီးဌာနနှင့် ဦးစီးဌာနများ၏ လုပ်ငန်းဆောင်ရွက်မှု၊ မူဝါဒနှင့်
+          နည်းပညာဆိုင်ရာ အခြေအနေများအတွက် စစ်တမ်း။
+        </p>
+
+        <span class="survey-choice-card__cta">
+          ဝန်ကြီးဌာန စစ်တမ်းသို့
+          <span aria-hidden="true">→</span>
+        </span>
+      </a>
+
+      <a class="survey-choice-card survey-choice-card--university" href="/surveys/university">
+        <span class="survey-choice-card__topline">
+          <span class="survey-choice-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <path d="m3 9 9-4 9 4-9 4-9-4Z"/>
+              <path d="M7 11v5c0 1.1 2.2 2 5 2s5-.9 5-2v-5M21 9v5"/>
+            </svg>
+          </span>
+          <span class="survey-choice-card__kicker">UNIVERSITY</span>
+        </span>
+
+        <h2>တက္ကသိုလ်အနေဖြင့် ဖြေဆိုရန်</h2>
+        <p>
+          တက္ကသိုလ်များ၏ သင်ကြားရေး၊ သုတေသန၊ ဆန်းသစ်တီထွင်မှုနှင့်
+          ဒီဂျစ်တယ်ကျွမ်းကျင်မှုဆိုင်ရာ အခြေအနေများအတွက် စစ်တမ်း။
+        </p>
+
+        <span class="survey-choice-card__cta">
+          တက္ကသိုလ် စစ်တမ်းသို့
+          <span aria-hidden="true">→</span>
+        </span>
+      </a>
+    </div>
+
+  </div>
+</section>
+
+<section class="container survey-steps-wrap section-fade-in" aria-labelledby="survey-steps-title">
+  <div class="survey-steps">
+    <div class="survey-steps__intro">
+      <span class="section-label">ဖြေဆိုပုံ အဆင့်များ</span>
+      <h2 id="survey-steps-title">အဆင့်သုံးဆင့်ဖြင့် စစ်တမ်းကို ဖြေဆိုနိုင်ပါသည်</h2>
+    </div>
+
+    <ol class="survey-step-list">
+      <li>
+        <span class="survey-step-list__number" aria-hidden="true">၁</span>
+        <span>
+          <strong>ကဏ္ဍရွေးချယ်ပါ</strong>
+          <small>ဝန်ကြီးဌာန သို့မဟုတ် တက္ကသိုလ်ကို ရွေးချယ်ပါ။</small>
+        </span>
+      </li>
+      <li>
+        <span class="survey-step-list__number" aria-hidden="true">၂</span>
+        <span>
+          <strong>မေးခွန်းများကို ဖြေဆိုပါ</strong>
+          <small>သင့်အဖွဲ့အစည်းနှင့် သက်ဆိုင်သော မေးခွန်းများကို ဖြေဆိုပါ။</small>
+        </span>
+      </li>
+      <li>
+        <span class="survey-step-list__number" aria-hidden="true">၃</span>
+        <span>
+          <strong>အဖြေများ သိမ်းဆည်းပါ</strong>
+          <small>ဖြေဆိုပြီးပါက အဖြေများကို သိမ်းဆည်းရန် အတည်ပြုပါ။</small>
+        </span>
+      </li>
+    </ol>
+  </div>
+</section>
+{% endblock %}

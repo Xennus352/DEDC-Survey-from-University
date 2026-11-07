@@ -7,6 +7,10 @@ class Settings(BaseSettings):
     ADMIN_ROLE_NAME: str = "Admin"
     PORTAL_COOKIE_SECURE: bool = False
     PRIVATE_STORAGE_DIR: str = "private/dedc"
+    DATABASE_CONNECT_TIMEOUT: int = 5
+    DATABASE_POOL_TIMEOUT: int = 5
+    DATABASE_READ_TIMEOUT: int = 5
+    DATABASE_WRITE_TIMEOUT: int = 5
 
     class Config:
         env_file = ".env"

@@ -1,4 +1,4 @@
-/* Pillars dropdown in the primary navigation. */
+/* Surveys and pillars dropdowns in the primary navigation. */
 .nav-dropdown {
   position: relative;
 }
@@ -62,7 +62,8 @@
   position: absolute;
   z-index: 60;
   top: calc(100% + .55rem);
-  left: 50%;
+  right: 0;
+  left: auto;
   width: min(21rem, calc(100vw - 2rem));
   padding: .8rem;
   border: 1px solid var(--home-border);
@@ -72,7 +73,7 @@
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
-  transform: translate(-50%, 8px);
+  transform: translateY(8px);
   transition: opacity .18s ease, transform .18s ease, visibility .18s;
 }
 
@@ -91,13 +92,13 @@
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
-  transform: translate(-50%, 0);
+  transform: translateY(0);
 }
 
 .nav-dropdown__eyebrow {
   margin: 0 0 .45rem;
   padding: .25rem .45rem 0;
-  color: #8290a2;
+  color: #5c6c80;
   font: 800 .62rem/1.4 "DM Sans", sans-serif;
   letter-spacing: .14em;
   text-transform: uppercase;
@@ -143,6 +144,64 @@
   color: var(--home-primary);
   font-size: .62rem;
   font-weight: 800;
+}
+
+.nav-dropdown__icon {
+  flex: 0 0 1.9rem;
+  display: inline-grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 10px;
+  color: var(--home-primary);
+  background: #eaf3ff;
+}
+
+.nav-dropdown__icon svg {
+  width: 1.05rem;
+  height: 1.05rem;
+}
+
+.nav-dropdown__label {
+  display: flex;
+  flex-direction: column;
+  gap: .05rem;
+}
+
+.nav-dropdown__label small {
+  color: #5c6c80;
+  font: 600 .62rem/1.45 "DM Sans", sans-serif;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.nav-dropdown__items a:hover .nav-dropdown__label small,
+.nav-dropdown__items a:focus-visible .nav-dropdown__label small {
+  color: #5c85b3;
+}
+
+/* Mobile navigation keeps the two survey audiences reachable without hover. */
+.mobile-nav__sub {
+  display: grid;
+  gap: .1rem;
+  margin: -.15rem 0 .45rem .9rem;
+  padding-left: .8rem;
+  border-left: 1px solid #dbe7f4;
+}
+
+.mobile-nav__sub a {
+  display: block;
+  padding: .5rem .7rem;
+  border-radius: 9px;
+  color: #68788d;
+  font-size: .82rem;
+  font-weight: 500;
+}
+
+.mobile-nav__sub a:hover,
+.mobile-nav__sub a:focus-visible {
+  color: var(--home-primary);
+  background: #f0f7ff;
 }
 
 .nav-dropdown__all {

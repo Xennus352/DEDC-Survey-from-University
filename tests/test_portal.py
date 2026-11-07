@@ -473,7 +473,10 @@ class PortalTests(PortalFixture):
         self.assertEqual(status, 200)
         self.assertIn('id="login-dialog"', body)
         self.assertIn('href="/roadmap"', body)
-        self.assertIn('href="/#home" aria-current="page"', body)
+        self.assertIn('href="/home" aria-current="page"', body)
+        self.assertIn('href="/surveys"', body)
+        self.assertIn('href="/surveys/ministry"', body)
+        self.assertIn('href="/surveys/university"', body)
         self.assertIn('href="/#contact"', body)
         self.assertIn('class="nav-dropdown"', body)
         self.assertIn('href="/roadmap#pillar-2"', body)
@@ -483,6 +486,29 @@ class PortalTests(PortalFixture):
         status, _, _ = await self.request("/static/css/pages/portal.css")
         self.assertEqual(status, 200)
 
+        status, _, body = await self.request("/home")
+        self.assertEqual(status, 200)
+        self.assertIn('href="/home" aria-current="page"', body)
+        self.assertIn('id="login-dialog"', body)
+
+    async def test_survey_selection_page_offers_both_audiences(self):
+        status, _, body = await self.request("/surveys")
+        self.assertEqual(status, 200)
+        self.assertIn("စစ်တမ်းဖြေဆိုရန် ကဏ္ဍကို ရွေးချယ်ပါ", body)
+        self.assertIn('href="/surveys/ministry"', body)
+        self.assertIn('href="/surveys/university"', body)
+        self.assertIn('href="/static/css/pages/surveys.css"', body)
+        self.assertRegex(body, r'href="/surveys"[^>]*aria-current="page"')
+        self.assertNotIn('href="/survey/login"', body)
+        self.assertNotIn('id="login-dialog"', body)
+        self.assertNotIn('data-login-open', body)
+        for path in (
+            "/static/css/pages/surveys.css",
+            "/static/css/components/nav-dropdown.css",
+        ):
+            status, _, _ = await self.request(path)
+            self.assertEqual(status, 200, path)
+
     async def test_roadmap_page_serves_separate_assets(self):
         status, _, body = await self.request("/roadmap")
         self.assertEqual(status, 200)
@@ -490,7 +516,7 @@ class PortalTests(PortalFixture):
         self.assertIn('href="/static/css/pages/roadmap.css"', body)
         self.assertIn('src="/static/js/roadmap.js"', body)
         self.assertIn('href="/roadmap" aria-current="page"', body)
-        self.assertNotIn('href="/#home" aria-current="page"', body)
+        self.assertNotIn('href="/home" aria-current="page"', body)
         self.assertIn('href="/#contact"', body)
         for path in (
             "/static/css/pages/roadmap.css",

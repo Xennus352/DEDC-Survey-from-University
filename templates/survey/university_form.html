@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+
+{% block title %}{{ year.label }} တက္ကသိုလ် စစ်တမ်း | DEDC Survey Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/public-survey.css">
+{% endblock %}
+
+{% block content %}
+<section class="uni-page uni-page--form">
+  <div class="container">
+    <nav class="uni-breadcrumb" aria-label="လမ်းညွှန်">
+      <a href="/surveys">စစ်တမ်းများ</a>
+      <span aria-hidden="true">/</span>
+      <a href="/surveys/university">တက္ကသိုလ်</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">{{ year.label }}</span>
+    </nav>
+
+    <header class="uni-hero uni-hero--form section-fade-in">
+      <div>
+        <span class="uni-eyebrow">
+          <span class="uni-eyebrow__dot" aria-hidden="true"></span>
+          UNIVERSITY SURVEY · {{ year.label }}
+        </span>
+        <h1>တက္ကသိုလ် စစ်တမ်း</h1>
+        <p>
+          တက္ကသိုလ်ကို ရွေးချယ်ပြီး မေးခွန်းအုပ်စုများကို ဖြေဆိုပါ။
+          မေးခွန်းတစ်ခုလျှင် ရှိ/မရှိ၊ အရေအတွက်နှင့် အကြောင်းအရာ သုံးခုကို ဖြည့်စွက်ရန် လိုအပ်ပါသည်။
+        </p>
+      </div>
+      <a class="uni-button uni-button--ghost" href="/surveys/university">ခုနှစ် ပြန်ရွေးရန်</a>
+    </header>
+
+    {% if submitted_status %}
+    <div class="uni-alert uni-alert--success" role="status">
+      <span class="uni-alert__icon" aria-hidden="true">✓</span>
+      <p>
+        {% if submitted_status == "saved" %}
+          အဖြေများကို အောင်မြင်စွာ သိမ်းဆည်းပြီးပါပြီ။
+        {% elif submitted_status == "partial" %}
+          အဖြေအသစ် {{ saved }} ခုကို သိမ်းဆည်းပြီး၊ ပေးပို့ပြီးသား {{ skipped }} ခုကို ကျော်လိုက်ပါသည်။
+        {% else %}
+          ဤတက္ကသိုလ်အတွက် ဤမေးခွန်းများကို ပေးပို့ပြီးဖြစ်ပါသည်။ ထပ်မံပေးပို့ရန် မလိုအပ်ပါ။
+        {% endif %}
+      </p>
+    </div>
+    {% endif %}
+
+    <noscript>
+      <div class="uni-alert uni-alert--warning" role="alert">
+        <span class="uni-alert__icon" aria-hidden="true">!</span>
+        <p>ဤစာမျက်နှာကို အပြည့်အဝအသုံးပြုရန် ဘရောက်ဇာတွင် JavaScript ကို ဖွင့်ထားရန် လိုအပ်ပါသည်။</p>
+      </div>
+    </noscript>
+
+    <div class="uni-survey-layout">
+      <aside class="uni-progress" aria-label="ဖြေဆိုမှု အခြေအနေ">
+        <div class="uni-progress__card">
+          <div class="uni-progress__head">
+            <span>ဖြေဆိုမှု အခြေအနေ</span>
+            <strong><span data-progress-count>0</span> / {{ question_count }}</strong>
+          </div>
+          <div class="uni-progress__track" aria-hidden="true">
+            <span class="uni-progress__bar" data-progress-bar></span>
+          </div>
+          <p class="uni-progress__label" data-progress-label>မေးခွန်းများကို စတင်ဖြေဆိုပါ။</p>
+
+          <div class="uni-progress__actions">
+            <button type="button" class="uni-mini-button uni-mini-button--open is-current" data-expand-all>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                <path d="M8 3v10M3 8h10"/>
+              </svg>
+              <span>အားလုံးဖွင့်</span>
+            </button>
+            <button type="button" class="uni-mini-button uni-mini-button--close" data-collapse-all>
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                <path d="M3 8h10"/>
+              </svg>
+              <span>အားလုံးပိတ်</span>
+            </button>
+          </div>
+
+          <nav class="uni-group-nav" aria-label="မေးခွန်းအုပ်စုများ">
+            {% for group in groups %}
+            <a href="#{{ group.anchor }}" data-group-link="{{ group.key }}">
+              <span>{{ group.title }}</span>
+              <small><span data-group-count="{{ group.key }}">0</span> / {{ group.questions|length }}</small>
+            </a>
+            {% endfor %}
+          </nav>
+        </div>
+      </aside>
+
+      <form class="uni-form" method="post" action="/surveys/university/{{ year.yID }}" data-public-survey novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <section class="uni-identity">
+          <div class="uni-identity__head">
+            <span class="uni-identity__step">၁</span>
+            <div>
+              <h2>တက္ကသိုလ် ရွေးချယ်ပါ</h2>
+              <p>စာရင်းထဲမှ သင့်တက္ကသိုလ်ကို အမည်ရိုက်ထည့်၍ ရှာနိုင်ပါသည်။</p>
+            </div>
+          </div>
+
+          <div class="uni-combobox{% if identity_error %} is-invalid{% endif %}" data-combobox data-combobox-label="တက္ကသိုလ်">
+            <label for="university-search">တက္ကသိုလ်</label>
+            <input type="hidden" name="uniId" value="{{ selected_university.uniId if selected_university else '' }}" data-combobox-value>
+            <div class="uni-combobox__control">
+              <input
+                id="university-search"
+                type="text"
+                value="{{ selected_university.uniName if selected_university else '' }}"
+                placeholder="တက္ကသိုလ်ရွေးချယ်ပါ..."
+                autocomplete="off"
+                required
+                role="combobox"
+                aria-expanded="false"
+                aria-controls="university-options"
+                aria-autocomplete="list"
+                aria-required="true"
+                aria-describedby="university-search-error"
+                {% if identity_error %}aria-invalid="true"{% endif %}
+                data-combobox-input
+              >
+              <button type="button" class="uni-combobox__toggle" aria-label="တက္ကသိုလ်စာရင်း ဖွင့်ရန်" data-combobox-toggle>
+                <svg viewBox="0 0 12 8" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="m1 1.5 5 5 5-5"/>
+                </svg>
+              </button>
+            </div>
+            <ul id="university-options" class="uni-combobox__menu" role="listbox" data-combobox-menu hidden>
+              {% for school in universities %}
+              <li
+                id="university-option-{{ school.uniId }}"
+                role="option"
+                data-value="{{ school.uniId }}"
+                data-label="{{ school.uniName }}"
+                aria-selected="false"
+              >
+                <span>{{ school.uniName }}</span>
+                <small>{{ school.uniType }}</small>
+              </li>
+              {% endfor %}
+            </ul>
+            <p class="uni-combobox__empty" data-combobox-empty hidden>ရှာဖွေမှုနှင့် ကိုက်ညီသော တက္ကသိုလ် မတွေ့ပါ။</p>
+            <p class="uni-field-error" id="university-search-error" data-combobox-error role="alert" {% if not identity_error %}hidden{% endif %}>{% if identity_error %}တက္ကသိုလ်ကို စာရင်းမှ ရွေးချယ်ပါ။{% endif %}</p>
+          </div>
+        </section>
+
+        {% if errors %}
+        <div class="uni-alert uni-alert--error" role="alert">
+          <span class="uni-alert__icon" aria-hidden="true">!</span>
+          <div>
+            <p>အောက်ပါအချက်များကို ပြန်လည်စစ်ဆေးပါ။</p>
+            <ul>
+              {% for error in errors[:8] %}
+              <li>{{ error }}</li>
+              {% endfor %}
+            </ul>
+            {% if errors|length > 8 %}
+            <p>နောက်ထပ် အမှား {{ errors|length - 8 }} ခု ရှိပါသည်။</p>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div class="uni-questions-head">
+          <div>
+            <span class="uni-identity__step">၂</span>
+            <h2>မေးခွန်းများ ဖြေဆိုပါ</h2>
+          </div>
+          <span class="uni-questions-head__count">{{ question_count }} ခု</span>
+        </div>
+
+        {% for group in groups %}
+        <details class="uni-group" id="{{ group.anchor }}" open data-survey-group="{{ group.key }}">
+          <summary>
+            <span class="uni-group__title">
+              <span class="uni-group__marker" aria-hidden="true"></span>
+              {{ group.title }}
+            </span>
+            <span class="uni-group__meta">
+              <span data-group-count="{{ group.key }}">0</span> / {{ group.questions|length }}
+            </span>
+          </summary>
+
+          <div class="uni-group__body">
+            {% if group.description %}
+            <p class="uni-group__description">{{ group.description }}</p>
+            {% endif %}
+
+            {% for question in group.questions %}
+            {% set value = values.get(question.uQId, {}) %}
+            {% set question_errors = errors_by_question.get(question.uQId, []) %}
+            <article
+              class="uni-question{% if question_errors %} uni-question--error{% endif %}"
+              data-survey-question
+              data-question-id="{{ question.uQId }}"
+            >
+              <div class="uni-question__head">
+                <span class="uni-question__number">{{ question.number }}</span>
+                <div class="uni-question__copy">
+                  <h3>{{ question.uQDetail }}</h3>
+                  {% if question_errors %}
+                  <ul class="uni-question__errors">
+                    {% for error in question_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                  </ul>
+                  {% endif %}
+                </div>
+              </div>
+
+              <fieldset class="uni-question__answer" data-answer-fieldset aria-describedby="radio-error-{{ question.uQId }}">
+                <legend>ရှိ / မရှိ</legend>
+                <label class="uni-radio">
+                  <input
+                    type="radio"
+                    name="has_{{ question.uQId }}"
+                    value="1"
+                    required
+                    {% if value.get("has") == "1" %}checked{% endif %}
+                  >
+                  <span>ရှိ</span>
+                </label>
+                <label class="uni-radio uni-radio--no">
+                  <input
+                    type="radio"
+                    name="has_{{ question.uQId }}"
+                    value="0"
+                    {% if value.get("has") == "0" %}checked{% endif %}
+                  >
+                  <span>မရှိ</span>
+                </label>
+              </fieldset>
+              <p class="uni-field-error" id="radio-error-{{ question.uQId }}" data-radio-error role="alert" hidden></p>
+
+              <div class="uni-question__details" data-question-details {% if value.get("has") != "1" %}hidden{% endif %}>
+                <label class="uni-field">
+                  <span>အရေအတွက်</span>
+                  <input
+                    type="number"
+                    name="count_{{ question.uQId }}"
+                    min="0"
+                    max="2147483647"
+                    step="1"
+                    inputmode="numeric"
+                    value="{{ value.get('count', '') }}"
+                    required
+                    aria-describedby="count-error-{{ question.uQId }}"
+                    {% if value.get("has") != "1" %}disabled{% endif %}
+                  >
+                  <small class="uni-field-error" id="count-error-{{ question.uQId }}" data-count-error role="alert" hidden></small>
+                </label>
+                <label class="uni-field">
+                  <span>အကြောင်းအရာ</span>
+                  <textarea
+                    name="description_{{ question.uQId }}"
+                    rows="2"
+                    maxlength="4000"
+                    required
+                    aria-describedby="description-error-{{ question.uQId }}"
+                    {% if value.get("has") != "1" %}disabled{% endif %}
+                  >{{ value.get("description", "") }}</textarea>
+                  <small class="uni-field-error" id="description-error-{{ question.uQId }}" data-description-error role="alert" hidden></small>
+                </label>
+              </div>
+            </article>
+            {% endfor %}
+          </div>
+        </details>
+        {% endfor %}
+
+        <div class="uni-submit-bar">
+          <div>
+            <strong data-submit-progress>0 / {{ question_count }} ဖြေဆိုပြီး</strong>
+            <span>အဖြေအားလုံး ဖြည့်ပြီးပါက အောက်တွင် ပေးပို့ပါ။</span>
+          </div>
+          <button class="uni-button uni-button--primary" type="submit">
+            အဖြေများ ပေးပို့ရန်
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script defer src="/static/js/public-survey.js"></script>
+{% endblock %}

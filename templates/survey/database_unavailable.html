@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}စစ်တမ်း ဒေတာဘေ့စ် မရနိုင်ပါ | DEDC Survey Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/public-survey.css">
+{% endblock %}
+
+{% block content %}
+<section class="uni-page">
+  <div class="container">
+    <nav class="uni-breadcrumb" aria-label="လမ်းညွှန်">
+      <a href="/surveys">စစ်တမ်းများ</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">ဒေတာဘေ့စ် မရနိုင်ပါ</span>
+    </nav>
+
+    <div class="uni-empty section-fade-in" role="alert">
+      <span class="uni-empty__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <ellipse cx="12" cy="5" rx="8" ry="3"/>
+          <path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/>
+          <path d="M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/>
+          <path d="m4 4 16 16"/>
+        </svg>
+      </span>
+      <h1>စစ်တမ်း ဒေတာဘေ့စ်နှင့် ချိတ်ဆက်၍ မရပါ</h1>
+      <p>
+        MySQL/MariaDB ဝန်ဆောင်မှု ပိတ်ထားခြင်း သို့မဟုတ် ချိတ်ဆက်မှု
+        အချိန်ကျော်လွန်သွားခြင်း ဖြစ်နိုင်ပါသည်။
+        ဒေတာဘေ့စ် ဝန်ဆောင်မှုကို စစ်ဆေးပြီးနောက် ထပ်မံကြိုးစားပါ။
+      </p>
+      <p class="uni-empty__note">
+        ဒေတာဘေ့စ် အခြေအနေကို စစ်ဆေးရန် server administrator ကို ဆက်သွယ်ပါ။
+      </p>
+      <div class="uni-empty__actions">
+        <a class="uni-button uni-button--primary" href="{{ request.url.path }}">
+          ထပ်မံကြိုးစားရန်
+        </a>
+        <a class="uni-button uni-button--ghost" href="/surveys">
+          စစ်တမ်း ရွေးချယ်မှုသို့ ပြန်သွားရန်
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

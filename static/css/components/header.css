@@ -15,4 +15,7 @@ nav a[aria-current='page'] { background: var(--color-secondary); color: var(--co
 .desktop-nav .button { margin-left: .75rem; }
 .mobile-nav { display: flex; flex-direction: column; gap: .25rem; padding-block: 1rem; border-top: 1px solid var(--color-border); background: #fff; }
 .mobile-nav .button { margin-top: .75rem; }
-@media (min-width: 48rem) { .desktop-nav { display: flex; } .menu-toggle, .mobile-nav { display: none; } }
+@media (min-width: 48rem) {
+  .desktop-nav { display: flex; margin-left: auto; justify-content: flex-end; }
+  .header-inner .menu-toggle, .mobile-nav { display: none; }
+}

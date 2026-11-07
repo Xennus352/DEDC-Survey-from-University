@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}ဝန်ကြီးဌာန စစ်တမ်း | DEDC Survey Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/pages/public-survey.css">
+{% endblock %}
+
+{% block content %}
+<section class="uni-page">
+  <div class="container">
+    <nav class="uni-breadcrumb" aria-label="လမ်းညွှန်">
+      <a href="/surveys">စစ်တမ်းများ</a>
+      <span aria-hidden="true">/</span>
+      <span aria-current="page">ဝန်ကြီးဌာန</span>
+    </nav>
+
+    <header class="uni-hero uni-hero--years section-fade-in">
+      <span class="uni-eyebrow">
+        <span class="uni-eyebrow__dot" aria-hidden="true"></span>
+        MINISTRY SURVEY
+      </span>
+      <h1>ဝန်ကြီးဌာန စစ်တမ်း ဖြေဆိုရန် ခုနှစ်ကို ရွေးချယ်ပါ</h1>
+      <p>
+        ဖြေဆိုနိုင်သော ခုနှစ်များကို အောက်တွင် ဖော်ပြထားပါသည်။
+        ခုနှစ်တစ်ခုကို ရွေးချယ်ပြီးနောက် ဝန်ကြီးဌာနကို ရွေးချယ်၍ စစ်တမ်းကို ဖြေဆိုနိုင်ပါသည်။
+      </p>
+    </header>
+
+    {% if unavailable %}
+    <div class="uni-alert uni-alert--warning" role="alert">
+      <span class="uni-alert__icon" aria-hidden="true">!</span>
+      <p>ရွေးချယ်ထားသော ခုနှစ်အတွက် ဖြေဆိုနိုင်သော စစ်တမ်း မရှိတော့ပါ။ အောက်မှ ခုနှစ်တစ်ခုကို ထပ်မံရွေးချယ်ပါ။</p>
+    </div>
+    {% endif %}
+
+    {% if years %}
+    <div class="uni-year-grid section-fade-in">
+      {% for year in years %}
+      <a class="uni-year-card" href="/surveys/ministry/{{ year.yID }}" aria-label="{{ year.label }} စစ်တမ်းကို ဖြေဆိုရန်">
+        <span class="uni-year-card__top">
+          <span class="uni-year-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="3" y="5" width="18" height="16" rx="2"/>
+              <path d="M8 3v4M16 3v4M3 10h18M8 14h2M14 14h2M8 17h2"/>
+            </svg>
+          </span>
+          <span class="uni-year-card__status">ဖြေဆိုနိုင်သည်</span>
+        </span>
+        <strong class="uni-year-card__range" aria-hidden="true">{{ year.label }}</strong>
+        <span class="uni-year-card__count">မေးခွန်း {{ year.questionCount }} ခု</span>
+        <span class="uni-year-card__cta">
+          စစ်တမ်း ဖြေဆိုရန်
+          <span aria-hidden="true">→</span>
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="uni-empty section-fade-in">
+      <span class="uni-empty__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4H20v16H6.5A2.5 2.5 0 0 0 4 22V6.5Z"/>
+          <path d="M8 8h8M8 12h6"/>
+        </svg>
+      </span>
+      <h2>ဖြေဆိုနိုင်သော စစ်တမ်း မရှိသေးပါ</h2>
+      <p>
+        လက်ရှိတွင် ဖွင့်လှစ်ထားသော ဝန်ကြီးဌာန စစ်တမ်း မရှိပါ။
+        စစ်တမ်းအသစ်များ ဖွင့်လှစ်ပြီးပါက ဤနေရာတွင် ပေါ်လာပါမည်။
+      </p>
+      <a class="uni-button uni-button--ghost" href="/surveys">စစ်တမ်း ရွေးချယ်မှုသို့ ပြန်သွားရန်</a>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
