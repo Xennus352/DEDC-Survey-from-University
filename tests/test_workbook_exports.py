@@ -29,12 +29,20 @@ SOURCE = Path(
     SOURCE.exists(), "The original workbook is needed for exact-format verification."
 )
 class WorkbookExportTests(unittest.TestCase):
+    persistent_metadata = persistent_schema.metadata
+    metadata_storage = 'sql'
+
     def setUp(self):
         self.content = SOURCE.read_bytes()
         self.engine = create_engine("sqlite://")
-        persistent_schema.metadata.create_all(self.engine)
+        self.persistent_metadata.create_all(self.engine)
         self.private_folder = tempfile.TemporaryDirectory()
-        self.db = CompactSession(self.engine, self.private_folder.name)
+        if self.metadata_storage == 'private':
+            from app.storage.codec import PrivateFiles
+            from app.storage.metadata_migration import migrate
+            with self.engine.connect() as c:
+                migrate(c, PrivateFiles(self.private_folder.name), self.engine)
+        self.db = CompactSession(self.engine, self.private_folder.name, self.metadata_storage)
         self.db.add(UserRole(id=1, name="Admin"))
         self.db.flush()
         self.user = User(username="export-admin", role_id=1, password_hash="test-only")

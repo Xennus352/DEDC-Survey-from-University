@@ -677,7 +677,7 @@ async function _loadPreview(formId) {
       form.versions.find((v) => v.id == params.get("version")) ||
       form.versions.at(-1);
   describe(
-    `Version ${version.number} · The same dynamic renderer used by the survey page.`,
+    `Version ${version.number} · Check the survey on desktop, tablet and mobile before sharing.`,
   );
   actions(
     button(
@@ -686,7 +686,7 @@ async function _loadPreview(formId) {
     ),
   );
   setContent(
-    `<div class="preview-controls"><span class="badge">${e(version.status)}</span><button class="button small" data-width="900">Desktop</button><button class="button small" data-width="768">Tablet</button><button class="button small" data-width="390">Mobile</button></div><div id="preview-frame" class="preview-frame"></div>`,
+    `<div class="preview-controls" role="group" aria-label="Preview device"><span class="badge">${e(version.status)}</span><button class="button small" data-width="900" aria-pressed="true">Desktop</button><button class="button small" data-width="768" aria-pressed="false">Tablet</button><button class="button small" data-width="390" aria-pressed="false">Mobile</button></div><div id="preview-frame" class="preview-frame"></div>`,
   );
   const paint = () =>
     renderSurvey(document.querySelector("#preview-frame"), version, {
@@ -715,8 +715,10 @@ async function _loadPreview(formId) {
     .querySelectorAll("[data-width]")
     .forEach(
       (b) =>
-        (b.onclick = () =>
-          (document.querySelector("#preview-frame").style.maxWidth =
-            b.dataset.width + "px")),
+        (b.onclick = () => {
+          document.querySelector("#preview-frame").style.maxWidth = b.dataset.width + "px";
+          document.querySelectorAll("[data-width]").forEach((control) =>
+            control.setAttribute("aria-pressed", String(control === b)));
+        }),
     );
 }

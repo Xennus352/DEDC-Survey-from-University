@@ -27,6 +27,8 @@ from app.routers.web import portal
 
 
 class PortalFixture(unittest.IsolatedAsyncioTestCase):
+    persistent_metadata = schema.metadata
+    metadata_storage = 'sql'
     @classmethod
     def setUpClass(cls):
         cls.password = "a-test-password-123"
@@ -39,9 +41,14 @@ class PortalFixture(unittest.IsolatedAsyncioTestCase):
             poolclass=StaticPool,
         )
         self.private_folder = tempfile.TemporaryDirectory()
-        self.sessions = lambda: CompactSession(self.engine, self.private_folder.name)
+        self.sessions = lambda: CompactSession(self.engine, self.private_folder.name, self.metadata_storage)
         self.cookies = SimpleCookie()
-        schema.metadata.create_all(self.engine)
+        self.persistent_metadata.create_all(self.engine)
+        if self.metadata_storage == 'private':
+            from app.storage.codec import PrivateFiles
+            from app.storage.metadata_migration import migrate
+            with self.engine.connect() as c:
+                migrate(c, PrivateFiles(self.private_folder.name), self.engine)
         with self.sessions() as db:
             db.add_all(
                 [UserRole(id=1, name="Admin"), UserRole(id=2, name="University")]
@@ -483,7 +490,7 @@ class PortalTests(PortalFixture):
         self.assertIn('class="nav-dropdown__all"', body)
         self.assertNotIn("၂၀၃၀ ခုနှစ်", body)
         self.assertNotIn('class="nav-dropdown__year"', body)
-        status, _, _ = await self.request("/static/css/pages/portal.css")
+        status, _, _ = await self.request("/static/css/admin/workspace.css")
         self.assertEqual(status, 200)
 
         status, _, body = await self.request("/home")

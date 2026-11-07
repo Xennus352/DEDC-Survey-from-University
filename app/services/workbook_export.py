@@ -4,11 +4,11 @@ from calendar import monthrange
 from copy import copy
 from datetime import date
 from io import BytesIO
-import json
 import re
 from fastapi import HTTPException
 from openpyxl import load_workbook
-from app.models.forms import FormVersion, Submission, WorkbookImport, WorkbookTemplate
+from app.models.forms import AnswerFile, FormVersion, Submission, WorkbookImport, WorkbookTemplate
+from app.services.presentation import answer_text
 from app.services.forms import get_version
 
 MYANMAR_DIGITS = str.maketrans("0123456789", "၀၁၂၃၄၅၆၇၈၉")
@@ -115,7 +115,7 @@ def set_text(cell, value):
         cell.data_type = "s"
 
 
-def answer_columns(group, values):
+def answer_columns(group, values, db=None):
     columns = {3: None, 4: None, 5: None, 6: None}
     for q in group["fields"]:
         value = values.get(q.id)
@@ -130,11 +130,8 @@ def answer_columns(group, values):
         elif component == "quantity" or q.kind in {"number", "decimal", "calculated"}:
             columns[5] = value
         else:
-            columns[6] = (
-                json.dumps(value, ensure_ascii=False)
-                if isinstance(value, (dict, list))
-                else str(value)
-            )
+            attachment = db.get(AnswerFile, value['file_id']) if db is not None and q.kind in {'file', 'image'} and isinstance(value, dict) and value.get('file_id') else None
+            columns[6] = answer_text(q, value, attachment.filename if attachment else None)
     return columns
 
 
@@ -241,7 +238,7 @@ def export_form(db, form_id, version_id=None, include_answers=False):
                 set_text(sheet.cell(row, 2), wording(group))
                 if not include_answers or submission:
                     columns = (
-                        answer_columns(group, values)
+                        answer_columns(group, values, db)
                         if submission
                         else {column: None for column in range(3, 7)}
                     )
@@ -281,7 +278,7 @@ def export_form(db, form_id, version_id=None, include_answers=False):
                 sheet.row_dimensions[row].height = question_height
                 sheet.cell(row, 1).value = number
                 set_text(sheet.cell(row, 2), wording(group))
-                columns = answer_columns(group, values) if submission else {}
+                columns = answer_columns(group, values, db) if submission else {}
                 if include_answers and not submission:
                     source_number = group["fields"][0].config.get("source_number")
                     answer = original_answers.get(source_number)

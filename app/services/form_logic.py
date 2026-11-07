@@ -201,6 +201,13 @@ def validate_answers(version, answers):
             if value is None or value == "" or value == []:
                 if q.required:
                     errors[q.key] = "This answer is required."
+                elif q.key in answers and (
+                    (value == "" and q.kind in {"short_text", "long_text"})
+                    or (value == [] and q.kind in MULTIPLE | {"repeating_group"})
+                ):
+                    # Preserve explicit empty responses without inventing an
+                    # answer for omitted fields or bypassing required checks.
+                    clean[q.key] = value
                 continue
             try:
                 if q.kind in {"number", "decimal", "calculated"}:

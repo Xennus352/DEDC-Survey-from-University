@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from typing import Literal
 
 
 class Settings(BaseSettings):
@@ -7,10 +8,14 @@ class Settings(BaseSettings):
     ADMIN_ROLE_NAME: str = "Admin"
     PORTAL_COOKIE_SECURE: bool = False
     PRIVATE_STORAGE_DIR: str = "private/dedc"
+<<<<<<< HEAD
     DATABASE_CONNECT_TIMEOUT: int = 5
     DATABASE_POOL_TIMEOUT: int = 5
     DATABASE_READ_TIMEOUT: int = 5
     DATABASE_WRITE_TIMEOUT: int = 5
+=======
+    METADATA_STORAGE: Literal['sql', 'private'] = 'sql'
+>>>>>>> 9099cff8e88865c04a6bdc454bb7ad8d8bdffd9c
 
     class Config:
         env_file = ".env"

@@ -1601,6 +1601,22 @@ dialog[data-variant="organization"] { width: min(480px, calc(100vw - 32px)); }
 .section-heading .badge { background: transparent; padding-left: 0; }
 .import-drop { background: var(--canvas); border-radius: 8px; border-style: dashed; box-shadow: none; }
 .import-drop h2 { font-size: 16px; font-weight: 500; }
+.import-drop { transition: background-color var(--duration), border-color var(--duration); }
+.import-drop:focus-within { border-color: var(--primary); }
+.import-drop.is-dragging { border-color: var(--primary); background: var(--primary-soft); outline: 2px solid var(--primary); outline-offset: 3px; }
+.import-drop.has-error { border-color: var(--danger); }
+.import-upload-icon { display: block; width: 28px; height: 28px; margin: 0 auto 16px; color: var(--muted); }
+.import-drop.is-dragging .import-upload-icon { color: var(--primary); }
+.import-drop input[hidden], .import-file[hidden] { display: none; }
+.import-file { display: flex; align-items: center; gap: 16px; max-width: 480px; margin: 20px auto 0; padding: 14px 16px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); text-align: left; }
+.import-file > div { flex: 1; min-width: 0; }
+.import-file strong { display: block; font-size: 13px; font-weight: 600; overflow-wrap: anywhere; }
+.import-file span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
+.import-file .button { flex-shrink: 0; }
+.import-drop .import-status { margin: 12px 0 0; font-size: 12px; }
+.import-drop .import-status:empty { display: none; }
+.import-drop.has-error .import-status { color: var(--danger); }
+@media (prefers-reduced-motion: reduce) { .import-drop { transition: none; } }
 #import-preview { margin-top: 24px; }
 .workspace-footer { margin-top: 32px; padding-top: 16px; border-top: 0; font-size: 11px; }
 @media (max-width: 1080px) {

@@ -17,11 +17,11 @@
     <script>
       try { document.documentElement.dataset.theme = localStorage.getItem("dedc-theme") || "light"; } catch {}
     </script>
-    <link rel="stylesheet" href="/static/css/admin/workspace.css" />
+    <link rel="stylesheet" href="/static/css/admin/dashboard.css?v=20261106" />
     <script defer src="/static/js/admin-session.js"></script>
     <script
       type="module"
-      src="/static/js/admin/workspace.js?v=20261105-minimal"
+      src="/static/js/admin/workspace.js?v=20261106-redesign"
     ></script>
   </head>
   <body
@@ -91,7 +91,7 @@
           >DEDC<span>Survey administration</span></span
         ></a
       >
-      <div class="workspace-label">Workspace</div>
+      <div class="workspace-label">Survey workspace</div>
       <nav aria-label="Admin navigation">
         {% for key,label in [('overview','Overview'),('forms','Survey
         forms'),('departments','Departments'),('reports','Reports &
@@ -150,6 +150,7 @@
         </div>
       </div>
     </aside>
+    <button class="nav-backdrop" type="button" data-close-navigation aria-label="Close navigation" tabindex="-1"></button>
     <div class="workspace">
       <header class="topbar">
         <button
@@ -167,6 +168,7 @@
           ><strong>{{ page_title }}</strong>
         </div>
         <div class="topbar-actions">
+          <button class="icon-button mobile-search" type="button" data-mobile-search aria-label="Search workspace">{{ symbol('search') }}</button>
           <form class="search" action="/dashboard/forms">
             <label class="sr-only" for="global-search">Search workspace</label
             >{{ symbol('search') }}<input

@@ -1,15 +1,14 @@
-"""Persist the existing feature model in exactly the supplied eight SQL tables.
+"""Persist the feature model using an existing DEDC database layout.
 
 The ORM's relational tables are disposable, per-session SQLite query projections.
-Only the eight tables in schema.py exist in DATABASE_URL. This lets validation,
+The eight-table layout and supplied ten-table layout are supported. This lets validation,
 report filters, immutable versions and workbook exports share the same tested
 query code. No SQLite database is written to disk.
 
 Question and answer rows are materialized in their native audience tables. Form
-metadata uses versioned JSON envelopes in description; negative question IDs are
-reserved for metadata fragments and never referenced by answers. Private files
-hold session/audit records and bytes. Their content hashes are committed in the
-SQL metadata, so a rollback cannot partially commit a private-file change.
+metadata uses SQL envelopes before cutover, or durable private documents after
+explicit cutover. Private mode coordinates SQL and file state with a recovery
+journal under workspace locks. Session/audit/file content remains hash-checked.
 """
 from collections import defaultdict
 from datetime import datetime
@@ -41,10 +40,11 @@ def rows(connection, table):
     return [dict(row) for row in connection.execute(select(table)).mappings()]
 
 
-def read_state(connection, files):
-    native = {t.name: rows(connection, t) for t in schema.metadata.sorted_tables}
+def read_state(connection, files, layout=None):
+    native = {t.name: (layout.question_rows(connection, t.name) if layout and t.name in {'uniquestion', 'ministryquestion'} else rows(connection, t))
+              for t in schema.metadata.sorted_tables}
     fragments = []
-    for row in native['uniquestion']:
+    for row in (layout.metadata_rows(connection) if layout else native['uniquestion']):
         meta = envelope(row['description'])
         if meta and meta.get('kind') == 'metadata':
             fragments.append(meta)
@@ -62,11 +62,13 @@ def read_state(connection, files):
             for row in state.get(name, []):
                 row['content'] = files.get(row.pop('$content'))
     else:
-        # An empty import of the supplied SQL is a valid new workspace.
-        # A populated unmanaged schema needs explicit conversion, never ignore it.
-        if native['uniquestion'] or native['ministryquestion'] or native['unisurvey'] or native['ministrysurvey']:
+        # The legacy eight-table layout needs feature metadata when populated.
+        # The ten-table layout can load native source definitions directly.
+        if not layout and (native['uniquestion'] or native['ministryquestion'] or native['unisurvey'] or native['ministrysurvey']):
             raise RuntimeError('This populated eight-table database has no DEDC feature metadata. Import it using the conversion tool first.')
         state = {}
+    if layout:
+        state.update(layout.initial_state(connection))
     # Account tables are native, not hidden in an encoded form document.
     state['user'] = native['user']
     state['userrole'] = native['userrole']
@@ -82,7 +84,9 @@ def upsert(connection, table, record):
         connection.execute(table.insert().values(**record))
 
 
-def put_question(connection, audience, key, wording, start, end, meta, existing):
+def put_question(connection, audience, key, wording, start, end, meta, existing, layout=None):
+    if layout:
+        return layout.put_question(connection, audience, key, wording, start, end, meta, existing)
     table = schema.uniquestion if audience == 'university' else schema.ministryquestion
     pk = 'uQId' if audience == 'university' else 'mQId'
     detail = 'uQDetail' if audience == 'university' else 'mQDetail'
@@ -98,15 +102,17 @@ def put_question(connection, audience, key, wording, start, end, meta, existing)
     return identifier
 
 
-def write_state(connection, files, state):
+def write_state(connection, files, state, layout=None):
     # Do not mutate the caller's snapshot while replacing bytes with references.
     state = loads(dumps(state))
+    if layout:
+        layout.write_sources(connection, state)
     for name in ('userrole', 'user'):
         for record in state.get(name, []):
             upsert(connection, schema.metadata.tables[name], record)
     existing = {}
     for audience, table, pk in [('university', schema.uniquestion, 'uQId'), ('ministry', schema.ministryquestion, 'mQId')]:
-        for row in rows(connection, table):
+        for row in (layout.question_rows(connection, table.name) if layout else rows(connection, table)):
             meta = envelope(row['description'])
             if meta and meta.get('kind') == 'question':
                 existing[audience, meta['key']] = row[pk]
@@ -120,8 +126,9 @@ def write_state(connection, files, state):
     for source_id, record in sources.items():
         period = years[record['yID']]
         source_ids[source_id] = put_question(connection, 'university', f'source:{source_id}', record['uQDetail'],
-            period['yearFrom'].year, period['yearTo'].year,
-            {'source_id': source_id, 'category_id': record.get('qTID')}, existing)
+            period['yearFrom'].year if period['yearFrom'] else datetime.now().year,
+            period['yearTo'].year if period['yearTo'] else datetime.now().year,
+            {'source_id': source_id, 'category_id': record.get('qTID'), 'year_id': record['yID']}, existing, layout)
     for identifier, field in fields.items():
         version = versions[field['version_id']]
         audience = forms[version['form_id']]['audience']
@@ -134,7 +141,7 @@ def write_state(connection, files, state):
             year = datetime.now().year
             physical_id = put_question(connection, audience, f'field:{identifier}', field['title'],
                 start.year if start else year, end.year if end else year,
-                {'field_id': identifier, 'version_id': version['id'], 'form_id': version['form_id'], 'key_name': field['key']}, existing)
+                {'field_id': identifier, 'version_id': version['id'], 'form_id': version['form_id'], 'key_name': field['key']}, existing, layout)
         field_questions[identifier] = (audience, physical_id)
     accounts = {r['userId']: r for r in state.get('user', [])}
     answers = defaultdict(list)
@@ -198,17 +205,16 @@ def write_state(connection, files, state):
         if key.startswith('field:') and (audience, identifier) not in live:
             table = schema.uniquestion if audience == 'university' else schema.ministryquestion
             pk = 'uQId' if audience == 'university' else 'mQId'
-            connection.execute(table.delete().where(table.c[pk] == identifier))
-    for name in ('user', 'userrole'):
-        state.pop(name, None)
-    for name in PRIVATE_TABLES:
-        state['$private_' + name] = files.put(dumps(state.pop(name, [])).encode('utf-8'))
-    for name in BINARY_TABLES:
-        for row in state.get(name, []):
-            row['$content'] = files.put(row.pop('content'))
-    payload = pack(state)
+            if layout:
+                layout.delete_question(connection, audience, identifier)
+            else:
+                connection.execute(table.delete().where(table.c[pk] == identifier))
+    payload = feature_payload(files, state)
     digest = hashlib.sha256(payload.encode()).hexdigest()
     parts = [payload[i:i + 48000] for i in range(0, len(payload), 48000)]
+    if layout:
+        layout.write_metadata(connection, parts, digest)
+        return
     existing_metadata = []
     for row in rows(connection, schema.uniquestion):
         meta = envelope(row['description'])
@@ -227,6 +233,19 @@ def write_state(connection, files, state):
             connection.execute(schema.uniquestion.delete().where(schema.uniquestion.c.uQId == identifier))
 
 
+def feature_payload(files, state):
+    """Encode feature state without modifying the caller or writing SQL."""
+    state = loads(dumps(state))
+    for name in ('user', 'userrole'):
+        state.pop(name, None)
+    for name in PRIVATE_TABLES:
+        state['$private_' + name] = files.put(dumps(state.pop(name, [])).encode('utf-8'))
+    for name in BINARY_TABLES:
+        for row in state.get(name, []):
+            row['$content'] = files.put(row.pop('content'))
+    return pack(state)
+
+
 def projection_snapshot(session):
     from app.database import Base
     session.flush()
@@ -241,7 +260,9 @@ class CompactSession(Session):
     file locks also protect SQLite conversion/testing. Locks last until close,
     including across multiple commits in a login/token rotation workflow.
     """
-    def __init__(self, target, private_root):
+    def __init__(self, target, private_root, metadata_storage='sql'):
+        if metadata_storage not in {'sql', 'private', 'maintenance'}:
+            raise ValueError('Unknown metadata storage mode.')
         from app.database import Base
         import app.models
         self.target = target
@@ -251,6 +272,8 @@ class CompactSession(Session):
         self._file_lock = None
         self._thread_lock = None
         self._sql_lock = False
+        self.journal = None
+        self._failed_commit = False
         key = target.url.render_as_string(hide_password=True)
         self.lock_name = 'dedc8:' + hashlib.sha256(key.encode()).hexdigest()[:48]
         try:
@@ -270,9 +293,22 @@ class CompactSession(Session):
                 if not self._sql_lock:
                     raise RuntimeError('Could not acquire the DEDC workspace lock.')
             names = set(inspect(self.native).get_table_names())
-            if names != set(schema.metadata.tables):
-                raise RuntimeError('Database is not the eight-table DEDC schema. Run the documented conversion before starting the app.')
-            state = read_state(self.native, self.files)
+            from app.storage.existing import detect_layout
+            self.layout = detect_layout(self.native, names)
+            if self.layout:
+                from app.storage.existing import ExistingLayout, metadata
+                from app.storage.journal import MetadataJournal, fingerprint
+                journal = MetadataJournal(self.files, target, metadata)
+                journal.recover(self.native)
+                if metadata_storage == 'private' or (metadata_storage == 'maintenance' and journal.current.exists()):
+                    self.layout = ExistingLayout(journal.document())
+                    if any(envelope(row['description']) for row in rows(self.native, metadata.tables['questiontitle'])):
+                        raise RuntimeError('SQL application metadata reappeared beside private metadata. Stop old workers and reconcile before continuing.')
+                    self.journal = journal
+                    self._native_baseline = fingerprint(self.native, metadata)
+                elif metadata_storage == 'sql' and journal.current.exists():
+                    raise RuntimeError('Private metadata is active. Set METADATA_STORAGE=private; SQL metadata writes are disabled.')
+            state = read_state(self.native, self.files, self.layout)
             self.native.commit()
             self.projection = create_engine('sqlite://', connect_args={'check_same_thread': False}, poolclass=StaticPool)
             Base.metadata.create_all(self.projection)
@@ -287,11 +323,34 @@ class CompactSession(Session):
             raise
 
     def commit(self):
+        if self._failed_commit:
+            raise RuntimeError('This unit of work had an uncertain commit. Close and reopen it to recover before retrying.')
         snapshot = projection_snapshot(self)
         serialized = dumps(snapshot)
+        if self.journal:
+            from app.storage.journal import fingerprint
+            from app.storage.existing import metadata
+            try:
+                if serialized != self._baseline:
+                    write_state(self.native, self.files, snapshot, self.layout)
+                after = fingerprint(self.native, metadata)
+                if serialized != self._baseline or after != self._native_baseline:
+                    self.journal.prepare(self._native_baseline, after, self.layout.document())
+                    self.native.commit()
+                    self.journal.recover(self.native)
+                    self.native.commit()
+                    self._native_baseline = after
+                super().commit()
+                self._baseline = serialized
+                return
+            except BaseException:
+                self._failed_commit = True
+                self.native.rollback()
+                super().rollback()
+                raise
         if serialized != self._baseline:
             try:
-                write_state(self.native, self.files, snapshot)
+                write_state(self.native, self.files, snapshot, self.layout)
                 self.native.commit()
             except BaseException:
                 self.native.rollback()

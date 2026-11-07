@@ -19,7 +19,7 @@ import csv
 import json
 from fastapi import File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import Response
-from sqlalchemy import func, select
+from sqlalchemy import func, select, literal, union_all
 from sqlalchemy.orm import Session
 from app.dependencies import get_db
 from app.models.forms import (
@@ -36,6 +36,7 @@ from app.models.user import User, UserRole
 from app.portal_auth import hash_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
 from app.services import forms, reports, workbook
+from app.services.presentation import audit_action, label
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -336,6 +337,32 @@ university_table = persistent_metadata.tables["university"]
 class OrgInput(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     type: str = Field(default="", max_length=100)  # for university: uniType
+
+
+@router.get("/departments")
+def list_departments(
+    search: str = "",
+    type: str = Query("", pattern="^(university|ministry)?$"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    directory = union_all(
+        select(university_table.c.uniId.label('id'), university_table.c.uniName.label('name'),
+               university_table.c.uniType.label('type'), literal('university').label('organization')),
+        select(ministry_table.c.ministryId.label('id'), ministry_table.c.ministryName.label('name'),
+               literal('').label('type'), literal('ministry').label('organization')),
+    ).subquery()
+    criteria = [directory.c.name.contains(search)] if search else []
+    counts = dict(db.native.execute(select(directory.c.organization, func.count())
+                  .where(*criteria).group_by(directory.c.organization)).all())
+    if type:
+        criteria.append(directory.c.organization == type)
+    query = select(directory).where(*criteria)
+    total = db.native.execute(select(func.count()).select_from(query.subquery())).scalar_one()
+    items = db.native.execute(query.order_by(directory.c.name, directory.c.organization, directory.c.id)
+                              .offset((page - 1) * limit).limit(limit)).mappings().all()
+    return {'total': total, 'counts': counts, 'items': [dict(row) for row in items]}
 
 
 @router.get("/ministries")
@@ -766,7 +793,7 @@ def export_reports(
                         detail["id"],
                         detail["form"],
                         detail["version"],
-                        detail["status"],
+                        label(detail["status"]),
                         detail["username"],
                         detail["created_at"],
                         detail["reporting_start"],
@@ -774,11 +801,7 @@ def export_reports(
                         section["title"],
                         a["key"],
                         a["title"],
-                        json.dumps(a["value"], ensure_ascii=False)
-                        if isinstance(a["value"], (dict, list))
-                        else str(a["value"])
-                        if a["value"] is not None
-                        else "",
+                        a["display_value"],
                     ]
                 )
     rows = [[safe_cell(cell) for cell in row] for row in rows]
@@ -954,6 +977,8 @@ def audit_logs(
             {
                 "id": a.id,
                 "actor_id": a.actor_id,
+                "actor_name": (db.get(User, a.actor_id).username if a.actor_id and db.get(User, a.actor_id) else 'System' if a.actor_id is None else 'Deleted account'),
+                "action_label": audit_action(a.action),
                 "action": a.action,
                 "entity": a.entity,
                 "target_id": a.target_id,
