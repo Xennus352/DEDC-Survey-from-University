@@ -21,3 +21,4 @@ wheels/
 
 # Private sessions, audits, uploaded files and original workbook bytes
 /private/
+.env

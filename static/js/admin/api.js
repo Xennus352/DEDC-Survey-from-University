@@ -17,14 +17,14 @@ export async function api(path, options = {}) {
   if (response.status === 401) {
     document.body.hidden = true;
     location.replace("/portal");
-    throw new Error("Your session expired.");
+    throw new Error("အသုံးပြုခွင့် သက်တမ်းကုန်သွားပါပြီ။ ပြန်လည်ဝင်ရောက်ပါ။");
   }
   if (!response.ok) {
     let data;
     try {
       data = await response.json();
     } catch {
-      data = { detail: "The server could not complete this request." };
+      data = { detail: "ဆာဗာမှ ပြန်ကြားချက် မရပါ။ ခဏနေရင် ထပ်စမ်းကြည့်ပါ။" };
     }
     const detail = data.detail;
     throw new Error(

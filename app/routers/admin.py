@@ -209,11 +209,11 @@ def add_section(
 
     form = get_form(db, form_id, True)
     if form.archived:
-        raise HTTPException(409, "Cannot add section to archived form.")
+        raise HTTPException(409, "သိမ်းဆည်းထားသောပုံစံသို့ ကဏ္ဍ ထည့်၍ မရပါ။")
 
     version = form.versions[-1]
     if version.status != "draft":
-        raise HTTPException(409, "Only draft versions can be edited.")
+        raise HTTPException(409, "မူကြမ်းဗားရှင်းများကိုသာ တည်းဖြတ်နိုင်သည်။")
 
     # Check if a section with this title already exists in this version
     existing = (
@@ -222,7 +222,7 @@ def add_section(
         .first()
     )
     if existing:
-        raise HTTPException(422, f"A section titled '{title}' already exists.")
+        raise HTTPException(422, f"'{title}' အမည်ရှိ ကဏ္ဍ တစ်ခု ရှိပြီးဖြစ်သည်။")
 
     # Get the next position
     max_position = (
@@ -256,7 +256,7 @@ def add_questions_to_section(
 
     form = get_form(db, form_id, True)
     if form.archived:
-        raise HTTPException(409, "Cannot add questions to archived form.")
+        raise HTTPException(409, "သိမ်းဆည်းထားသောပုံစံသို့ မေးခွန်းများ ထည့်၍ မရပါ။")
 
     version = get_version(db, form_id, None)
 
@@ -268,7 +268,7 @@ def add_questions_to_section(
             break
 
     if not section:
-        raise HTTPException(404, "Section not found.")
+        raise HTTPException(404, "ကဏ္ဍ မတွေ့ပါ။")
 
     # Get existing question keys in this section to prevent duplicates
     existing_keys = {q.key for s in version.sections for q in s.questions}
@@ -277,7 +277,7 @@ def add_questions_to_section(
     for q_id in question_ids:
         bank_question = db.get(QuestionBankQuestion, q_id)
         if not bank_question:
-            raise HTTPException(404, f"Question bank question {q_id} not found.")
+            raise HTTPException(404, f"မေးခွန်းဘဏ် မေးခွန်း {q_id} ကို မတွေ့ပါ။")
 
         # Check if a question with same key already exists
         key = bank_question.title[:50].strip().lower().replace(" ", "_")[:50] or f"q_{len(existing_keys)}"

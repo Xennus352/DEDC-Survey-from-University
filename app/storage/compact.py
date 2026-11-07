@@ -15,7 +15,33 @@ from datetime import datetime
 import hashlib
 import json
 import threading
-import fcntl
+import sys
+import os
+
+if sys.platform == "win32":
+    import msvcrt
+
+    class _FcntlShim:
+        """Minimal fcntl.flock emulation for Windows using msvcrt.locking."""
+        LOCK_EX = 1
+        LOCK_UN = 2
+
+        @staticmethod
+        def flock(file_obj, op):
+            fd = file_obj.fileno()
+            pos = os.lseek(fd, 0, os.SEEK_CUR)
+            try:
+                os.lseek(fd, 0, os.SEEK_SET)
+                if op == _FcntlShim.LOCK_EX:
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                elif op == _FcntlShim.LOCK_UN:
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            finally:
+                os.lseek(fd, pos, os.SEEK_SET)
+
+    fcntl = _FcntlShim()
+else:
+    import fcntl
 from sqlalchemy import create_engine, select, inspect, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -390,4 +416,4 @@ class CompactSession(Session):
         try:
             super().close()
         finally:
-            self._release()
+            self._release();

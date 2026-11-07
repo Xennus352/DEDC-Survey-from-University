@@ -26,11 +26,22 @@ def snapshot(connection, metadata):
         for table in metadata.sorted_tables}
 
 
+
 def fingerprint(connection, metadata):
     return digest(snapshot(connection, metadata))
 
 
 def sync_directory(path):
+    """
+    Synchronize directory metadata.
+    Directory fsync is supported on Unix-like systems,
+    but not available on Windows.
+    """
+    if os.name == "nt":
+        # Windows does not expose os.O_DIRECTORY.
+        # File contents are synchronized separately.
+        return
+
     fd = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(fd)

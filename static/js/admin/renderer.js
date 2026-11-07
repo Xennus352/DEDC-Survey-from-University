@@ -40,7 +40,7 @@ export function renderSurvey(
     language = "my",
     onSubmit,
     uploadFile,
-    submitLabel = "Validate preview",
+    submitLabel = "အစမ်း စစ်ဆေးရန်",
   } = {},
 ) {
   const fieldHtml = (q) => {
@@ -49,7 +49,7 @@ export function renderSurvey(
         ? fullTitle.split(" — ").at(-1)
         : fullTitle,
       required = q.required
-        ? '<span class="required" aria-label="required">*</span>'
+        ? '<span class="required" aria-label="မဖြစ်မနေ">*</span>'
         : "",
       id = "answer-" + q.key,
       label = `${e(title)} ${required}`,
@@ -65,19 +65,19 @@ export function renderSurvey(
       const multiple = ["multiple_choice", "checkboxes"].includes(q.kind);
       control = `<fieldset><legend>${label}</legend>${q.options.map((o) => `<label class="check-label"><input type="${multiple ? "checkbox" : "radio"}" name="${q.key}" value="${e(o.value)}" ${!multiple && q.required ? "required" : ""}>${e(o.label)}</label>`).join("")}</fieldset>`;
     } else if (q.kind === "yes_no")
-      control = `<label for="${id}">${label}</label><select id="${id}" name="${q.key}" ${attrs}><option value="">Select an answer</option><option value="true">ရှိ / Yes</option><option value="false">မရှိ / No</option></select>`;
+      control = `<label for="${id}">${label}</label><select id="${id}" name="${q.key}" ${attrs}><option value="">အဖြေတစ်ခု ရွေးပါ</option><option value="true">ရှိ / ဟုတ်</option><option value="false">မရှိ / မဟုတ်</option></select>`;
     else if (q.kind === "dropdown")
-      control = `<label for="${id}">${label}</label><select id="${id}" name="${q.key}" ${attrs}><option value="">Select an option</option>${q.options.map((o) => `<option value="${e(o.value)}">${e(o.label)}</option>`).join("")}</select>`;
+      control = `<label for="${id}">${label}</label><select id="${id}" name="${q.key}" ${attrs}><option value="">ရွေးချယ်စရာတစ်ခု ရွေးပါ</option>${q.options.map((o) => `<option value="${e(o.value)}">${e(o.label)}</option>`).join("")}</select>`;
     else if (q.kind === "calculated")
-      control = `<label for="${id}">${label}</label><input id="${id}" name="${q.key}" readonly aria-readonly="true" placeholder="Calculated from your answers">`;
+      control = `<label for="${id}">${label}</label><input id="${id}" name="${q.key}" readonly aria-readonly="true" placeholder="သင့်အဖြေများမှ တွက်ချက်ထားသည်">`;
     else if (q.kind === "repeating_group")
-      control = `<fieldset><legend>${label}</legend><div data-repeating-rows="${q.key}"></div><button type="button" class="button small" data-add-row="${q.key}">＋ Add row</button></fieldset>`;
+      control = `<fieldset><legend>${label}</legend><div data-repeating-rows="${q.key}"></div><button type="button" class="button small" data-add-row="${q.key}">＋ အတန်း ထည့်ရန်</button></fieldset>`;
     else if (["file", "image"].includes(q.kind))
-      control = `<label for="${id}">${label}</label><input id="${id}" type="file" name="${q.key}" ${q.kind === "image" ? 'accept="image/png,image/jpeg,image/webp"' : ""} ${q.required ? "required" : ""}><p class="help" data-upload-status="${q.key}">Maximum 5 MB.</p>`;
+      control = `<label for="${id}">${label}</label><input id="${id}" type="file" name="${q.key}" ${q.kind === "image" ? 'accept="image/png,image/jpeg,image/webp"' : ""} ${q.required ? "required" : ""}><p class="help" data-upload-status="${q.key}">အများဆုံး ၅ MB အထိ။</p>`;
     else if (q.kind === "long_text")
       control = `<label for="${id}">${label}</label><textarea id="${id}" name="${q.key}" ${attrs}></textarea>`;
     else if (q.kind === "location")
-      control = `<fieldset><legend>${label}</legend><div class="form-grid"><label>Latitude<input name="${q.key}_latitude" type="number" step="any" min="-90" max="90" ${q.required ? "required" : ""}></label><label>Longitude<input name="${q.key}_longitude" type="number" step="any" min="-180" max="180" ${q.required ? "required" : ""}></label></div><button type="button" class="button small" data-location="${q.key}">Use current location</button></fieldset>`;
+      control = `<fieldset><legend>${label}</legend><div class="form-grid"><label>လတ္တီတွဒ်<input name="${q.key}_latitude" type="number" step="any" min="-90" max="90" ${q.required ? "required" : ""}></label><label>လောင်ဂျီတွဒ်<input name="${q.key}_longitude" type="number" step="any" min="-180" max="180" ${q.required ? "required" : ""}></label></div><button type="button" class="button small" data-location="${q.key}">လက်ရှိ တည်နေရာ သုံးရန်</button></fieldset>`;
     else {
       const type =
         {
@@ -91,7 +91,7 @@ export function renderSurvey(
     }
     return `<div class="survey-field" data-field="${q.key}">${control}${q.help_text ? `<p class="help">${e(q.help_text)}</p>` : ""}<p class="required" data-error="${q.key}" hidden></p></div>`;
   };
-  container.innerHTML = `<form id="dynamic-survey"><div class="panel panel-body survey-title"><h2>${e(version.title)}</h2><p class="editor-meta source-text">${e(version.description)}</p></div><div class="notice error" data-survey-error role="alert" tabindex="-1" hidden></div><section class="panel panel-body" data-period-step><h2>Choose the reporting period</h2><p class="editor-meta">Enter the From and To dates before filling the questions. This period is included in your Excel export.</p><div class="form-grid"><label>From date<input type="date" name="__reporting_start" value="${e(version.reporting_start || "")}" required></label><label>To date<input type="date" name="__reporting_end" value="${e(version.reporting_end || "")}" required></label></div><div class="actions" style="margin-top:24px"><button class="button primary" type="button" data-start-survey>Start survey →</button></div></section><div data-question-pages hidden><div class="survey-progress"><span data-survey-progress></span><button type="button" class="button small" data-edit-period>Edit reporting period</button></div>${version.sections
+  container.innerHTML = `<form id="dynamic-survey"><div class="panel panel-body survey-title"><h2>${e(version.title)}</h2><p class="editor-meta source-text">${e(version.description)}</p></div><div class="notice error" data-survey-error role="alert" tabindex="-1" hidden></div><section class="panel panel-body" data-period-step><h2>အစီရင်ခံကာလ ရွေးပါ</h2><p class="editor-meta">မေးခွန်းများ မဖြေမီ စတင်သည့်ရက်နှင့် ပြီးဆုံးသည့်ရက်ကို ထည့်ပါ။ ဤကာလကို Excel တင်ပို့မှုတွင် ထည့်သွင်းပါမည်။</p><div class="form-grid"><label>စတင်သည့် ရက်စွဲ<input type="date" name="__reporting_start" value="${e(version.reporting_start || "")}" required></label><label>ပြီးဆုံးသည့် ရက်စွဲ<input type="date" name="__reporting_end" value="${e(version.reporting_end || "")}" required></label></div><div class="actions" style="margin-top:24px"><button class="button primary" type="button" data-start-survey>စစ်တမ်း စတင်ရန် →</button></div></section><div data-question-pages hidden><div class="survey-progress"><span data-survey-progress></span><button type="button" class="button small" data-edit-period>အစီရင်ခံကာလ ပြင်ဆင်ရန်</button></div>${version.sections
     .map((section, index) => {
       const shown = new Set();
       return `<section class="panel section-block" data-section="${index}"><div class="panel-head"><div><h2 tabindex="-1">${e(section.title)}</h2>${section.description ? `<p>${e(section.description)}</p>` : ""}</div></div><div class="panel-body">${section.questions
@@ -109,7 +109,7 @@ export function renderSurvey(
     })
     .join(
       "",
-    )}<div class="survey-navigation"><button class="button" type="button" data-survey-back>Back</button><button class="button primary" type="button" data-survey-next>Next section →</button><button class="button primary" type="submit">${e(submitLabel)}</button></div><p class="editor-meta">${submitLabel === "Validate preview" ? "Preview validation does not save a submission." : "Your answers are stored with this published form version."}</p></div></form>`;
+    )}<div class="survey-navigation"><button class="button" type="button" data-survey-back>ယခင်</button><button class="button primary" type="button" data-survey-next>နောက်ကဏ္ဍသို့ →</button><button class="button primary" type="submit">${e(submitLabel)}</button></div><p class="editor-meta">${submitLabel === "အစမ်း စစ်ဆေးရန်" ? "အစမ်းစစ်ဆေးမှုသည် တင်သွင်းမှုကို မသိမ်းဆည်းပါ။" : "သင့်အဖြေများကို ဤထုတ်ဝေထားသော စစ်တမ်းဗားရှင်းနှင့်အတူ သိမ်းဆည်းပါသည်။"}</p></div></form>`;
   let started = false,
     activeSection = 0;
   const form = container.querySelector("form"),
@@ -230,7 +230,7 @@ export function renderSurvey(
     });
     const current = Math.max(0, available.indexOf(activeSection));
     form.querySelector("[data-survey-progress]").textContent =
-      `Section ${current + 1} of ${Math.max(1, available.length)} · ${form.elements.__reporting_start.value} → ${form.elements.__reporting_end.value}`;
+      `ကဏ္ဍ ${current + 1} / ${Math.max(1, available.length)} · ${form.elements.__reporting_start.value} → ${form.elements.__reporting_end.value}`;
     form.querySelector("[data-survey-next]").hidden =
       current >= available.length - 1;
     form.querySelector("button[type=submit]").hidden =
@@ -276,7 +276,7 @@ export function renderSurvey(
         const q = fields.find((q) => q.key === button.dataset.addRow),
           rows = form.querySelector(`[data-repeating-rows="${q.key}"]`);
         if (rows.children.length >= 100)
-          return toast("A repeating group supports at most 100 rows.");
+          return toast("ထပ်ခါထပ်ခါ အုပ်စုတစ်ခုလျှင် အတန်း ၁၀၀ အထိ ထည့်နိုင်သည်။");
         const id = crypto.randomUUID().slice(0, 8),
           row = document.createElement("div");
         row.dataset.repeatRow = id;
@@ -287,7 +287,7 @@ export function renderSurvey(
               fieldHtml({ ...child, key: q.key + "_" + id + "_" + child.key }),
             )
             .join("") +
-          '<button type="button" class="button small danger" data-remove-row>Remove row</button>';
+          '<button type="button" class="button small danger" data-remove-row>အတန်း ဖယ်ရှားရန်</button>';
         row.querySelector("[data-remove-row]").onclick = () => {
           row.remove();
           update();
@@ -304,13 +304,13 @@ export function renderSurvey(
     if (!file) return;
     const status = form.querySelector(`[data-upload-status="${input.name}"]`);
     pending.add(input.name);
-    status.textContent = "Uploading…";
+    status.textContent = "တင်နေသည်…";
     try {
       if (file.size > 5 * 1024 * 1024)
-        throw new Error("Maximum upload size is 5 MB.");
-      if (!uploadFile) throw new Error("Uploads are unavailable.");
+        throw new Error("အများဆုံး တင်နိုင်သည့်အရွယ်အစားမှာ ၅ MB ဖြစ်သည်။");
+      if (!uploadFile) throw new Error("ဖိုင်တင်ခြင်း မရနိုင်ပါ။");
       uploads[input.name] = await uploadFile(input.name, file);
-      status.textContent = "Uploaded: " + uploads[input.name].filename;
+      status.textContent = "တင်ပြီး- " + uploads[input.name].filename;
     } catch (error) {
       input.value = "";
       status.textContent = error.message;
@@ -332,7 +332,7 @@ export function renderSurvey(
     to.setCustomValidity("");
     if (!from.reportValidity() || !to.reportValidity()) return;
     if (to.value < from.value) {
-      to.setCustomValidity("To date must be on or after From date.");
+      to.setCustomValidity("ထိ ရက်စွဲသည် မှ ရက်စွဲနှင့် တူ သို့မဟုတ် ၎င်းနောက်တွင် ဖြစ်ရမည်။");
       to.reportValidity();
       return;
     }
@@ -383,7 +383,7 @@ export function renderSurvey(
       (button.onclick = () => {
         if (!navigator.geolocation)
           return toast(
-            "Location is unavailable in this browser. Enter coordinates manually.",
+            "ဤဘရောက်ဇာတွင် တည်နေရာ မရနိုင်ပါ။ သြဒီနိတ်များကို ကိုယ်တိုင်ထည့်ပါ။",
           );
         button.disabled = true;
         navigator.geolocation.getCurrentPosition(
@@ -398,7 +398,7 @@ export function renderSurvey(
           () => {
             button.disabled = false;
             toast(
-              "Location permission was denied. Enter coordinates manually.",
+              "တည်နေရာ ခွင့်ပြုချက် ငြင်းပယ်ခံခဲ့ရသည်။ သြဒီနိတ်များကို ကိုယ်တိုင်ထည့်ပါ။",
             );
           },
         );
@@ -411,8 +411,8 @@ export function renderSurvey(
     error.hidden = true;
     button.disabled = true;
     try {
-      if (pending.size) throw new Error("Wait for the file upload to finish.");
-      if (!started) throw new Error("Choose a reporting period first.");
+      if (pending.size) throw new Error("ဖိုင်တင်ခြင်း ပြီးဆုံးသည်အထိ စောင့်ပါ။");
+      if (!started) throw new Error("ဦးစွာ အစီရင်ခံကာလ ရွေးပါ။");
       await onSubmit(answers(), {
         reporting_start: form.elements.__reporting_start.value,
         reporting_end: form.elements.__reporting_end.value,

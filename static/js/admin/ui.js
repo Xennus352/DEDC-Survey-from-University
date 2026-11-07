@@ -59,17 +59,67 @@ export function safeFullMatch(value, pattern, flags) {
   return re ? re.test(String(value ?? "")) : false;
 }
 
+const LABELS = {
+  draft: "မူကြမ်း",
+  published: "ထုတ်ဝေထားသည်",
+  archived: "မော်ကွန်းတင်ထားသည်",
+  completed: "ပြီးစီးသည်",
+  pending_review: "စစ်ဆေးရန် စောင့်နေသည်",
+  approved: "အတည်ပြုထားသည်",
+  rejected: "ပယ်ချထားသည်",
+  active: "အသုံးပြုနေသည်",
+  disabled: "ပိတ်ထားသည်",
+  university: "တက္ကသိုလ်",
+  ministry: "ဝန်ကြီးဌာန",
+  general: "အထွေထွေ",
+  form: "စစ်တမ်း",
+  forms: "စစ်တမ်းများ",
+  question: "မေးခွန်း",
+  questions: "မေးခွန်းများ",
+  section: "ကဏ္ဍ",
+  sections: "ကဏ္ဍများ",
+  submission: "တင်သွင်းမှု",
+  submissions: "တင်သွင်းချက်များ",
+  user: "အသုံးပြုသူ",
+  users: "အသုံးပြုသူများ",
+  role: "အခန်းကဏ္ဍ",
+  roles: "အခန်းကဏ္ဍများ",
+  department: "ဌာန",
+  departments: "ဌာနများ",
+  report: "အစီရင်ခံစာ",
+  reports: "အစီရင်ခံစာများ",
+  session: "ဝင်ရောက်မှု",
+  file: "ဖိုင်",
+  image: "ရုပ်ပုံ",
+  workbook: "အလုပ်စာအုပ်",
+  version: "ဗားရှင်း",
+  versions: "ဗားရှင်းများ",
+  title: "ခေါင်းစဉ်",
+  name: "အမည်",
+  username: "အသုံးပြုသူအမည်",
+  status: "အခြေအနေ",
+  audience: "ဖြေဆိုသူအုပ်စု",
+  created_at: "ဖန်တီးချိန်",
+  updated_at: "ပြင်ဆင်ချိန်",
+  reporting_start: "အစီရင်ခံကာလ စတင်",
+  reporting_end: "အစီရင်ခံကာလ ပြီးဆုံး",
+  equals: "တူညီသည်",
+  contains: "ပါဝင်သည်",
+  greater_than: "ပိုကြီးသည်",
+  less_than: "ပိုငယ်သည်",
+};
 export const label = (value) => {
+  if (LABELS[value]) return LABELS[value];
   const text = String(value ?? "").replaceAll("_", " ").replaceAll(".", " ");
   return text ? text[0].toUpperCase() + text.slice(1) : "";
 };
 export const valueText = (value) => {
-  if (value === null || value === undefined) return "No answer";
-  if (value === true) return "Yes";
-  if (value === false) return "No";
-  if (value === "") return "Empty text";
-  if (Array.isArray(value)) return value.length ? value.map(valueText).join("; ") : "No selections";
-  if (typeof value === "object") return Object.entries(value).map(([key,item]) => `${label(key)}: ${valueText(item)}`).join("\n") || "No values";
+  if (value === null || value === undefined) return "အဖြေ မရှိပါ";
+  if (value === true) return "ရှိသည်";
+  if (value === false) return "မရှိပါ";
+  if (value === "") return "စာသား မရှိပါ";
+  if (Array.isArray(value)) return value.length ? value.map(valueText).join("; ") : "ရွေးချယ်မှု မရှိပါ";
+  if (typeof value === "object") return Object.entries(value).map(([key,item]) => `${label(key)}: ${valueText(item)}`).join("\n") || "အချက်အလက် မရှိပါ";
   return String(value);
 };
 export const badge = (value) =>
@@ -83,7 +133,7 @@ function formatDate(value, withTime = false) {
   const dayOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
   const zoned = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
   const parsed = new Date(dayOnly ? value + "T00:00:00Z" : zoned ? value : value + "Z");
-  if (Number.isNaN(parsed.getTime())) return "Unknown date";
+  if (Number.isNaN(parsed.getTime())) return "ရက်စွဲ မသိ";
   return parsed.toLocaleString(undefined, {
     year: "numeric", month: "short", day: "numeric",
     ...(dayOnly ? { timeZone: "UTC" } : {}),
@@ -93,7 +143,7 @@ function formatDate(value, withTime = false) {
 export const date = (value) => formatDate(value);
 export const dateTime = (value) => formatDate(value, true);
 export const table = (headers, rows) =>
-  `<div class="table-wrap" tabindex="0" role="region" aria-label="Scrollable data table"><table><thead><tr>${headers.map((h) => `<th scope="col">${h || '<span class="sr-only">Actions</span>'}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+  `<div class="table-wrap" tabindex="0" role="region" aria-label="ဘေးတိုက် လှိမ့်ကြည့်နိုင်သော အချက်အလက်ဇယား"><table><thead><tr>${headers.map((h) => `<th scope="col">${h || '<span class="sr-only">လုပ်ဆောင်ချက်များ</span>'}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
 export function setContent(html) {
   const content = document.querySelector("#content");
   content.innerHTML = html;
@@ -120,7 +170,7 @@ export function modal(title, html) {
   return dialog;
 }
 export function confirmDelete(title, description, label, task) {
-  const dialog = modal(title, `<p id="delete-description">${escape(description)}</p><div class="dialog-actions"><button class="button" type="button" data-cancel-delete autofocus>Cancel</button><button class="button danger" type="button" data-confirm-delete>${escape(label)}</button></div>`);
+  const dialog = modal(title, `<p id="delete-description">${escape(description)}</p><div class="dialog-actions"><button class="button" type="button" data-cancel-delete autofocus>မလုပ်တော့ပါ</button><button class="button danger" type="button" data-confirm-delete>${escape(label)}</button></div>`);
   dialog.setAttribute("aria-describedby", "delete-description");
   const cleanup = () => dialog.removeAttribute("aria-describedby");
   dialog.addEventListener("close", cleanup, { once: true });
@@ -174,7 +224,7 @@ export function pagination(total, reload) {
   const p = Number(params.get("page") || 1),
     size = Number(params.get("limit") || 25),
     count = Math.max(1, Math.ceil(total / size));
-  return `<div class="pagination"><span>${total.toLocaleString()} records · Page ${p} of ${count}</span><div class="actions"><button class="button small" data-pagination="${p - 1}" ${p <= 1 ? "disabled" : ""}>Previous</button><button class="button small" data-pagination="${p + 1}" ${p >= count ? "disabled" : ""}>Next</button></div></div>`;
+  return `<div class="pagination"><span>${total.toLocaleString()} မှတ်တမ်း · စာမျက်နှာ ${p} / ${count}</span><div class="actions"><button class="button small" data-pagination="${p - 1}" ${p <= 1 ? "disabled" : ""}>ယခင်</button><button class="button small" data-pagination="${p + 1}" ${p >= count ? "disabled" : ""}>နောက်သို့</button></div></div>`;
 }
 export function bindFilters(reload) {
   document.querySelectorAll("[data-pagination]").forEach(
@@ -204,4 +254,4 @@ export function bindFilters(reload) {
   );
 }
 export const searchFilter = (value) =>
-  `<form class="filters" data-filter-form><input type="search" aria-label="Search records" name="search" placeholder="Search records…" value="${escape(value)}"><button class="button small" type="submit">Search</button></form>`;
+  `<form class="filters" data-filter-form><input type="search" aria-label="မှတ်တမ်းများ ရှာဖွေရန်" name="search" placeholder="မှတ်တမ်းများ ရှာဖွေရန်…" value="${escape(value)}"><button class="button small" type="submit">ရှာဖွေရန်</button></form>`;
