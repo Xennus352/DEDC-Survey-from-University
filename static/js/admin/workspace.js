@@ -1,3 +1,4 @@
+import { reportingYears } from "./period.js";
 import { api } from "./api.js";
 import {
   escape as e,
@@ -27,7 +28,7 @@ let loadEditor, loadPreview, loadImport;
 
 async function loadEditorModule() {
   try {
-    const mod = await import("./editor.js?v=20261106-redesign");
+    const mod = await import("./editor.js?v=20261108-recovery");
     loadEditor = mod.loadEditor;
     loadPreview = mod.loadPreview;
   } catch (error) {
@@ -130,10 +131,10 @@ document.querySelector("[data-mobile-search]").onclick = () => {
   };
 };
 
-document.querySelector("[data-close-dialog]").onclick = () =>
-  document.querySelector("dialog").close();
+document.querySelector("#workspace-dialog [data-close-dialog]").onclick = () =>
+  document.querySelector("#workspace-dialog").close();
 
-document.querySelector("dialog").addEventListener("click", (event) => {
+document.querySelector("#workspace-dialog").addEventListener("click", (event) => {
   if (event.target === event.currentTarget && !event.currentTarget.dataset.deleting) {
     const r = event.currentTarget.getBoundingClientRect();
     if (
@@ -248,26 +249,58 @@ function formTable(items, search = "") {
     ? table(
         [
           `<input type="checkbox" aria-label="စစ်တမ်းအားလုံး ရွေးရန်" data-select-all="forms">`,
-          "စစ်တမ်းအမည်",
+          "စစ်တမ်း အမည်",
           "ဖြေဆိုသူအုပ်စု",
-          "အခြေအနေ",
+          "အစီရင်ခံနှစ်",
+          "အခြေအနေ (ဗားရှင်း)",
+          "ထုတ်ဝေရန်",
           "ကဏ္ဍများ",
           "မေးခွန်းများ",
           "",
         ],
         items.map((f) => {
-          const v = f.versions.at(-1);
-          const total_questions = v?.fields ?? 0;
-          const section_count = v?.sections?.length ?? v?.section_count ?? 0;
-          return `<tr><td><input type="checkbox" data-select-form="${f.id}" aria-label="စစ်တမ်း ${f.id} ကို ရွေးရန်"></td><td class="title"><div class="form-identity"><span class="record-mark" aria-hidden="true">▤</span><div><a class="table-link" href="/dashboard/forms/${f.id}">${e(f.title)}</a><small>ဗားရှင်း ${v?.number || 1}</small></div></div></td><td>${e(label(f.audience))}</td><td>${badge(f.archived ? "archived" : v?.status || "draft")}</td><td class="numeric">${section_count}</td><td class="numeric">${total_questions}</td><td><a href="/dashboard/forms/${f.id}" class="button small">တည်ဆောက်ရန်</a></td></tr>`;
+          const total_questions = f.versions.reduce((sum, v) => sum + (v.fields ?? 0), 0);
+          const section_count = f.versions.reduce((sum, v) => sum + (v.sections?.length ?? v.section_count ?? 0), 0);
+
+          // Create a row per version (year) with its own toggle
+          const versionRows = f.versions.map((v, idx) => {
+            const published = v.status === "published" && !f.archived;
+            const statusLabel = published ? "ထုတ်ဝေထားသည်" : "မူကြမ်း";
+            const statusClass = published ? "published" : "draft";
+            const yearLabel = reportingYears(v);
+            const toggle = `<button type="button" class="form-toggle form-status-toggle" role="switch" aria-checked="${published}" aria-label="${e(f.title)} (v${v.number}) — ${published ? "မူကြမ်း အဖြစ် ပြောင်းလဲရန်" : "ထုတ်ဝေရန်"}" data-form-toggle="status" data-form-id="${f.id}" data-version-id="${v.id}"><span class="toggle-track" aria-hidden="true"></span><span class="toggle-label">${statusLabel}</span></button>`;
+
+            return `<tr${idx === 0 ? '' : ' class="sub-row"'}>
+              <td>${idx === 0 ? `<input type="checkbox" data-select-form="${f.id}" aria-label="စစ်တမ်း ${f.id} ကို ရွေးရန်">` : ''}</td>
+              <td class="title">
+                <div class="form-identity">
+                  <span class="record-mark" aria-hidden="true">▤</span>
+                  <div>
+                    ${idx === 0 ? `<a class="table-link" href="/dashboard/forms/${f.id}">${e(f.title)}</a>` : ''}
+                    <small>ဗားရှင်း ${v.number} · ${yearLabel}</small>
+                  </div>
+                </div>
+              </td>
+              <td>${idx === 0 ? e(label(f.audience)) : ''}</td>
+              <td>${yearLabel}</td>
+              <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+              <td>${toggle}</td>
+              <td class="numeric">${v.sections?.length ?? v.section_count ?? 0}</td>
+              <td class="numeric">${v.fields ?? 0}</td>
+              <td>${idx === 0 ? `<a href="/dashboard/forms/${f.id}" class="button small">တည်ဆောက်ရန်</a>` : ''}</td>
+            </tr>`;
+          }).join("");
+
+          return versionRows;
         }),
       )
     : search ? empty("ကိုက်ညီသော စစ်တမ်း မရှိပါ", "အခြားအမည်တစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် ရှာဖွေမှုကို ရှင်းလင်းပြီး စစ်တမ်းအားလုံးကို ကြည့်ပါ။", button("ရှာဖွေမှု ရှင်းလင်းရန်", "/dashboard/forms")) : empty(
         "နောက်စစ်တမ်းကို ဤနေရာမှ စတင်ပါ",
-        "အစမှ စစ်တမ်းဖန်တီးပါ သို့မဟုတ် သင့်လက်ရှိ DEDC အလုပ်စာအုပ်ကို တင်သွင်းပါ။",
+        "အစမှ စစ်တမ်း ဖန်တီးပါ သို့မဟုတ် သင့်လက်ရှိ DEDC အလုပ်စာအုပ်ကို တင်သွင်းပါ။",
         button("အလုပ်စာအုပ် တင်သွင်းရန်", "/dashboard/data"),
       );
 }
+
 
 async function formsPage() {
   describe("စစ်တမ်းများ ဖန်တီးခြင်း၊ စီစဉ်ခြင်းနှင့် ထုတ်ဝေခြင်း။ ဗားရှင်းတိုင်းကို သင်ထိန်းချုပ်နိုင်ပါသည်။");
@@ -750,6 +783,7 @@ async function safeLoad(pageFn, pageName) {
 async function load() {
   const pages = {
     overview: () => safeLoad(overview, "အကျဉ်းချုပ်"),
+    "survey-builder": () => describe("စစ်တမ်းခုနှစ်များ၊ ခေါင်းစဉ်များနှင့် မေးခွန်းများကို စီမံပါ။"),
     forms: () => safeLoad(formsPage, "စစ်တမ်းများ"),
     departments: () => safeLoad(departments, "ဌာနများ"),
     submissions: () => safeLoad(reportsPage, "အစီရင်ခံစာများ"),
@@ -786,6 +820,7 @@ async function load() {
 const workspacePages = {
   "/dashboard": ["overview", "အကျဉ်းချုပ်"],
   "/dashboard/forms": ["forms", "စစ်တမ်းများ"],
+  "/dashboard/survey-builder": ["survey-builder", "စစ်တမ်း ဖန်တီးခြင်း"],
   "/dashboard/departments": ["departments", "ဌာနများ"],
   "/dashboard/reports": ["reports", "အစီရင်ခံစာများနှင့် ခွဲခြမ်းစိတ်ဖြာမှု"],
   "/dashboard/users": ["users", "အသုံးပြုသူများနှင့် စစ်တမ်းကောက်သူများ"],
@@ -832,6 +867,7 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest("a[href]");
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target || link.hasAttribute("download")) return;
   const url = new URL(link.href);
+  if (url.pathname === "/dashboard/survey-builder" || location.pathname === "/dashboard/survey-builder") return;
   if (url.origin !== location.origin || !workspacePages[url.pathname] || !workspacePages[location.pathname] || url.hash) return;
   if (document.querySelector("#workspace-dialog").open) return;
   event.preventDefault();
@@ -850,4 +886,39 @@ navigationTask = load().finally(() => {
   navigating = false;
   content.removeAttribute("aria-busy");
   content.inert = false;
+});
+
+// Single toggle for form version status: 0 = draft (မူကြမ်း), 1 = published (ထုတ်ဝေထား�那些)
+document.addEventListener("click", async (event) => {
+  const control = event.target.closest("[data-form-toggle='status']");
+  if (!control || control.disabled) return;
+  const row = control.closest("tr");
+  const rowControls = row ? row.querySelectorAll("[data-form-toggle='status']") : [control];
+  rowControls.forEach(button => { button.disabled = true; });
+  const formId = control.dataset.formId;
+  const versionId = control.dataset.versionId;
+  const isPublished = control.getAttribute("aria-checked") === "true";
+  try {
+    if (isPublished) {
+      // Currently published -> unpublish (set to draft)
+      await api(`/forms/${formId}/archive`, { method: "POST", body: { archived: true } });
+    } else {
+      // Currently draft -> publish this version
+      const form = await api(`/forms/${formId}`);
+      if (form.archived) {
+        // First unarchive if archived
+        await api(`/forms/${formId}/archive`, { method: "POST", body: { archived: false } });
+      }
+      const version = form.versions.find(v => v.id == versionId);
+      if (version?.status !== "published") {
+        await api(`/forms/${formId}/versions/${versionId}/publish`, { method: "POST", body: { revision: version?.revision || 1 } });
+      }
+    }
+    toast("စစ်တမ်း အခြေအနေ ပြောင်းလဲပြီးပါပြီ။");
+    await load();
+  } catch (error) {
+    toast(error.message);
+  } finally {
+    rowControls.forEach(button => { button.disabled = false; });
+  }
 });

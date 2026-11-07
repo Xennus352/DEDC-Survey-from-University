@@ -99,6 +99,9 @@ def list_forms(
                         "id": v.id,
                         "number": v.number,
                         "status": v.status,
+                        "revision": v.revision,
+                        "reporting_start": v.reporting_start.isoformat() if v.reporting_start else None,
+                        "reporting_end": v.reporting_end.isoformat() if v.reporting_end else None,
                         "fields": sum(len(s.questions) for s in v.sections),
                         "section_count": len(v.sections),
                         "sections": [{"id": s.id} for s in v.sections],
@@ -854,6 +857,8 @@ class UserInput(BaseModel):
     role_id: int
     is_active: bool = True
     password: str | None = Field(default=None, min_length=8, max_length=1024)
+    uni_id: int | None = None
+    ministry_id: int | None = None
 
 
 @router.get("/users")
@@ -869,12 +874,16 @@ def users(
     return {
         "total": query.count(),
         "roles": [{"id": r.id, "name": r.name} for r in db.query(UserRole).all()],
+        "ministries": [dict(id=row.ministryId, name=row.ministryName) for row in db.native.execute(select(ministry_table))],
+        "universities": [dict(id=row.uniId, name=row.uniName) for row in db.native.execute(select(university_table))],
         "items": [
             {
                 "id": u.id,
                 "username": u.username,
                 "role_id": u.role_id,
                 "is_active": u.is_active,
+                "uni_id": u.university_id,
+                "ministry_id": u.ministry_id,
                 "created_at": u.created_at.isoformat(),
             }
             for u in query.order_by(User.id).offset((page - 1) * limit).limit(limit)
@@ -899,6 +908,8 @@ def add_user(
         role_id=data.role_id,
         is_active=data.is_active,
         password_hash=hash_password(data.password),
+        university_id=data.uni_id,
+        ministry_id=data.ministry_id,
     )
     db.add(account)
     db.flush()
@@ -943,6 +954,8 @@ def edit_user(
     account.username = data.username
     account.role_id = data.role_id
     account.is_active = data.is_active
+    account.university_id = data.uni_id
+    account.ministry_id = data.ministry_id
     if data.password:
         account.password_hash = hash_password(data.password)
     forms.audit(
@@ -1311,3 +1324,122 @@ def create_role(
     forms.audit(db, admin.id, "role.create", "role", role.id, name=name)
     db.commit()
     return {"id": role.id, "name": role.name}
+
+from app.models.native_forms import (Ministry, University, QuestionTitle, MinistryQuestion, UniQuestion, Year, MinistrySurvey, UniSurvey)
+
+@router.get("/questions")
+def list_questions(
+    search: str = "",
+    type: str = Query("", pattern="^(university|ministry)?$"),
+    year_id: int | None = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """List questions from both university and ministry tables."""
+    db = Session(bind=db.native)
+    items = []
+    total = 0
+
+    if type in ("", "university"):
+        query = db.query(UniQuestion).join(QuestionTitle, UniQuestion.qTID == QuestionTitle.qTID)
+        if search:
+            query = query.filter(UniQuestion.uQDetail.contains(search) | QuestionTitle.qTDetail.contains(search))
+        if year_id:
+            query = query.filter(UniQuestion.yID == year_id)
+        total += query.count()
+        for q in query.order_by(UniQuestion.uQId.desc()).offset((page - 1) * limit).limit(limit):
+            title = db.get(QuestionTitle, q.qTID) if q.qTID else None
+            items.append({
+                "id": q.uQId,
+                "detail": q.uQDetail,
+                "type": "university",
+                "title_id": q.qTID,
+                "title_detail": title.qTDetail if title else None,
+                "year_id": q.yID,
+            })
+
+    if type in ("", "ministry"):
+        query = db.query(MinistryQuestion).join(QuestionTitle, MinistryQuestion.qTID == QuestionTitle.qTID)
+        if search:
+            query = query.filter(MinistryQuestion.mQDetail.contains(search) | QuestionTitle.qTDetail.contains(search))
+        if year_id:
+            query = query.filter(MinistryQuestion.yID == year_id)
+        total += query.count()
+        for q in query.order_by(MinistryQuestion.mQId.desc()).offset((page - 1) * limit).limit(limit):
+            title = db.get(QuestionTitle, q.qTID) if q.qTID else None
+            items.append({
+                "id": q.mQId,
+                "detail": q.mQDetail,
+                "type": "ministry",
+                "title_id": q.qTID,
+                "title_detail": title.qTDetail if title else None,
+                "year_id": q.yID,
+            })
+
+    return {"total": total, "items": items}
+
+@router.get("/questions/years")
+def list_question_years(db: Session = Depends(get_db)):
+    """Get years that have questions."""
+    db = Session(bind=db.native)
+    years = db.query(Year).filter(Year.status == 1).all()
+    return [{"yID": y.yID, "yearFrom": y.yearFrom, "yearTo": y.yearTo} for y in years]
+
+@router.get("/question-titles")
+def list_question_titles(db: Session = Depends(get_db)):
+    db = Session(bind=db.native)
+    titles = db.query(QuestionTitle).all()
+    return [{"qTID": t.qTID, "qTDetail": t.qTDetail, "description": t.description} for t in titles]
+
+@router.get("/surveys")
+def list_surveys(
+    search: str = "",
+    type: str = Query("", pattern="^(university|ministry)?$"),
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    db = Session(bind=db.native)
+    items = []
+    total = 0
+
+    if type in ("", "university"):
+        query = db.query(UniSurvey).join(University, UniSurvey.uniId == University.uniId).join(UniQuestion, UniSurvey.uQId == UniQuestion.uQId)
+        if search:
+            query = query.filter(University.uniName.contains(search) | UniQuestion.uQDetail.contains(search))
+        total += query.count()
+        for s in query.order_by(UniSurvey.submittedAt.desc()).offset((page - 1) * limit).limit(limit):
+            uni = db.get(University, s.uniId)
+            q = db.get(UniQuestion, s.uQId)
+            items.append({
+                "id": s.uniSurveyId,
+                "type": "university",
+                "organization": uni.uniName if uni else None,
+                "question": q.uQDetail if q else None,
+                "hasItem": s.hasItem,
+                "itemCount": s.itemCount,
+                "submittedAt": s.submittedAt,
+                "updatedAt": s.updatedAt,
+            })
+
+    if type in ("", "ministry"):
+        query = db.query(MinistrySurvey).join(Ministry, MinistrySurvey.ministryId == Ministry.ministryId).join(MinistryQuestion, MinistrySurvey.mQId == MinistryQuestion.mQId)
+        if search:
+            query = query.filter(Ministry.ministryName.contains(search) | MinistryQuestion.mQDetail.contains(search))
+        total += query.count()
+        for s in query.order_by(MinistrySurvey.submittedAt.desc()).offset((page - 1) * limit).limit(limit):
+            min_ = db.get(Ministry, s.ministryId)
+            q = db.get(MinistryQuestion, s.mQId)
+            items.append({
+                "id": s.mSurveyId,
+                "type": "ministry",
+                "organization": min_.ministryName if min_ else None,
+                "question": q.mQDetail if q else None,
+                "hasItem": s.hasItem,
+                "itemCount": s.itemCount,
+                "submittedAt": s.submittedAt,
+                "updatedAt": s.updatedAt,
+            })
+
+    return {"total": total, "items": items}

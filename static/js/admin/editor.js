@@ -1,3 +1,4 @@
+import { monthYearFields, readMonthYear } from "./period.js";
 import { api } from "./api.js";
 import {
   escape as e,
@@ -122,9 +123,9 @@ async function _loadEditor(formId) {
     draft.title = document.querySelector("#draft-title").value;
     draft.description = document.querySelector("#draft-description").value;
     draft.reporting_start =
-      document.querySelector("#draft-report-start").value || null;
+      readMonthYear("draft-report-start");
     draft.reporting_end =
-      document.querySelector("#draft-report-end").value || null;
+      readMonthYear("draft-report-end", true);
     const result = await api(`/forms/${formId}/versions/${version.id}`, {
       method: "PUT",
       body: draft,
@@ -145,11 +146,25 @@ async function _loadEditor(formId) {
   }
 
   function _draw() {
+    const published = version.status === "published";
+    const statusLabel = published ? "ထုတ်ဝေထားသည်" : "မူကြမ်း";
+    const statusClass = published ? "published" : "draft";
+    const formArchived = form.archived;
+
+    let statusToggleHtml = "";
+    if (formArchived) {
+      // Form is archived - show archived status but allow click to restore
+      statusToggleHtml = `<button type="button" class="form-toggle form-status-toggle" role="switch" aria-checked="false" aria-label="မော်ကွန်းတင်ထားသည် — ပြန်လည်အသုံးပြုရန်" data-form-toggle="status" data-form-id="${formId}" data-version-id="${version.id}"><span class="toggle-track" aria-hidden="true"></span><span class="toggle-label">မော်ကွန်းတင်ထားသည်</span></button>`;
+    } else {
+      // Not archived - always show toggle (draft or published)
+      statusToggleHtml = `<button type="button" class="form-toggle form-status-toggle" role="switch" aria-checked="${published}" aria-label="${published ? "မော်ကွန်းတင်ရန်" : "ထုတ်ဝေရန်"}" data-form-toggle="status" data-form-id="${formId}" data-version-id="${version.id}"><span class="toggle-track" aria-hidden="true"></span><span class="toggle-label">${statusLabel}</span></button>`;
+    }
+
     actions(
-      `${button("အစမ်းကြည့်ရန်", `/dashboard/forms/${formId}/preview?version=${version.id}`)}<details class="export-menu"><summary class="button">Excel ဒေါင်းလုဒ်</summary><div><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}">မေးခွန်းများ သီးသန့်</a><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}&answers=true">မေးခွန်းများနှင့် အဖြေများ</a></div></details>${editable ? '<button class="button primary" id="save-draft">ပြောင်းလဲမှုများ သိမ်းဆည်းရန်</button>' : '<button class="button primary" id="new-version">မူကြမ်းအသစ် ဖန်တီးရန်</button>'}`,
+      `${button("အစမ်းကြည့်ရန်", `/dashboard/forms/${formId}/preview?version=${version.id}`)}<details class="export-menu"><summary class="button">Excel ဒေါင်းလုဒ်</summary><div><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}">မေးခွန်းများ သီးသန့်</a><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}&answers=true">မေးခွန်းများနှင့် အဖြေများ</a></div></details>${editable ? '<button class="button primary" id="save-draft">ပြောင်းလဲမှုများ သိမ်းဆည်းရန်</button>' : '<button class="button primary" id="new-version">မူကြမ်းအသစ် ဖန်တီးရန်</button>'}<div class="status-toggle-wrapper" style="margin-left: auto;">${statusToggleHtml}</div>`,
     );
     setContent(
-      `<div class="editor-layout"><div>${!editable ? '<p class="notice">ဤဗားရှင်းကို ပြင်ဆင်၍ မရတော့ပါ။ ပြောင်းလဲလိုပါက မူကြမ်းအသစ် ဖန်တီးပါ။</p>' : ""}${draft.sections.map((s, si) => `<section class="panel section-block" data-section-index="${si}"><div class="section-heading" ${editable ? `draggable="true" data-section-drag="${si}"` : ""}><span class="badge">${si + 1}</span><h2>${e(s.title)}</h2>${!s.enabled ? badge("disabled") : ""}${editable ? `<div class="actions"><button class="icon-button" data-section-up="${si}" aria-label="ကဏ္ဍကို အပေါ်သို့ ရွှေ့ရန်" ${si === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-section-down="${si}" aria-label="ကဏ္ဍကို အောက်သို့ ရွှေ့ရန်" ${si === draft.sections.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-section="${si}">ပြင်ဆင်ရန်</button></div>` : ""}</div>${s.questions.map((q, qi) => `<div class="question-row" data-question="${si}:${qi}" ${editable ? 'draggable="true"' : ""}><span class="question-handle" aria-hidden="true">⠿</span><div class="question-main"><strong>${e(q.title)}</strong><div class="question-meta"><span>${e(q.key)}</span><span>·</span><span>${e(kindLabels[q.kind] || q.kind)}</span>${q.required ? "<span>· မဖြစ်မနေ</span>" : ""}${q.conditions ? "<span>· အခြေအနေအလိုက်</span>" : ""}${!q.enabled ? "<span>· ပိတ်ထားသည်</span>" : ""}</div></div>${editable ? `<div class="actions"><button class="icon-button" data-question-up="${si}:${qi}" aria-label="မေးခွန်းကို အပေါ်သို့ ရွှေ့ရန်" ${qi === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-question-down="${si}:${qi}" aria-label="မေးခွန်းကို အောက်သို့ ရွှေ့ရန်" ${qi === s.questions.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-question="${si}:${qi}">ပြင်ဆင်ရန်</button></div>` : ""}</div>`).join("")}${editable ? `<div class="section-footer actions"><button class="button small" data-add-question="${si}">＋ မေးခွန်း ထည့်ရန်</button><button class="button small" data-paste-questions="${si}">မေးခွန်းများ ကူးထည့်ရန်</button></div>` : ""}</section>`).join("") || empty("ပထမဆုံး မေးခွန်း ထည့်ပါ", "မေးခွန်းတစ်ခု ရေးပါ သို့မဟုတ် စာရင်းတစ်ခု ကူးထည့်ပါ။ ပထမဆုံး ကဏ္ဍကို အလိုအလျောက် ဖန်တီးပေးပါမည်။", editable ? '<div class="actions"><button class="button primary" id="first-question">မေးခွန်း ထည့်ရန်</button><button class="button" id="first-paste">မေးခွန်းများ ကူးထည့်ရန်</button></div>' : "")}${editable ? '<button class="button" id="add-section">＋ ကဏ္ဍ ထည့်ရန်</button>' : ""}</div><aside class="editor-sidebar stack"><section class="panel"><div class="panel-head"><h2>စစ်တမ်း ဆက်တင်များ</h2>${badge(form.archived ? "archived" : version.status)}</div><div class="panel-body field-stack"><label>ခေါင်းစဉ်<input id="draft-title" value="${e(draft.title)}" maxlength="255" ${editable ? "" : "disabled"}></label><label>ဖော်ပြချက်<textarea id="draft-description" ${editable ? "" : "disabled"}>${e(draft.description)}</textarea></label><label>အစီရင်ခံကာလ စတင်<input type="date" id="draft-report-start" value="${e(draft.reporting_start || "")}" ${editable ? "" : "disabled"}></label><label>အစီရင်ခံကာလ ပြီးဆုံး<input type="date" id="draft-report-end" value="${e(draft.reporting_end || "")}" ${editable ? "" : "disabled"}></label><p class="editor-meta" id="save-status">${unsaved ? "မသိမ်းရသေးသော ပြောင်းလဲမှုများ" : "ပြောင်းလဲမှုအားလုံး သိမ်းဆည်းပြီး"}</p>${editable ? '<button class="button primary" id="publish-form">ဤဗားရှင်းကို ထုတ်ဝေရန်</button>' : ""}</div></section><section class="panel"><div class="panel-head"><h2>ဗားရှင်း မှတ်တမ်း</h2></div><div class="panel-body">${form.versions.map((v) => `<a class="quick-link" href="?version=${v.id}"><strong>ဗားရှင်း ${v.number}</strong>${badge(v.status)}</a>`).join("")}</div></section><section class="panel panel-body field-stack"><button class="button" id="duplicate-form">စစ်တမ်း ပုံတူကူးရန်</button><button class="button" id="archive-form">${form.archived ? "စစ်တမ်း ပြန်လည်အသုံးပြုရန်" : "စစ်တမ်း မော်ကွန်းတင်ရန်"}</button>${editable ? '<button class="button danger" id="delete-form">မထုတ်ဝေရသေးသော စစ်တမ်း ဖျက်ရန်</button>' : ""}</section></aside></div>`,
+      `<div class="editor-layout"><div>${!editable ? '<p class="notice">ဤဗားရှင်းကို ပြင်ဆင်၍ မရတော့ပါ။ ပြောင်းလဲလိုပါက မူကြမ်းအသစ် ဖန်တီးပါ။</p>' : ""}${draft.sections.map((s, si) => `<section class="panel section-block" data-section-index="${si}"><div class="section-heading" ${editable ? `draggable="true" data-section-drag="${si}"` : ""}><span class="badge">${si + 1}</span><h2>${e(s.title)}</h2>${!s.enabled ? badge("disabled") : ""}${editable ? `<div class="actions"><button class="icon-button" data-section-up="${si}" aria-label="ကဏ္ဍကို အပေါ်သို့ ရွှေ့ရန်" ${si === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-section-down="${si}" aria-label="ကဏ္ဍကို အောက်သို့ ရွှေ့ရန်" ${si === draft.sections.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-section="${si}">ပြင်ဆင်ရန်</button></div>` : ""}</div>${s.questions.map((q, qi) => `<div class="question-row" data-question="${si}:${qi}" ${editable ? 'draggable="true"' : ""}><span class="question-handle" aria-hidden="true">⠿</span><div class="question-main"><strong>${e(q.title)}</strong><div class="question-meta"><span>${e(q.key)}</span><span>·</span><span>${e(kindLabels[q.kind] || q.kind)}</span>${q.required ? "<span>· မဖြစ်မနေ</span>" : ""}${q.conditions ? "<span>· အခြေအနေအလိုက်</span>" : ""}${!q.enabled ? "<span>· ပိတ်ထားသည်</span>" : ""}</div></div>${editable ? `<div class="actions"><button class="icon-button" data-question-up="${si}:${qi}" aria-label="မေးခွန်းကို အပေါ်သို့ ရွှေ့ရန်" ${qi === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-question-down="${si}:${qi}" aria-label="မေးခွန်းကို အောက်သို့ ရွှေ့ရန်" ${qi === s.questions.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-question="${si}:${qi}">ပြင်ဆင်ရန်</button></div>` : ""}</div>`).join("")}${editable ? `<div class="section-footer actions"><button class="button small" data-add-question="${si}">＋ မေးခွန်း ထည့်ရန်</button><button class="button small" data-paste-questions="${si}">မေးခွန်းများ ကူးထည့်ရန်</button></div>` : ""}</section>`).join("") || empty("ပထမဆုံး မေးခွန်း ထည့်ပါ", "မေးခွန်းတစ်ခု ရေးပါ သို့မဟုတ် စာရင်းတစ်ခု ကူးထည့်ပါ။ ပထမဆုံး ကဏ္ဍကို အလိုအလျောက် ဖန်တီးပေးပါမည်။", editable ? '<div class="actions"><button class="button primary" id="first-question">မေးခွန်း ထည့်ရန်</button><button class="button" id="first-paste">မေးခွန်းများ ကူးထည့်ရန်</button></div>' : "")}${editable ? '<button class="button" id="add-section">＋ ကဏ္ဍ ထည့်ရန်</button>' : ""}</div><aside class="editor-sidebar stack"><section class="panel"><div class="panel-head"><h2>စစ်တမ်း ဆက်တင်များ</h2>${badge(form.archived ? "archived" : version.status)}</div><div class="panel-body field-stack"><label>ခေါင်းစဉ်<input id="draft-title" value="${e(draft.title)}" maxlength="255" ${editable ? "" : "disabled"}></label><label>ဖော်ပြချက်<textarea id="draft-description" ${editable ? "" : "disabled"}>${e(draft.description)}</textarea></label>${monthYearFields("draft-report-start", "အစီရင်ခံကာလ စတင်", draft.reporting_start, editable)}${monthYearFields("draft-report-end", "အစီရင်ခံကာလ ပြီးဆုံး", draft.reporting_end, editable)}<p class="editor-meta" id="save-status">${unsaved ? "မသိမ်းရသေးသော ပြောင်းလဲမှုများ" : "ပြောင်းလဲမှုအားလုံး သိမ်းဆည်းပြီး"}</p></div></section><section class="panel"><div class="panel-head"><h2>ဗားရှင်း မှတ်တမ်း</h2></div><div class="panel-body">${form.versions.map((v) => `<a class="quick-link" href="?version=${v.id}"><strong>ဗားရှင်း ${v.number}</strong>${badge(v.status)}</a>`).join("")}</div></section><section class="panel panel-body field-stack"><button class="button" id="duplicate-form">စစ်တမ်း ပုံတူကူးရန်</button>${statusToggleHtml}${editable ? '<button class="button danger" id="delete-form">မထုတ်ဝေရသေးသော စစ်တမ်း ဖျက်ရန်</button>' : ""}</section></aside></div>`,
     );
     if (editable) {
       document
@@ -159,8 +174,8 @@ async function _loadEditor(formId) {
         .forEach(
           (input) =>
             (input.oninput = () => {
-              syncMeta();
               mark();
+              try { syncMeta(); } catch { /* Validate incomplete month/year on save. */ }
             }),
         );
       document.querySelector("#save-draft").onclick = (event) =>
@@ -171,26 +186,37 @@ async function _loadEditor(formId) {
             toast(error.message);
           }
         });
-      document.querySelector("#publish-form").onclick = (event) =>
-        busy(event.currentTarget, async () => {
-          if (
-            !confirm(
-              "ဤဗားရှင်းကို ထုတ်ဝေမလား။ ထုတ်ဝေပြီးပါက မေးခွန်းများကို ပြင်ဆင်၍ မရတော့ပါ။",
-            )
-          )
-            return;
-          try {
-            await save();
-            await api(`/forms/${formId}/versions/${version.id}/publish`, {
-              method: "POST",
-              body: { revision: draft.revision },
-            });
-            unsaved = false;
-            await loadEditor(formId);
-          } catch (error) {
-            toast(error.message);
-          }
-        });
+
+      // Single toggle for form status: draft (မူကြမ်း) <-> published (ထုတ်ဝေထားသည်) <-> archived (မော်ကွန်းတင်ထားသည်)
+      const statusToggle = document.querySelector("[data-form-toggle='status']");
+      if (statusToggle) {
+        statusToggle.onclick = (event) =>
+          busy(event.currentTarget, async () => {
+            const isPublished = statusToggle.getAttribute("aria-checked") === "true";
+            try {
+              if (isPublished) {
+                // Currently published -> unpublish (set to draft)
+                const versionId = version.id;
+              await api(`/forms/${formId}/versions/${versionId}/unpublish`, { method: "POST" });
+              } else {
+                // Currently draft -> publish this version
+                const currentForm = await api(`/forms/${formId}`);
+                if (currentForm.archived) {
+                  // First unarchive if archived
+                  await api(`/forms/${formId}/archive`, { method: "POST", body: { archived: false } });
+                }
+                const versionId = version.id;
+                await api(`/forms/${formId}/versions/${versionId}/publish`, { method: "POST", body: { revision: version.revision } });
+              }
+              toast("စစ်တမ်း အခြေအနေ ပြောင်းလဲပြီးပါပြီ။");
+              unsaved = false;
+              await loadEditor(formId);
+            } catch (error) {
+              toast(error.message);
+            }
+          });
+      }
+
       document.querySelector("#add-section").onclick = () => editSection();
       const first = document.querySelector("#first-question");
       if (first) first.onclick = () => editQuestion();
@@ -324,23 +350,7 @@ async function _loadEditor(formId) {
           toast(error.message);
         }
       });
-    document.querySelector("#archive-form").onclick = (event) =>
-      busy(event.currentTarget, async () => {
-        if (
-          !confirm(
-            form.archived
-              ? "ဤစစ်တမ်းကို ပြန်လည်အသုံးပြုမလား။"
-              : "ဤစစ်တမ်းကို မော်ကွန်းတင်မလား။ မော်ကွန်းတင်ပြီးပါက တင်သွင်းချက်အသစ်များကို လက်ခံတော့မည် မဟုတ်ပါ။",
-          )
-        )
-          return;
-        await api(`/forms/${formId}/archive`, {
-          method: "POST",
-          body: { archived: !form.archived },
-        });
-        unsaved = false;
-        loadEditor(formId);
-      });
+
     if (editable)
       document.querySelector("#delete-form").onclick = (event) =>
         busy(event.currentTarget, async () => {
@@ -363,9 +373,9 @@ async function _loadEditor(formId) {
     draft.title = document.querySelector("#draft-title").value;
     draft.description = document.querySelector("#draft-description").value;
     draft.reporting_start =
-      document.querySelector("#draft-report-start").value || null;
+      readMonthYear("draft-report-start");
     draft.reporting_end =
-      document.querySelector("#draft-report-end").value || null;
+      readMonthYear("draft-report-end", true);
   }
   function editSection(index) {
     syncMeta();

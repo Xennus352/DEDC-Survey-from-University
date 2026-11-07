@@ -17,12 +17,18 @@
     <script>
       try { document.documentElement.dataset.theme = localStorage.getItem("dedc-theme") || "light"; } catch {}
     </script>
-    <link rel="stylesheet" href="/static/css/admin/dashboard.css?v=20261106" />
+    <link rel="stylesheet" href="/static/css/admin/dashboard.css?v=20261108-recovery" />
+    {% if page == 'survey-builder' %}
+    <link rel="stylesheet" href="/static/css/admin/survey-builder.css?v=20261108" />
+    {% endif %}
     <script defer src="/static/js/admin-session.js"></script>
     <script
       type="module"
-      src="/static/js/admin/workspace.js?v=20261106-redesign"
+      src="/static/js/admin/workspace.js?v=20261108-recovery"
     ></script>
+    {% if page == 'survey-builder' %}
+    <script type="module" src="/static/js/admin/survey-builder.js?v=20261108"></script>
+    {% endif %}
   </head>
   <body
     data-admin-workspace
@@ -59,6 +65,11 @@
       {% elif name=='data' %}
       <ellipse cx="12" cy="5" rx="8" ry="3" />
       <path d="M4 5v7c0 4 16 4 16 0V5M4 12v6c0 4 16 4 16 0v-6" />
+      {% elif name=='survey-builder' %}
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
       {% elif name=='settings' %}
       <circle cx="12" cy="12" r="3" />
       <path
@@ -93,7 +104,7 @@
       >
       <div class="workspace-label">စစ်တမ်း အလုပ်ခွင်</div>
       <nav aria-label="စီမံခန့်ခွဲမှု လမ်းညွှန်">
-        {% for key,label in [('overview','အကျဉ်းချုပ်'),('forms','စစ်တမ်းများ'),('departments','ဌာနများ'),('reports','အစီရင်ခံစာများနှင့်
+        {% for key,label in [('overview','အကျဉ်းချုပ်'),('forms','စစ်တမ်းများ'),('survey-builder','စစ်တမ်း ဖန်တီးရန်'),('departments','ဌာနများ'),('reports','အစီရင်ခံစာများနှင့်
         ခွဲခြမ်းစိတ်ဖြာမှု'),('users','အသုံးပြုသူများနှင့်
         စစ်တမ်းကောက်သူများ'),('data','ဒေတာ စီမံခန့်ခွဲမှု')]
         %}
@@ -209,9 +220,11 @@
           <div id="page-actions" class="actions"></div>
         </div>
         <div id="content" aria-live="polite">
+          {% block content %}
           <div class="skeleton" aria-label="အလုပ်ခွင် ဖွင့်နေသည်">
             <span></span><span></span><span></span>
           </div>
+          {% endblock %}
         </div>
         <noscript
           ><p class="notice">

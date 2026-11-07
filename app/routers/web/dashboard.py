@@ -8,13 +8,14 @@ router = APIRouter(
     prefix="/dashboard", tags=["dashboard"], dependencies=[Depends(require_admin)]
 )
 PAGES = {
-    "forms": "Survey forms",
-    "departments": "Departments",
-    "reports": "Reports & analytics",
-    "users": "Users & enumerators",
-    "data": "Data management",
-    "settings": "Settings",
-    "audit": "Audit trail",
+    "forms": "စစ်တမ်းများ",
+    "survey-builder": "စစ်တမ်း ဖန်တီးခြင်း",
+    "departments": "ဌာနများ",
+    "reports": "အစီရင်ခံစာများနှင့် ခွဲခြမ်းစိတ်ဖြာမှု",
+    "users": "အသုံးပြုသူများနှင့် စစ်တမ်းကောက်သူများ",
+    "data": "ဒေတာ စီမံခန့်ခွဲမှု",
+    "settings": "ဆက်တင်များ",
+    "audit": "လုပ်ဆောင်ချက် မှတ်တမ်း",
 }
 
 
@@ -56,9 +57,10 @@ def page(page: str, request: Request, admin: AdminIdentity = Depends(require_adm
         raise HTTPException(404, "Page not found.")
     return render(
         request,
-        "dashboard",
+        "survey_builder" if page == "survey-builder" else "dashboard",
         request.cookies[COOKIE_NAME],
         username=admin.username,
+        active_tab="years",
         page=page,
         page_title=PAGES[page],
     )

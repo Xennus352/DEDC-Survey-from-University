@@ -8,6 +8,7 @@ from app.admin_auth import AdminAuthorizationMiddleware
 from app.errors import SurveyDatabaseUnavailable
 from app.middleware import BodySizeLimitMiddleware, StaticCacheMiddleware
 from app.routers import admin, forms
+from app.routers import admin_survey_builder
 from app.routers.web import (
     dashboard,
     ministry_survey,
@@ -34,6 +35,7 @@ app.include_router(survey.router)
 app.include_router(admin.router)
 app.include_router(forms.router)
 app.include_router(forms.files_router)
+app.include_router(admin_survey_builder.router)
 
 
 @app.get("/health")
