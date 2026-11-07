@@ -401,6 +401,9 @@
       form.querySelectorAll('[data-survey-question]')
     );
     const groups = Array.from(form.querySelectorAll('[data-survey-group]'));
+    const navItems = Array.from(
+      document.querySelectorAll('.uni-group-nav__item')
+    );
     const progressCount = document.querySelector('[data-progress-count]');
     const progressBar = document.querySelector('[data-progress-bar]');
     const progressLabel = document.querySelector('[data-progress-label]');
@@ -453,6 +456,28 @@
         setGroupCount(key, entry.done, entry.total);
       });
 
+      document.querySelectorAll('[data-group-card]').forEach(function (card) {
+        const entry = groupTotals.get(card.dataset.groupCard) || {
+          done: 0,
+          total: 0,
+        };
+        card.classList.toggle(
+          'is-complete',
+          entry.total > 0 && entry.done === entry.total
+        );
+      });
+
+      navItems.forEach(function (item) {
+        const entry = groupTotals.get(item.dataset.openGroup) || {
+          done: 0,
+          total: 0,
+        };
+        item.classList.toggle(
+          'is-complete',
+          entry.total > 0 && entry.done === entry.total
+        );
+      });
+
       if (progressCount) progressCount.textContent = String(completed);
       if (progressBar) {
         progressBar.style.width =
@@ -480,61 +505,183 @@
     update();
   }
 
-  function initGroupNavigation(form) {
-    const groups = Array.from(form.querySelectorAll('details[data-survey-group]'));
-    const expandButton = document.querySelector('[data-expand-all]');
-    const collapseButton = document.querySelector('[data-collapse-all]');
+  function initGroupWizard(form) {
+    const groups = Array.from(form.querySelectorAll('[data-survey-group]'));
+    if (!groups.length) return null;
 
-    function updateControlState() {
-      const openCount = groups.filter(function (group) {
-        return group.open;
-      }).length;
-      if (expandButton) {
-        expandButton.classList.toggle(
+    const overview = form.querySelector('[data-overview]');
+    const stage = form.querySelector('[data-answer-stage]');
+    const stageTitle = form.querySelector('[data-stage-title]');
+    const stageKicker = form.querySelector('[data-stage-kicker]');
+    const overviewTitle = form.querySelector('[data-overview-title]');
+    const openButtons = Array.from(document.querySelectorAll('[data-open-group]'));
+    const closeButton = form.querySelector('[data-close-stage]');
+    const prevButtons = Array.from(form.querySelectorAll('[data-prev-group]'));
+    const nextButtons = Array.from(form.querySelectorAll('[data-next-group]'));
+    const navItems = Array.from(document.querySelectorAll('.uni-group-nav__item'));
+    const groupIndex = new Map();
+    let currentIndex = -1;
+
+    groups.forEach(function (group, index) {
+      groupIndex.set(String(group.dataset.surveyGroup), index);
+    });
+
+    function currentKey() {
+      return currentIndex >= 0 && groups[currentIndex]
+        ? String(groups[currentIndex].dataset.surveyGroup)
+        : '';
+    }
+
+    function syncNavigation() {
+      const activeKey = currentKey();
+      navItems.forEach(function (item) {
+        item.classList.toggle(
           'is-current',
-          groups.length > 0 && openCount === groups.length
+          String(item.dataset.openGroup) === activeKey
         );
-      }
-      if (collapseButton) {
-        collapseButton.classList.toggle(
-          'is-current',
-          groups.length > 0 && openCount === 0
-        );
+      });
+      prevButtons.forEach(function (button) {
+        button.disabled = currentIndex <= 0;
+      });
+      nextButtons.forEach(function (button) {
+        button.disabled =
+          currentIndex < 0 || currentIndex >= groups.length - 1;
+      });
+    }
+
+    function showOverview(shouldFocus) {
+      currentIndex = -1;
+      groups.forEach(function (group) {
+        group.hidden = true;
+      });
+      if (stage) stage.hidden = true;
+      if (overview) overview.hidden = false;
+      if (stageTitle) stageTitle.textContent = '';
+      if (stageKicker) stageKicker.textContent = '';
+      syncNavigation();
+
+      if (shouldFocus && overviewTitle) {
+        const reduceMotion = window.matchMedia(
+          '(prefers-reduced-motion: reduce)'
+        ).matches;
+        window.requestAnimationFrame(function () {
+          overviewTitle.focus({ preventScroll: true });
+          overviewTitle.scrollIntoView({
+            behavior: reduceMotion ? 'auto' : 'smooth',
+            block: 'start',
+          });
+        });
       }
     }
 
-    document.querySelectorAll('[data-group-link]').forEach(function (link) {
-      link.addEventListener('click', function () {
-        const id = link.getAttribute('href');
-        if (!id) return;
-        const target = document.querySelector(id);
-        if (target && target.tagName === 'DETAILS') target.open = true;
+    function openIndex(index, options) {
+      if (index < 0 || index >= groups.length) return;
+      const settings = options || {};
+      const group = groups[index];
+      currentIndex = index;
+
+      groups.forEach(function (item) {
+        item.hidden = item !== group;
+      });
+      if (overview) overview.hidden = true;
+      if (stage) stage.hidden = false;
+      if (stageTitle) {
+        stageTitle.textContent = group.dataset.groupTitle || '';
+      }
+      if (stageKicker) {
+        stageKicker.textContent =
+          'မေးခွန်းအုပ်စု ' + String(index + 1) + ' / ' + String(groups.length);
+      }
+      syncNavigation();
+
+      const focusTarget = settings.focus || null;
+      if (!focusTarget && settings.focusTitle === false) return;
+
+      const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches;
+      window.requestAnimationFrame(function () {
+        if (focusTarget) {
+          focusTarget.focus({ preventScroll: true });
+          focusTarget.scrollIntoView({
+            behavior: reduceMotion ? 'auto' : 'smooth',
+            block: 'center',
+          });
+          return;
+        }
+        if (stageTitle) {
+          stageTitle.focus({ preventScroll: true });
+          if (stage) {
+            stage.scrollIntoView({
+              behavior: reduceMotion ? 'auto' : 'smooth',
+              block: 'start',
+            });
+          }
+        }
+      });
+    }
+
+    function openKey(key, options) {
+      const index = groupIndex.get(String(key));
+      if (index === undefined) return;
+      openIndex(index, options);
+    }
+
+    openButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        openKey(button.dataset.openGroup);
       });
     });
 
-    if (expandButton) {
-      expandButton.addEventListener('click', function () {
-        groups.forEach(function (group) {
-          group.open = true;
-        });
-        updateControlState();
+    if (closeButton) {
+      closeButton.addEventListener('click', function () {
+        showOverview(true);
       });
     }
 
-    if (collapseButton) {
-      collapseButton.addEventListener('click', function () {
-        groups.forEach(function (group) {
-          group.open = false;
-        });
-        updateControlState();
+    prevButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (currentIndex > 0) openIndex(currentIndex - 1);
       });
-    }
-
-    groups.forEach(function (group) {
-      group.addEventListener('toggle', updateControlState);
     });
 
-    updateControlState();
+    nextButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (currentIndex >= 0 && currentIndex < groups.length - 1) {
+          openIndex(currentIndex + 1);
+        }
+      });
+    });
+
+    function groupForQuestion(question) {
+      const group = question.closest('[data-survey-group]');
+      return group ? String(group.dataset.surveyGroup) : '';
+    }
+
+    const firstServerError = form.querySelector(
+      '[data-survey-question].uni-question--error'
+    );
+    const identityInvalid = document.querySelector(
+      '[data-combobox].is-invalid'
+    );
+    if (!identityInvalid && firstServerError) {
+      const key = groupForQuestion(firstServerError);
+      if (key) openKey(key, { focusTitle: false });
+    } else if (!identityInvalid && window.location.hash) {
+      const targetId = window.location.hash.slice(1);
+      const target = groups.find(function (group) {
+        return group.id === targetId;
+      });
+      if (target) {
+        openKey(target.dataset.surveyGroup, { focusTitle: false });
+      }
+    }
+
+    return {
+      openKey: openKey,
+      showOverview: showOverview,
+      groupForQuestion: groupForQuestion,
+    };
   }
 
   function init() {
@@ -553,11 +700,12 @@
       .map(initQuestion)
       .filter(Boolean);
 
-    initGroupNavigation(form);
+    const wizard = initGroupWizard(form);
     initProgress(form);
 
     form.addEventListener('submit', function (event) {
       let firstInvalid = null;
+      let firstInvalidQuestion = null;
 
       comboboxes.forEach(function (combobox) {
         if (!combobox.validate() && !firstInvalid) {
@@ -567,18 +715,25 @@
 
       questions.forEach(function (question) {
         const invalid = question.validate();
-        if (invalid && !firstInvalid) firstInvalid = invalid;
+        if (invalid && !firstInvalid) {
+          firstInvalid = invalid;
+          firstInvalidQuestion = question;
+        }
       });
 
       if (!firstInvalid) return;
 
       event.preventDefault();
-      form
-        .querySelectorAll('[data-survey-question].has-client-error')
-        .forEach(function (question) {
-          const group = question.closest('details[data-survey-group]');
-          if (group) group.open = true;
-        });
+
+      if (firstInvalidQuestion && wizard) {
+        const key = wizard.groupForQuestion(firstInvalidQuestion);
+        if (key) {
+          wizard.openKey(key, { focus: firstInvalid });
+          return;
+        }
+      }
+
+      if (wizard) wizard.showOverview();
 
       const reduceMotion = window.matchMedia(
         '(prefers-reduced-motion: reduce)'
