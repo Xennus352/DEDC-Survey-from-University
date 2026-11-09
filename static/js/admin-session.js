@@ -70,7 +70,7 @@
           body: new URLSearchParams(new FormData(form)),
         });
         if (!response.ok || !response.redirected || new URL(response.url).pathname !== '/portal') {
-          throw new Error('Sign out could not be confirmed. Please retry.');
+          throw new Error('အကောင့်မှ ထွက်မရပါ။ ထပ်စမ်းကြည့်ပါ။');
         }
         announceLogout();
         leaveWorkspace();
@@ -80,7 +80,7 @@
         button.removeAttribute('aria-busy');
         await verifySession();
         if (error && !document.body.hidden) {
-          error.textContent = 'Sign out could not be confirmed. Check your connection and try again.';
+          error.textContent = 'အကောင့်မှ ထွက်မရပါ။ အင်တာနက်ချိတ်ဆက်မှုကို စစ်ဆေးပြီး ထပ်စမ်းကြည့်ပါ။';
           error.hidden = false;
           error.focus();
         }

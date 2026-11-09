@@ -15,7 +15,33 @@ from datetime import datetime
 import hashlib
 import json
 import threading
-import fcntl
+import sys
+import os
+
+if sys.platform == "win32":
+    import msvcrt
+
+    class _FcntlShim:
+        """Minimal fcntl.flock emulation for Windows using msvcrt.locking."""
+        LOCK_EX = 1
+        LOCK_UN = 2
+
+        @staticmethod
+        def flock(file_obj, op):
+            fd = file_obj.fileno()
+            pos = os.lseek(fd, 0, os.SEEK_CUR)
+            try:
+                os.lseek(fd, 0, os.SEEK_SET)
+                if op == _FcntlShim.LOCK_EX:
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                elif op == _FcntlShim.LOCK_UN:
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+            finally:
+                os.lseek(fd, pos, os.SEEK_SET)
+
+    fcntl = _FcntlShim()
+else:
+    import fcntl
 from sqlalchemy import create_engine, select, inspect, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
@@ -125,9 +151,38 @@ def write_state(connection, files, state, layout=None):
     source_ids = {}
     for source_id, record in sources.items():
         period = years[record['yID']]
+        # yearFrom/yearTo in DB are DATE type, but model defines as Integer
+        # Handle both date objects and integers
+        year_from_val = period['yearFrom']
+        year_to_val = period['yearTo']
+
+        def extract_year(val):
+            if val is None:
+                return datetime.now().year
+            if hasattr(val, 'year'):  # date object
+                return val.year
+            if isinstance(val, str):
+                try:
+                    # Try parsing as date string
+                    from datetime import date
+                    return date.fromisoformat(val).year
+                except ValueError:
+                    try:
+                        return int(val)
+                    except ValueError:
+                        return datetime.now().year
+            if isinstance(val, int):
+                if val <= 12:  # month
+                    return datetime.now().year
+                return val
+            return datetime.now().year
+
+        start_year = extract_year(year_from_val)
+        end_year = extract_year(year_to_val)
+
         source_ids[source_id] = put_question(connection, 'university', f'source:{source_id}', record['uQDetail'],
-            period['yearFrom'].year if period['yearFrom'] else datetime.now().year,
-            period['yearTo'].year if period['yearTo'] else datetime.now().year,
+            start_year,
+            end_year,
             {'source_id': source_id, 'category_id': record.get('qTID'), 'year_id': record['yID']}, existing, layout)
     for identifier, field in fields.items():
         version = versions[field['version_id']]
@@ -348,14 +403,16 @@ class CompactSession(Session):
                 self.native.rollback()
                 super().rollback()
                 raise
-        if serialized != self._baseline:
-            try:
+        try:
+            if serialized != self._baseline:
                 write_state(self.native, self.files, snapshot, self.layout)
-                self.native.commit()
-            except BaseException:
-                self.native.rollback()
-                super().rollback()
-                raise
+            # Native builder writes can change SQL without changing the projection.
+            # They still belong to this unit of work and must survive close().
+            self.native.commit()
+        except BaseException:
+            self.native.rollback()
+            super().rollback()
+            raise
         super().commit()
         self._baseline = serialized
 
@@ -390,4 +447,4 @@ class CompactSession(Session):
         try:
             super().close()
         finally:
-            self._release()
+            self._release();

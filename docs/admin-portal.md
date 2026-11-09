@@ -74,6 +74,22 @@ only workflows, or `--before` to capture a visual baseline. The configured MySQL
 database is never used. The workbook portion uses the existing local reference
 file when available.
 
+## Dashboard recovery checks
+
+Dashboard recovery checks run with temporary ten-table data and never use the
+configured database:
+
+```bash
+METADATA_STORAGE=sql uv run --with playwright python scripts/check_dashboard_recovery.py
+```
+
+These checks cover every dashboard route at 1440, 1024, 768 and 390 pixels,
+native year/question creation, saving a native selection as a versioned form,
+publication, navigation, account creation and report exports. Add `--interactions`
+to run only the workflows. Native year dates are stored as actual SQL dates;
+their month/year fields round-trip through the builder. Turning a published
+form off archives it while preserving its published versions and responses.
+
 ## Reusing questions
 
 In the form builder, choose **Add question** and type a title. Suggestions below
@@ -161,3 +177,15 @@ committed to `.env`, rotate them; removing the file does not remove Git history.
 ## Current administration workspace
 
 The dynamic builder, versioned forms, reporting-period-first respondent experience, original-format workbook exports and reporting/user/audit pages are documented in [the implementation report](../context/IMPLEMENTATION_REPORT.md). The application detects the supplied ten-table schema and the previous eight-table layout automatically; see [the table guide](database-tables.md). Back up the SQL database and private files together. Do not apply historical Alembic migrations to these databases.
+
+## Form reporting periods and publication
+
+The forms table shows the latest version's reporting year or year range in Burmese
+numerals. In the builder, choose a Burmese month and enter a four-digit year for
+both ends of the reporting period. The start is saved as the first day of its
+month and the end as the last day of its month, including leap-year February.
+
+The table's publish switch publishes an active draft or restores a previously
+published survey. Switching publication off archives the survey. The archive
+switch can also archive or restore it directly. Archiving preserves published
+versions and responses; restoring a draft does not publish it automatically.

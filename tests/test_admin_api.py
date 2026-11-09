@@ -11,6 +11,34 @@ from app.routers.web.portal import COOKIE_NAME
 
 
 class AdminApiTests(PortalFixture):
+    async def test_form_list_exposes_period_and_archive_preserves_publication(self):
+        await self.login()
+        _, _, form = await self.admin_request('/forms', 'POST', {'title': 'Reporting period'})
+        form_id, version_id = form['id'], form['versions'][0]['id']
+        status, _, saved = await self.admin_request(f'/forms/{form_id}/versions/{version_id}', 'PUT', {
+            'title': 'Reporting period', 'revision': 1,
+            'reporting_start': '2024-02-01', 'reporting_end': '2026-03-31',
+            'sections': [{'title': 'Questions', 'questions': [
+                {'key': 'answer', 'title': 'Answer', 'kind': 'short_text'},
+            ]}],
+        })
+        self.assertEqual(status, 200, saved)
+        _, _, listing = await self.admin_request('/forms')
+        version = listing['items'][0]['versions'][0]
+        self.assertEqual(version['reporting_start'], '2024-02-01')
+        self.assertEqual(version['reporting_end'], '2026-03-31')
+        self.assertEqual(version['revision'], saved['revision'])
+        status, _, _ = await self.admin_request(
+            f'/forms/{form_id}/versions/{version_id}/publish', 'POST', {'revision': version['revision']})
+        self.assertEqual(status, 200)
+        for archived in (True, False):
+            status, _, _ = await self.admin_request(f'/forms/{form_id}/archive', 'POST', {'archived': archived})
+            self.assertEqual(status, 200)
+            _, _, current = await self.admin_request(f'/forms/{form_id}')
+            self.assertEqual(current['archived'], archived)
+            self.assertEqual(current['versions'][0]['status'], 'published')
+            self.assertEqual(current['versions'][0]['reporting_end'], '2026-03-31')
+
     async def test_directory_paginates_both_organizations_without_omitting_records(self):
         from app.storage import schema
         with self.sessions() as db:

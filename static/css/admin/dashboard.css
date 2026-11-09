@@ -422,3 +422,17 @@ dialog[data-variant='organization'] { max-width: 480px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 @media print { .sidebar, .topbar, #page-actions, .filters, .pagination, .workspace-footer, dialog, .toast, .nav-backdrop { display: none !important; } body { display: block; background: white; color: black; } #main-content { padding: 0; } .panel { border: 0; } .table-wrap { overflow: visible; } th, td { padding: 6px; font-size: 10px; } }
+
+.reporting-period { border: 0; padding: 0; margin: 0; min-width: 0; }
+.reporting-period legend { margin-bottom: 8px; }
+.month-year-fields { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 12px; }
+.month-year-fields input, .month-year-fields select { width: 100%; min-width: 0; }
+.form-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px; border: 0; background: transparent; color: var(--ink); font: inherit; white-space: nowrap; cursor: pointer; }
+.form-status-toggle { padding: 4px 10px; }
+.toggle-track { display: inline-block; width: 36px; height: 22px; border-radius: 20px; background: var(--muted); padding: 3px; }
+.toggle-track::after { content: ""; display: block; height: 16px; width: 16px; border-radius: 50%; background: var(--surface); }
+.form-toggle[aria-checked="true"] .toggle-track { background: var(--primary); }
+.form-toggle[aria-checked="true"] .toggle-track::after { transform: translateX(14px); background: var(--on-primary); }
+.form-toggle:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.form-toggle:disabled { opacity: .5; cursor: wait; }
+.toggle-label { font-size: 12px; font-weight: 500; min-width: 70px; text-align: left; }

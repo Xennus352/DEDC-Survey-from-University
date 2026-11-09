@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="my">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -17,12 +17,18 @@
     <script>
       try { document.documentElement.dataset.theme = localStorage.getItem("dedc-theme") || "light"; } catch {}
     </script>
-    <link rel="stylesheet" href="/static/css/admin/dashboard.css?v=20261106" />
+    <link rel="stylesheet" href="/static/css/admin/dashboard.css?v=20261108-recovery" />
+    {% if page == 'survey-builder' %}
+    <link rel="stylesheet" href="/static/css/admin/survey-builder.css?v=20261108" />
+    {% endif %}
     <script defer src="/static/js/admin-session.js"></script>
     <script
       type="module"
-      src="/static/js/admin/workspace.js?v=20261106-redesign"
+      src="/static/js/admin/workspace.js?v=20261108-recovery"
     ></script>
+    {% if page == 'survey-builder' %}
+    <script type="module" src="/static/js/admin/survey-builder.js?v=20261108"></script>
+    {% endif %}
   </head>
   <body
     data-admin-workspace
@@ -59,6 +65,11 @@
       {% elif name=='data' %}
       <ellipse cx="12" cy="5" rx="8" ry="3" />
       <path d="M4 5v7c0 4 16 4 16 0V5M4 12v6c0 4 16 4 16 0v-6" />
+      {% elif name=='survey-builder' %}
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
       {% elif name=='settings' %}
       <circle cx="12" cy="12" r="3" />
       <path
@@ -78,24 +89,24 @@
       <path d="M12 7v5l3 2" />
       {% endif %}</svg
     >{% endmacro %}
-    <a class="skip" href="#main-content">Skip to content</a>
-    <aside class="sidebar" id="sidebar" aria-label="Workspace navigation">
+    <a class="skip" href="#main-content">အကြောင်းအရာသို့ ကျော်သွားရန်</a>
+    <aside class="sidebar" id="sidebar" aria-label="အလုပ်ခွင် လမ်းညွှန်">
       <a class="brand" href="/dashboard"
         ><img
           class="brand-logo"
           src="/static/img/logo.png"
-          alt="Ministry of Science and Technology logo"
+          alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်"
           width="40"
           height="40"
         /><span class="brand-name"
-          >DEDC<span>Survey administration</span></span
+          >DEDC<span>စစ်တမ်း စီမံခန့်ခွဲမှု</span></span
         ></a
       >
-      <div class="workspace-label">Survey workspace</div>
-      <nav aria-label="Admin navigation">
-        {% for key,label in [('overview','Overview'),('forms','Survey
-        forms'),('departments','Departments'),('reports','Reports &
-        analytics'),('users','Users & enumerators'),('data','Data management')]
+      <div class="workspace-label">စစ်တမ်း အလုပ်ခွင်</div>
+      <nav aria-label="စီမံခန့်ခွဲမှု လမ်းညွှန်">
+        {% for key,label in [('overview','အကျဉ်းချုပ်'),('forms','စစ်တမ်းများ'),('survey-builder','စစ်တမ်း ဖန်တီးရန်'),('departments','ဌာနများ'),('reports','အစီရင်ခံစာများနှင့်
+        ခွဲခြမ်းစိတ်ဖြာမှု'),('users','အသုံးပြုသူများနှင့်
+        စစ်တမ်းကောက်သူများ'),('data','ဒေတာ စီမံခန့်ခွဲမှု')]
         %}
         <a
           href="/dashboard{{ '' if key=='overview' else '/'+key }}"
@@ -119,20 +130,20 @@
             {%
             endif
             %}
-            >{{ symbol('audit') }}<span>Audit trail</span></a
+            >{{ symbol('audit') }}<span>လုပ်ဆောင်ချက် မှတ်တမ်း</span></a
           ><a
             href="/dashboard/settings"
             {% if page == 'settings' %}aria-current="page"
             {%
             endif
             %}
-            >{{ symbol('settings') }}<span>Settings</span></a
+            >{{ symbol('settings') }}<span>ဆက်တင်များ</span></a
           >
         </nav>
         <div class="profile">
           <span class="avatar">{{ username[:1] | upper }}</span
           ><span class="profile-name"
-            ><strong>{{ username }}</strong><small>Administrator</small></span
+            ><strong>{{ username }}</strong><small>စီမံခန့်ခွဲသူ</small></span
           >
           <form action="/portal/logout" method="post">
             <input
@@ -141,8 +152,8 @@
             /><button
               type="submit"
               class="icon-button"
-              aria-label="Sign out"
-              title="Sign out"
+              aria-label="ထွက်ရန်"
+              title="ထွက်ရန်"
             >
               {{ symbol('logout') }}
             </button>
@@ -150,50 +161,50 @@
         </div>
       </div>
     </aside>
-    <button class="nav-backdrop" type="button" data-close-navigation aria-label="Close navigation" tabindex="-1"></button>
+    <button class="nav-backdrop" type="button" data-close-navigation aria-label="လမ်းညွှန် ပိတ်ရန်" tabindex="-1"></button>
     <div class="workspace">
       <header class="topbar">
         <button
           class="icon-button"
           type="button"
           data-sidebar-toggle
-          aria-label="Toggle navigation"
+          aria-label="လမ်းညွှန် ဖွင့်/ပိတ်"
           aria-controls="sidebar"
           aria-expanded="true"
         >
           {{ symbol('menu') }}
         </button>
         <div class="breadcrumb">
-          <a href="/dashboard">Workspace</a><span>/</span
+          <a href="/dashboard">အလုပ်ခွင်</a><span>/</span
           ><strong>{{ page_title }}</strong>
         </div>
         <div class="topbar-actions">
-          <button class="icon-button mobile-search" type="button" data-mobile-search aria-label="Search workspace">{{ symbol('search') }}</button>
+          <button class="icon-button mobile-search" type="button" data-mobile-search aria-label="အလုပ်ခွင်တွင် ရှာဖွေရန်">{{ symbol('search') }}</button>
           <form class="search" action="/dashboard/forms">
-            <label class="sr-only" for="global-search">Search workspace</label
+            <label class="sr-only" for="global-search">အလုပ်ခွင်တွင် ရှာဖွေရန်</label
             >{{ symbol('search') }}<input
               id="global-search"
               name="search"
-              placeholder="Search workspace…"
+              placeholder="စစ်တမ်း၊ မေးခွန်း သို့မဟုတ် အသုံးပြုသူ ရှာဖွေရန်…"
               autocomplete="off"
             /><kbd>/</kbd>
           </form>
           <a
             class="icon-button"
             href="/dashboard/audit"
-            aria-label="View recent activity"
-            title="Recent activity"
+            aria-label="မကြာသေးမီ လုပ်ဆောင်ချက်များ ကြည့်ရန်"
+            title="မကြာသေးမီ လုပ်ဆောင်ချက်များ"
             >{{ symbol('bell') }}</a
           ><a
             class="top-avatar avatar"
             href="/dashboard/settings"
-            aria-label="Your profile"
+            aria-label="သင့်ပရိုဖိုင်"
             >{{ username[:1] | upper }}</a
           >
         </div>
       </header>
       <main id="main-content" tabindex="-1">
-        <p class="sr-only">Welcome, {{ username }}.</p>
+        <p class="sr-only">ကြိုဆိုပါသည်၊ {{ username }}။</p>
         <p
           class="notice error"
           role="alert"
@@ -209,19 +220,21 @@
           <div id="page-actions" class="actions"></div>
         </div>
         <div id="content" aria-live="polite">
-          <div class="skeleton" aria-label="Loading workspace">
+          {% block content %}
+          <div class="skeleton" aria-label="အလုပ်ခွင် ဖွင့်နေသည်">
             <span></span><span></span><span></span>
           </div>
+          {% endblock %}
         </div>
         <noscript
           ><p class="notice">
-            Enable JavaScript to use the form builder and reports.
-            <a href="/docs">API documentation</a> remains available.
+            စစ်တမ်းတည်ဆောက်ကိရိယာနှင့် အစီရင်ခံစာများကို အသုံးပြုရန် JavaScript ကို ဖွင့်ပါ။
+            <a href="/docs">API စာတမ်းများ</a> ကို ဆက်လက်ကြည့်ရှုနိုင်ပါသည်။
           </p></noscript
         >
         <footer class="workspace-footer">
-          <span>DEDC · Survey administration</span
-          ><span>Ministry of Science and Technology</span>
+          <span>DEDC · စစ်တမ်း စီမံခန့်ခွဲမှု</span
+          ><span>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</span>
         </footer>
       </main>
     </div>
@@ -232,7 +245,7 @@
           class="icon-button"
           data-close-dialog
           type="button"
-          aria-label="Close dialog"
+          aria-label="ပေါ်နေသော ဝင်းဒိုးကို ပိတ်ရန်"
         >
           ×
         </button>

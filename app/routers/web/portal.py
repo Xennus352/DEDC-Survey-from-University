@@ -109,7 +109,7 @@ def portal(request: Request, db: Session = Depends(get_db)):
 @router.get("/dashboard", name="dashboard")
 def dashboard(request: Request, admin: AdminIdentity = Depends(require_admin)):
     return render(
-        request, "dashboard", request.cookies[COOKIE_NAME], username=admin.username, page="overview", page_title="Overview",
+        request, "dashboard", request.cookies[COOKIE_NAME], username=admin.username, page="overview", page_title="အကျဉ်းချုပ်",
     )
 
 

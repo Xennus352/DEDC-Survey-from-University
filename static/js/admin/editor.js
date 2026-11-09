@@ -1,3 +1,4 @@
+import { monthYearFields, readMonthYear } from "./period.js";
 import { api } from "./api.js";
 import {
   escape as e,
@@ -40,12 +41,12 @@ const kinds = [
   "file",
 ];
 const kindLabels = {
-  short_text: "Short answer", long_text: "Paragraph", number: "Whole number",
-  decimal: "Decimal number", single_choice: "Choose one", multiple_choice: "Choose several",
-  dropdown: "Dropdown", radio: "Radio buttons", checkboxes: "Checkboxes",
-  date: "Date", time: "Time", datetime: "Date and time", yes_no: "Yes / No",
-  location: "Location", information: "Information only", calculated: "Calculated answer",
-  repeating_group: "Repeated answers", image: "Image upload", file: "File upload",
+  short_text: "အဖြေတို", long_text: "အဖြေရှည်", number: "ကိန်းပြည့်",
+  decimal: "ဒသမကိန်း", single_choice: "တစ်ခုရွေးချယ်ရန်", multiple_choice: "အများအပြား ရွေးချယ်ရန်",
+  dropdown: "ရွေးချယ်စာရင်း", radio: "ရေဒီယိုခလုတ်", checkboxes: "အမှန်ခြစ်ကွက်",
+  date: "ရက်စွဲ", time: "အချိန်", datetime: "ရက်စွဲနှင့် အချိန်", yes_no: "ဟုတ် / မဟုတ်",
+  location: "တည်နေရာ", information: "အချက်အလက်", calculated: "တွက်ချက်ထားသည့် အဖြေ",
+  repeating_group: "ထပ်ခါထပ်ခါ အုပ်စု", image: "ရုပ်ပုံ", file: "ဖိုင်",
 };
 const choiceKinds = ["single_choice", "multiple_choice", "dropdown", "radio", "checkboxes"];
 function kindOptions(selected) {
@@ -57,9 +58,9 @@ function readOptions(text) {
     return { value: value.trim(), label: (label.join("|") || value).trim() };
   });
   if (!options.length || options.some((o) => !o.value || o.value.length > 255 || o.label.length > 1024))
-    throw new Error("Add an answer choice on each line (up to 255 characters per value).");
+    throw new Error("ရွေးချယ်စရာတစ်ခုကို တစ်ကြောင်းစီ ထည့်ပါ (တန်ဖိုးတစ်ခုလျှင် စာလုံး ၂၅၅ လုံးအထိ)။");
   if (options.length > 200 || new Set(options.map((o) => o.value)).size !== options.length)
-    throw new Error("Use at most 200 choices, with a different value for each choice.");
+    throw new Error("ရွေးချယ်စရာ ၂၀၀ ခုအထိ ထည့်နိုင်ပြီး တစ်ခုစီအတွက် မတူညီသော တန်ဖိုး ထားပါ။");
   return options;
 }
 function newQuestion() {
@@ -94,8 +95,8 @@ export async function loadEditor(formId) {
     console.error("Editor load error:", error);
     setContent(
       `<div class="notice error" role="alert">${e(
-        "Failed to load editor: " + error.message
-      )}</div><button class="button" id="retry-editor">Retry</button>`
+        "တည်းဖြတ်ကိရိယာကို ဖွင့်မရပါ။ " + error.message
+      )}</div><button class="button" id="retry-editor">ထပ်စမ်းကြည့်ရန်</button>`
     );
     document.querySelector("#retry-editor").onclick = () => loadEditor(formId);
   }
@@ -111,20 +112,20 @@ async function _loadEditor(formId) {
     editable = version.status === "draft" && !form.archived;
   unsaved = false;
   describe(
-    `Version ${version.number} · ${version.status === "draft" ? "Edit questions and sections, then save and preview." : "This published version is immutable."}`,
+    `ဗားရှင်း ${version.number} · ${version.status === "draft" ? "မေးခွန်းများနှင့် ကဏ္ဍများကို ပြင်ဆင်ပြီး သိမ်းဆည်းကာ အစမ်းကြည့်ပါ။" : "ဤထုတ်ဝေပြီး ဗားရှင်းကို ပြင်ဆင်၍ မရတော့ပါ။"}`,
   );
   const mark = () => {
     unsaved = true;
     const note = document.querySelector("#save-status");
-    if (note) note.textContent = "Unsaved changes";
+    if (note) note.textContent = "မသိမ်းရသေးသော ပြောင်းလဲမှုများ";
   };
   async function save() {
     draft.title = document.querySelector("#draft-title").value;
     draft.description = document.querySelector("#draft-description").value;
     draft.reporting_start =
-      document.querySelector("#draft-report-start").value || null;
+      readMonthYear("draft-report-start");
     draft.reporting_end =
-      document.querySelector("#draft-report-end").value || null;
+      readMonthYear("draft-report-end", true);
     const result = await api(`/forms/${formId}/versions/${version.id}`, {
       method: "PUT",
       body: draft,
@@ -132,24 +133,38 @@ async function _loadEditor(formId) {
     draft.revision = result.revision;
     version.revision = result.revision;
     unsaved = false;
-    document.querySelector("#save-status").textContent = "All changes saved";
-    toast("Draft saved.");
+    document.querySelector("#save-status").textContent = "ပြောင်းလဲမှုအားလုံး သိမ်းဆည်းပြီး";
+    toast("မူကြမ်း သိမ်းဆည်းပြီးပါပြီ။");
   }
   function draw() {
     try {
       _draw();
     } catch (error) {
       console.error("Editor draw error:", error);
-      toast("Failed to render editor: " + error.message);
+      toast("တည်းဖြတ်ကိရိယာကို ပြသနိုင်ခြင်း မရှိပါ။ " + error.message);
     }
   }
 
   function _draw() {
+    const published = version.status === "published";
+    const statusLabel = published ? "ထုတ်ဝေထားသည်" : "မူကြမ်း";
+    const statusClass = published ? "published" : "draft";
+    const formArchived = form.archived;
+
+    let statusToggleHtml = "";
+    if (formArchived) {
+      // Form is archived - show archived status but allow click to restore
+      statusToggleHtml = `<button type="button" class="form-toggle form-status-toggle" role="switch" aria-checked="false" aria-label="မော်ကွန်းတင်ထားသည် — ပြန်လည်အသုံးပြုရန်" data-form-toggle="status" data-form-id="${formId}" data-version-id="${version.id}"><span class="toggle-track" aria-hidden="true"></span><span class="toggle-label">မော်ကွန်းတင်ထားသည်</span></button>`;
+    } else {
+      // Not archived - always show toggle (draft or published)
+      statusToggleHtml = `<button type="button" class="form-toggle form-status-toggle" role="switch" aria-checked="${published}" aria-label="${published ? "မော်ကွန်းတင်ရန်" : "ထုတ်ဝေရန်"}" data-form-toggle="status" data-form-id="${formId}" data-version-id="${version.id}"><span class="toggle-track" aria-hidden="true"></span><span class="toggle-label">${statusLabel}</span></button>`;
+    }
+
     actions(
-      `${button("Preview", `/dashboard/forms/${formId}/preview?version=${version.id}`)}<details class="export-menu"><summary class="button">Export Excel</summary><div><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}">Questions only</a><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}&answers=true">Questions & answers</a></div></details>${editable ? '<button class="button primary" id="save-draft">Save changes</button>' : '<button class="button primary" id="new-version">Create new draft</button>'}`,
+      `${button("အစမ်းကြည့်ရန်", `/dashboard/forms/${formId}/preview?version=${version.id}`)}<details class="export-menu"><summary class="button">Excel ဒေါင်းလုဒ်</summary><div><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}">မေးခွန်းများ သီးသန့်</a><a href="/api/admin/forms/${formId}/export/excel?version_id=${version.id}&answers=true">မေးခွန်းများနှင့် အဖြေများ</a></div></details>${editable ? '<button class="button primary" id="save-draft">ပြောင်းလဲမှုများ သိမ်းဆည်းရန်</button>' : '<button class="button primary" id="new-version">မူကြမ်းအသစ် ဖန်တီးရန်</button>'}<div class="status-toggle-wrapper" style="margin-left: auto;">${statusToggleHtml}</div>`,
     );
     setContent(
-      `<div class="editor-layout"><div>${!editable ? '<p class="notice">This version is preserved. Create a new draft to make changes.</p>' : ""}${draft.sections.map((s, si) => `<section class="panel section-block" data-section-index="${si}"><div class="section-heading" ${editable ? `draggable="true" data-section-drag="${si}"` : ""}><span class="badge">${si + 1}</span><h2>${e(s.title)}</h2>${!s.enabled ? badge("disabled") : ""}${editable ? `<div class="actions"><button class="icon-button" data-section-up="${si}" aria-label="Move section up" ${si === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-section-down="${si}" aria-label="Move section down" ${si === draft.sections.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-section="${si}">Edit</button></div>` : ""}</div>${s.questions.map((q, qi) => `<div class="question-row" data-question="${si}:${qi}" ${editable ? 'draggable="true"' : ""}><span class="question-handle" aria-hidden="true">⠿</span><div class="question-main"><strong>${e(q.title)}</strong><div class="question-meta"><span>${e(q.key)}</span><span>·</span><span>${e(kindLabels[q.kind] || q.kind)}</span>${q.required ? "<span>· Required</span>" : ""}${q.conditions ? "<span>· Conditional</span>" : ""}${!q.enabled ? "<span>· Disabled</span>" : ""}</div></div>${editable ? `<div class="actions"><button class="icon-button" data-question-up="${si}:${qi}" aria-label="Move question up" ${qi === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-question-down="${si}:${qi}" aria-label="Move question down" ${qi === s.questions.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-question="${si}:${qi}">Edit</button></div>` : ""}</div>`).join("")}${editable ? `<div class="section-footer actions"><button class="button small" data-add-question="${si}">＋ Add question</button><button class="button small" data-paste-questions="${si}">Paste questions</button></div>` : ""}</section>`).join("") || empty("Add your first question", "Write a question or paste a list. Your first section is created for you.", editable ? '<div class="actions"><button class="button primary" id="first-question">Add question</button><button class="button" id="first-paste">Paste questions</button></div>' : "")}${editable ? '<button class="button" id="add-section">＋ Add section</button>' : ""}</div><aside class="editor-sidebar stack"><section class="panel"><div class="panel-head"><h2>Form settings</h2>${badge(form.archived ? "archived" : version.status)}</div><div class="panel-body field-stack"><label>Title<input id="draft-title" value="${e(draft.title)}" maxlength="255" ${editable ? "" : "disabled"}></label><label>Description<textarea id="draft-description" ${editable ? "" : "disabled"}>${e(draft.description)}</textarea></label><label>Reporting from (year A)<input type="date" id="draft-report-start" value="${e(draft.reporting_start || "")}" ${editable ? "" : "disabled"}></label><label>Reporting to (year B)<input type="date" id="draft-report-end" value="${e(draft.reporting_end || "")}" ${editable ? "" : "disabled"}></label><p class="editor-meta" id="save-status">${unsaved ? "Unsaved changes" : "All changes saved"}</p>${editable ? '<button class="button primary" id="publish-form">Publish this version</button>' : ""}</div></section><section class="panel"><div class="panel-head"><h2>Version history</h2></div><div class="panel-body">${form.versions.map((v) => `<a class="quick-link" href="?version=${v.id}"><strong>Version ${v.number}</strong>${badge(v.status)}</a>`).join("")}</div></section><section class="panel panel-body field-stack"><button class="button" id="duplicate-form">Duplicate form</button><button class="button" id="archive-form">${form.archived ? "Restore form" : "Archive form"}</button>${editable ? '<button class="button danger" id="delete-form">Delete unpublished form</button>' : ""}</section></aside></div>`,
+      `<div class="editor-layout"><div>${!editable ? '<p class="notice">ဤဗားရှင်းကို ပြင်ဆင်၍ မရတော့ပါ။ ပြောင်းလဲလိုပါက မူကြမ်းအသစ် ဖန်တီးပါ။</p>' : ""}${draft.sections.map((s, si) => `<section class="panel section-block" data-section-index="${si}"><div class="section-heading" ${editable ? `draggable="true" data-section-drag="${si}"` : ""}><span class="badge">${si + 1}</span><h2>${e(s.title)}</h2>${!s.enabled ? badge("disabled") : ""}${editable ? `<div class="actions"><button class="icon-button" data-section-up="${si}" aria-label="ကဏ္ဍကို အပေါ်သို့ ရွှေ့ရန်" ${si === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-section-down="${si}" aria-label="ကဏ္ဍကို အောက်သို့ ရွှေ့ရန်" ${si === draft.sections.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-section="${si}">ပြင်ဆင်ရန်</button></div>` : ""}</div>${s.questions.map((q, qi) => `<div class="question-row" data-question="${si}:${qi}" ${editable ? 'draggable="true"' : ""}><span class="question-handle" aria-hidden="true">⠿</span><div class="question-main"><strong>${e(q.title)}</strong><div class="question-meta"><span>${e(q.key)}</span><span>·</span><span>${e(kindLabels[q.kind] || q.kind)}</span>${q.required ? "<span>· မဖြစ်မနေ</span>" : ""}${q.conditions ? "<span>· အခြေအနေအလိုက်</span>" : ""}${!q.enabled ? "<span>· ပိတ်ထားသည်</span>" : ""}</div></div>${editable ? `<div class="actions"><button class="icon-button" data-question-up="${si}:${qi}" aria-label="မေးခွန်းကို အပေါ်သို့ ရွှေ့ရန်" ${qi === 0 ? "disabled" : ""}>↑</button><button class="icon-button" data-question-down="${si}:${qi}" aria-label="မေးခွန်းကို အောက်သို့ ရွှေ့ရန်" ${qi === s.questions.length - 1 ? "disabled" : ""}>↓</button><button class="button small" data-edit-question="${si}:${qi}">ပြင်ဆင်ရန်</button></div>` : ""}</div>`).join("")}${editable ? `<div class="section-footer actions"><button class="button small" data-add-question="${si}">＋ မေးခွန်း ထည့်ရန်</button><button class="button small" data-paste-questions="${si}">မေးခွန်းများ ကူးထည့်ရန်</button></div>` : ""}</section>`).join("") || empty("ပထမဆုံး မေးခွန်း ထည့်ပါ", "မေးခွန်းတစ်ခု ရေးပါ သို့မဟုတ် စာရင်းတစ်ခု ကူးထည့်ပါ။ ပထမဆုံး ကဏ္ဍကို အလိုအလျောက် ဖန်တီးပေးပါမည်။", editable ? '<div class="actions"><button class="button primary" id="first-question">မေးခွန်း ထည့်ရန်</button><button class="button" id="first-paste">မေးခွန်းများ ကူးထည့်ရန်</button></div>' : "")}${editable ? '<button class="button" id="add-section">＋ ကဏ္ဍ ထည့်ရန်</button>' : ""}</div><aside class="editor-sidebar stack"><section class="panel"><div class="panel-head"><h2>စစ်တမ်း ဆက်တင်များ</h2>${badge(form.archived ? "archived" : version.status)}</div><div class="panel-body field-stack"><label>ခေါင်းစဉ်<input id="draft-title" value="${e(draft.title)}" maxlength="255" ${editable ? "" : "disabled"}></label><label>ဖော်ပြချက်<textarea id="draft-description" ${editable ? "" : "disabled"}>${e(draft.description)}</textarea></label>${monthYearFields("draft-report-start", "အစီရင်ခံကာလ စတင်", draft.reporting_start, editable)}${monthYearFields("draft-report-end", "အစီရင်ခံကာလ ပြီးဆုံး", draft.reporting_end, editable)}<p class="editor-meta" id="save-status">${unsaved ? "မသိမ်းရသေးသော ပြောင်းလဲမှုများ" : "ပြောင်းလဲမှုအားလုံး သိမ်းဆည်းပြီး"}</p></div></section><section class="panel"><div class="panel-head"><h2>ဗားရှင်း မှတ်တမ်း</h2></div><div class="panel-body">${form.versions.map((v) => `<a class="quick-link" href="?version=${v.id}"><strong>ဗားရှင်း ${v.number}</strong>${badge(v.status)}</a>`).join("")}</div></section><section class="panel panel-body field-stack"><button class="button" id="duplicate-form">စစ်တမ်း ပုံတူကူးရန်</button>${statusToggleHtml}${editable ? '<button class="button danger" id="delete-form">မထုတ်ဝေရသေးသော စစ်တမ်း ဖျက်ရန်</button>' : ""}</section></aside></div>`,
     );
     if (editable) {
       document
@@ -159,8 +174,8 @@ async function _loadEditor(formId) {
         .forEach(
           (input) =>
             (input.oninput = () => {
-              syncMeta();
               mark();
+              try { syncMeta(); } catch { /* Validate incomplete month/year on save. */ }
             }),
         );
       document.querySelector("#save-draft").onclick = (event) =>
@@ -171,26 +186,37 @@ async function _loadEditor(formId) {
             toast(error.message);
           }
         });
-      document.querySelector("#publish-form").onclick = (event) =>
-        busy(event.currentTarget, async () => {
-          if (
-            !confirm(
-              "Publish this version? Its question definitions will become immutable.",
-            )
-          )
-            return;
-          try {
-            await save();
-            await api(`/forms/${formId}/versions/${version.id}/publish`, {
-              method: "POST",
-              body: { revision: draft.revision },
-            });
-            unsaved = false;
-            await loadEditor(formId);
-          } catch (error) {
-            toast(error.message);
-          }
-        });
+
+      // Single toggle for form status: draft (မူကြမ်း) <-> published (ထုတ်ဝေထားသည်) <-> archived (မော်ကွန်းတင်ထားသည်)
+      const statusToggle = document.querySelector("[data-form-toggle='status']");
+      if (statusToggle) {
+        statusToggle.onclick = (event) =>
+          busy(event.currentTarget, async () => {
+            const isPublished = statusToggle.getAttribute("aria-checked") === "true";
+            try {
+              if (isPublished) {
+                // Currently published -> unpublish (set to draft)
+                const versionId = version.id;
+              await api(`/forms/${formId}/versions/${versionId}/unpublish`, { method: "POST" });
+              } else {
+                // Currently draft -> publish this version
+                const currentForm = await api(`/forms/${formId}`);
+                if (currentForm.archived) {
+                  // First unarchive if archived
+                  await api(`/forms/${formId}/archive`, { method: "POST", body: { archived: false } });
+                }
+                const versionId = version.id;
+                await api(`/forms/${formId}/versions/${versionId}/publish`, { method: "POST", body: { revision: version.revision } });
+              }
+              toast("စစ်တမ်း အခြေအနေ ပြောင်းလဲပြီးပါပြီ။");
+              unsaved = false;
+              await loadEditor(formId);
+            } catch (error) {
+              toast(error.message);
+            }
+          });
+      }
+
       document.querySelector("#add-section").onclick = () => editSection();
       const first = document.querySelector("#first-question");
       if (first) first.onclick = () => editQuestion();
@@ -324,29 +350,13 @@ async function _loadEditor(formId) {
           toast(error.message);
         }
       });
-    document.querySelector("#archive-form").onclick = (event) =>
-      busy(event.currentTarget, async () => {
-        if (
-          !confirm(
-            form.archived
-              ? "Restore this form?"
-              : "Archive this form? Published schemas will no longer accept new submissions.",
-          )
-        )
-          return;
-        await api(`/forms/${formId}/archive`, {
-          method: "POST",
-          body: { archived: !form.archived },
-        });
-        unsaved = false;
-        loadEditor(formId);
-      });
+
     if (editable)
       document.querySelector("#delete-form").onclick = (event) =>
         busy(event.currentTarget, async () => {
           if (
             !confirm(
-              "Delete this unpublished form and its draft questions? Imported source answers and published history cannot be deleted here.",
+              "ဤမထုတ်ဝေရသေးသော စစ်တမ်းနှင့် ၎င်း၏ မူကြမ်းမေးခွန်းများကို ဖျက်မလား။ တင်သွင်းထားသော မူရင်းအဖြေများနှင့် ထုတ်ဝေပြီး မှတ်တမ်းများကို ဤနေရာမှ ဖျက်၍ မရပါ။",
             )
           )
             return;
@@ -363,9 +373,9 @@ async function _loadEditor(formId) {
     draft.title = document.querySelector("#draft-title").value;
     draft.description = document.querySelector("#draft-description").value;
     draft.reporting_start =
-      document.querySelector("#draft-report-start").value || null;
+      readMonthYear("draft-report-start");
     draft.reporting_end =
-      document.querySelector("#draft-report-end").value || null;
+      readMonthYear("draft-report-end", true);
   }
   function editSection(index) {
     syncMeta();
@@ -380,8 +390,8 @@ async function _loadEditor(formId) {
             }
           : draft.sections[index],
       dialog = modal(
-        index === undefined ? "Add section" : "Edit section",
-        `<form id="section-form" class="field-stack"><label>Section title<input name="title" required value="${e(section.title)}"></label><label class="check-label"><input type="checkbox" name="enabled" ${section.enabled ? "checked" : ""}>Enabled</label><div class="dialog-actions">${index !== undefined ? '<button class="button danger" type="button" id="remove-section">Delete section</button><button class="button" type="button" id="copy-section">Duplicate</button>' : ""}<button class="button primary" type="submit">Save section</button></div></form>`,
+        index === undefined ? "ကဏ္ဍ ထည့်ရန်" : "ကဏ္ဍ ပြင်ဆင်ရန်",
+        `<form id="section-form" class="field-stack"><label>ကဏ္ဍ ခေါင်းစဉ်<input name="title" required value="${e(section.title)}"></label><label class="check-label"><input type="checkbox" name="enabled" ${section.enabled ? "checked" : ""}>ပြသမည်</label><div class="dialog-actions">${index !== undefined ? '<button class="button danger" type="button" id="remove-section">ကဏ္ဍ ဖျက်ရန်</button><button class="button" type="button" id="copy-section">ပုံတူကူးရန်</button>' : ""}<button class="button primary" type="submit">ကဏ္ဍ သိမ်းဆည်းရန်</button></div></form>`,
       );
     document.querySelector("#section-form").onsubmit = (event) => {
       event.preventDefault();
@@ -403,7 +413,7 @@ async function _loadEditor(formId) {
     };
     if (index !== undefined) {
       document.querySelector("#remove-section").onclick = () => {
-        if (confirm("Delete this section and its draft questions?")) {
+        if (confirm("ဤကဏ္ဍနှင့် ၎င်း၏ မူကြမ်းမေးခွန်းများကို ဖျက်မလား။")) {
           draft.sections.splice(index, 1);
           mark();
           dialog.close();
@@ -412,7 +422,7 @@ async function _loadEditor(formId) {
       };
       document.querySelector("#copy-section").onclick = () => {
         const copy = structuredClone(section);
-        copy.title += " (copy)";
+        copy.title += " (ပုံတူ)";
         draft.sections.splice(index + 1, 0, copy);
         mark();
         dialog.close();
@@ -424,22 +434,22 @@ async function _loadEditor(formId) {
     if ((si === undefined ? 0 : draft.sections[si].questions.length) + count > 500 ||
         draft.sections.flatMap((s) => s.questions).length + count > 1000 ||
         (si === undefined && draft.sections.length >= 50))
-      throw new Error("A section supports up to 500 questions; a form supports up to 50 sections and 1,000 questions.");
+      throw new Error("ကဏ္ဍတစ်ခုလျှင် မေးခွန်း ၅၀၀ အထိ ထည့်နိုင်သည်။ စစ်တမ်းတစ်ခုလျှင် ကဏ္ဍ ၅၀ ခုနှင့် မေးခွန်း ၁,၀၀၀ အထိ ထည့်နိုင်သည်။");
   }
   function pasteQuestions(si) {
     syncMeta();
-    const dialog = modal("Paste questions", `<form id="paste-form" class="field-stack">
-      <label>Questions<textarea name="titles" rows="8" required autofocus aria-describedby="paste-hint" placeholder="First question\nSecond question\nThird question"></textarea><span class="field-hint" id="paste-hint">One question per line. All questions use the answer type below; you can edit each later.</span></label>
-      <label>Answer type<select name="kind">${kindOptions("short_text")}</select></label>
-      <label data-bulk-choices hidden>Answer choices<textarea name="options" placeholder="One choice per line"></textarea><span class="field-hint">These choices apply to every question in this batch.</span></label>
-      <label class="check-label"><input type="checkbox" name="required">Required</label>
-      <p class="field-hint" id="paste-count" role="status">0 questions ready to add</p>
-      <div class="dialog-actions"><button type="submit" class="button primary">Add questions</button></div>
+    const dialog = modal("မေးခွန်းများ ကူးထည့်ရန်", `<form id="paste-form" class="field-stack">
+      <label>မေးခွန်းများ<textarea name="titles" rows="8" required autofocus aria-describedby="paste-hint" placeholder="ပထမမေးခွန်း\nဒုတိယမေးခွန်း\nတတိယမေးခွန်း"></textarea><span class="field-hint" id="paste-hint">တစ်ကြောင်းလျှင် မေးခွန်းတစ်ခု ထည့်ပါ။ မေးခွန်းအားလုံး အောက်ပါ အဖြေအမျိုးအစားကို အသုံးပြုမည် ဖြစ်ပြီး နောက်ပိုင်းတွင် တစ်ခုချင်းစီ ပြင်ဆင်နိုင်ပါသည်။</span></label>
+      <label>အဖြေ အမျိုးအစား<select name="kind">${kindOptions("short_text")}</select></label>
+      <label data-bulk-choices hidden>ရွေးချယ်စရာများ<textarea name="options" placeholder="တစ်ကြောင်းလျှင် ရွေးချယ်စရာတစ်ခု"></textarea><span class="field-hint">ဤရွေးချယ်စရာများကို ဤအုပ်စုရှိ မေးခွန်းအားလုံးအတွက် အသုံးပြုမည်။</span></label>
+      <label class="check-label"><input type="checkbox" name="required">မဖြစ်မနေ</label>
+      <p class="field-hint" id="paste-count" role="status">မေးခွန်း ၀ ခု ထည့်ရန် အသင့်ဖြစ်နေသည်</p>
+      <div class="dialog-actions"><button type="submit" class="button primary">မေးခွန်းများ ထည့်ရန်</button></div>
     </form>`);
     const form = document.querySelector("#paste-form");
     const titles = () => form.elements.titles.value.split("\n").map((line) => line.trim()).filter(Boolean);
     form.elements.titles.oninput = () => {
-      document.querySelector("#paste-count").textContent = `${titles().length} questions ready to add`;
+      document.querySelector("#paste-count").textContent = `မေးခွန်း ${titles().length} ခု ထည့်ရန် အသင့်ဖြစ်နေသည်`;
     };
     form.elements.kind.onchange = () => {
       form.querySelector("[data-bulk-choices]").hidden = !choiceKinds.includes(form.elements.kind.value);
@@ -449,18 +459,18 @@ async function _loadEditor(formId) {
       try {
         const lines = titles();
         if (!lines.length || lines.some((title) => title.length > 10000))
-          throw new Error("Enter a question on each line, up to 10,000 characters per question.");
+          throw new Error("တစ်ကြောင်းလျှင် မေးခွန်းတစ်ခု ထည့်ပါ၊ မေးခွန်းတစ်ခုလျှင် စာလုံး ၁၀,၀၀၀ အထိ။");
         checkCapacity(si, lines.length);
         const kind = form.elements.kind.value;
         const options = choiceKinds.includes(kind) ? readOptions(form.elements.options.value) : [];
         const batch = lines.map((title) => ({ ...newQuestion(), title, kind,
           required: form.elements.required.checked, options: structuredClone(options) }));
-        if (si === undefined) draft.sections.push({ title: "Questions", description: "", enabled: true, conditions: null, questions: batch });
+        if (si === undefined) draft.sections.push({ title: "မေးခွန်းများ", description: "", enabled: true, conditions: null, questions: batch });
         else draft.sections[si].questions.push(...batch);
         mark();
         dialog.close();
         draw();
-        toast(`${batch.length} questions added. Save changes to keep them.`);
+        toast(`မေးခွန်း ${batch.length} ခု ထည့်ပြီးပါပြီ။ သိမ်းဆည်းရန် ပြောင်းလဲမှုများကို မမေ့ပါနှင့်။`);
       } catch (error) { errorMessage(error); }
     };
   }
@@ -473,42 +483,42 @@ async function _loadEditor(formId) {
           ? newQuestion()
           : questions[qi];
     const dialog = modal(
-      qi === undefined ? "Add question" : "Edit question",
+      qi === undefined ? "မေးခွန်း ထည့်ရန်" : "မေးခွန်း ပြင်ဆင်ရန်",
       `<form id="question-form" class="field-stack">
-        <label><span id="question-title-label">Question title</span><textarea aria-labelledby="question-title-label" name="title" required maxlength="10000" autofocus aria-describedby="question-library-hint" placeholder="Type your question in Burmese or English…">${e(q.title)}</textarea></label>
-        <p class="field-hint" id="question-library-hint">Saved questions appear as you type. New questions are saved to the library when you add them.</p>
+        <label><span id="question-title-label">မေးခွန်း ခေါင်းစဉ်</span><textarea aria-labelledby="question-title-label" name="title" required maxlength="10000" autofocus aria-describedby="question-library-hint" placeholder="မေးခွန်းကို မြန်မာ သို့မဟုတ် အင်္ဂလိပ်လို ရိုက်ပါ…">${e(q.title)}</textarea></label>
+        <p class="field-hint" id="question-library-hint">သင်ရိုက်ထည့်သည်နှင့်အမျှ သိမ်းဆည်းထားသော မေးခွန်းများ ပေါ်လာပါမည်။ မေးခွန်းအသစ် ထည့်သည့်အခါ မေးခွန်းစာကြည့်တိုက်သို့ အလိုအလျောက် သိမ်းဆည်းပါမည်။</p>
         <div class="question-suggestions" id="question-suggestions" aria-live="polite" hidden></div>
-        <label><span id="question-kind-label">Answer type</span><select aria-labelledby="question-kind-label" name="kind">${kindOptions(q.kind)}</select></label>
-        <label class="check-label"><input type="checkbox" name="required" ${q.required ? "checked" : ""}>Required</label>
-        <label data-choice-options ${choiceKinds.includes(q.kind) ? "" : "hidden"}><span id="question-options-label">Answer choices</span><textarea name="options" aria-labelledby="question-options-label" aria-describedby="choices-hint" placeholder="One choice per line">${q.options.map((o) => e(o.value === o.label ? o.label : o.value + " | " + o.label)).join("\n")}</textarea><span class="field-hint" id="choices-hint">One choice per line. For a separate stored value, use value | label.</span></label>
+        <label><span id="question-kind-label">အဖြေ အမျိုးအစား</span><select aria-labelledby="question-kind-label" name="kind">${kindOptions(q.kind)}</select></label>
+        <label class="check-label"><input type="checkbox" name="required" ${q.required ? "checked" : ""}>မဖြစ်မနေ</label>
+        <label data-choice-options ${choiceKinds.includes(q.kind) ? "" : "hidden"}><span id="question-options-label">ရွေးချယ်စရာများ</span><textarea name="options" aria-labelledby="question-options-label" aria-describedby="choices-hint" placeholder="တစ်ကြောင်းလျှင် ရွေးချယ်စရာတစ်ခု">${q.options.map((o) => e(o.value === o.label ? o.label : o.value + " | " + o.label)).join("\n")}</textarea><span class="field-hint" id="choices-hint">တစ်ကြောင်းလျှင် ရွေးချယ်စရာတစ်ခု။ သီးခြား တန်ဖိုးသိမ်းလိုပါက value | label ပုံစံ သုံးပါ။</span></label>
         <div class="form-grid" data-number-settings ${["number", "decimal"].includes(q.kind) ? "" : "hidden"}>
-          <label>Minimum value<input type="number" step="any" name="min" value="${e(q.config.min ?? "")}"></label>
-          <label>Maximum value<input type="number" step="any" name="max" value="${e(q.config.max ?? "")}"></label>
+          <label>အနည်းဆုံးတန်ဖိုး<input type="number" step="any" name="min" value="${e(q.config.min ?? "")}"></label>
+          <label>အများဆုံးတန်ဖိုး<input type="number" step="any" name="max" value="${e(q.config.max ?? "")}"></label>
         </div>
         <details class="editor-advanced" ${["calculated", "repeating_group"].includes(q.kind) ? "open" : ""}>
-          <summary>More settings</summary><div class="field-stack">
-            <label>Help text<input name="help_text" maxlength="5000" value="${e(q.help_text)}"></label>
-            <label>Placeholder<input name="placeholder" maxlength="255" value="${e(q.placeholder)}"></label>
+          <summary>နောက်ထပ် ဆက်တင်များ</summary><div class="field-stack">
+            <label>အကူအညီ စာသား<input name="help_text" maxlength="5000" value="${e(q.help_text)}"></label>
+            <label>ဖြည့်ရန် စာသား<input name="placeholder" maxlength="255" value="${e(q.placeholder)}"></label>
             <div class="form-grid">
-              <label><span id="question-burmese-label">Burmese title</span><textarea aria-labelledby="question-burmese-label" name="title_my" maxlength="10000">${e(q.title_my)}</textarea></label>
-              <label><span id="question-english-label">English title</span><textarea aria-labelledby="question-english-label" name="title_en" maxlength="10000">${e(q.title_en)}</textarea></label>
+              <label><span id="question-burmese-label">မြန်မာ ခေါင်းစဉ်</span><textarea aria-labelledby="question-burmese-label" name="title_my" maxlength="10000">${e(q.title_my)}</textarea></label>
+              <label><span id="question-english-label">အင်္ဂလိပ် ခေါင်းစဉ်</span><textarea aria-labelledby="question-english-label" name="title_en" maxlength="10000">${e(q.title_en)}</textarea></label>
             </div>
             <div class="form-grid" data-text-settings>
-              <label>Minimum text length<input type="number" min="0" max="20000" name="min_length" value="${e(q.config.min_length ?? "")}"></label>
-              <label>Maximum text length<input type="number" min="0" max="20000" name="max_length" value="${e(q.config.max_length ?? "")}"></label>
-              <label class="full">Custom text validation (regular expression)<input name="pattern" maxlength="500" value="${e(q.config.pattern || "")}"></label>
+              <label>အနည်းဆုံး စာသားအရှည်<input type="number" min="0" max="20000" name="min_length" value="${e(q.config.min_length ?? "")}"></label>
+              <label>အများဆုံး စာသားအရှည်<input type="number" min="0" max="20000" name="max_length" value="${e(q.config.max_length ?? "")}"></label>
+              <label class="full">စိတ်ကြိုက် စာသားစစ်ဆေးမှု (Regular Expression)<input name="pattern" maxlength="500" value="${e(q.config.pattern || "")}"></label>
             </div>
-            <label>Default value (JSON, optional)<input name="default_value" value="${q.config.default !== undefined ? e(JSON.stringify(q.config.default)) : ""}" placeholder='e.g. 0 or "Text"'></label>
-            <label data-formula>Calculated field configuration (JSON)<textarea name="formula" class="code-input" placeholder='{"operation":"sum","questions":["first_count","second_count"]}'>${q.config.formula ? e(JSON.stringify(q.config.formula, null, 2)) : ""}</textarea></label>
-            <label data-repeat>Repeating group fields (JSON array)<textarea name="repeat_fields" class="code-input" placeholder='[{"key":"name","title":"Name","kind":"short_text"}]'>${q.config.fields ? e(JSON.stringify(q.config.fields, null, 2)) : ""}</textarea></label>
+            <label>ပုံသေတန်ဖိုး (JSON၊ ရွေးချယ်နိုင်)<input name="default_value" value="${q.config.default !== undefined ? e(JSON.stringify(q.config.default)) : ""}" placeholder='ဥပမာ 0 သို့မဟုတ် "စာသား"'></label>
+            <label data-formula>တွက်ချက်မှု ဖော်မြူလာ (JSON)<textarea name="formula" class="code-input" placeholder='{"operation":"sum","questions":["first_count","second_count"]}'>${q.config.formula ? e(JSON.stringify(q.config.formula, null, 2)) : ""}</textarea></label>
+            <label data-repeat>ထပ်ခါထပ်ခါ အုပ်စု အကွက်များ (JSON array)<textarea name="repeat_fields" class="code-input" placeholder='[{"key":"name","title":"Name","kind":"short_text"}]'>${q.config.fields ? e(JSON.stringify(q.config.fields, null, 2)) : ""}</textarea></label>
             <div id="question-conditions" class="field-stack"></div>
-            <label><span id="question-key-label">Unique key</span><input aria-labelledby="question-key-label" name="key" required pattern="[a-z][a-z0-9_]{0,99}" value="${e(q.key)}" aria-describedby="key-hint"><span class="field-hint" id="key-hint">Generated automatically. Keep this key when editing an existing question.</span></label>
-            <label class="check-label"><input type="checkbox" name="enabled" ${q.enabled ? "checked" : ""}>Enabled</label>
+            <label><span id="question-key-label">မေးခွန်း ကုဒ်</span><input aria-labelledby="question-key-label" name="key" required pattern="[a-z][a-z0-9_]{0,99}" value="${e(q.key)}" aria-describedby="key-hint"><span class="field-hint" id="key-hint">အလိုအလျောက် ဖန်တီးထားသည်။ ရှိပြီးသား မေးခွန်းကို ပြင်ဆင်သည့်အခါ ဤကုဒ်ကို မပြောင်းပါနှင့်။</span></label>
+            <label class="check-label"><input type="checkbox" name="enabled" ${q.enabled ? "checked" : ""}>ပြသမည်</label>
           </div>
         </details>
         <div class="dialog-actions">
-          ${qi !== undefined ? '<button type="button" class="button danger" id="remove-question">Delete question</button><button type="button" class="button" id="copy-question">Duplicate</button>' : '<button class="button" type="submit" name="next" value="yes">Save & add another</button>'}
-          <button class="button primary" type="submit">Save question</button>
+          ${qi !== undefined ? '<button type="button" class="button danger" id="remove-question">မေးခွန်း ဖျက်ရန်</button><button type="button" class="button" id="copy-question">ပုံတူကူးရန်</button>' : '<button class="button" type="submit" name="next" value="yes">သိမ်းဆည်းပြီး နောက်တစ်ခု ထည့်ရန်</button>'}
+          <button class="button primary" type="submit">မေးခွန်း သိမ်းဆည်းရန်</button>
         </div>
       </form>`,
     );
@@ -546,7 +556,7 @@ async function _loadEditor(formId) {
       searchRequest++;
       suggestions.hidden = true;
       updateFields();
-      document.querySelector("#question-library-hint").textContent = "Saved question selected. Review its settings, then add it to this form.";
+      document.querySelector("#question-library-hint").textContent = "သိမ်းဆည်းထားသော မေးခွန်းကို ရွေးပြီးပါပြီ။ ဆက်တင်များကို ပြန်စစ်ပြီး ဤစစ်တမ်းထဲ ထည့်ပါ။";
       questionForm.elements.kind.focus();
     };
     questionForm.elements.title.addEventListener("input", () => {
@@ -555,19 +565,19 @@ async function _loadEditor(formId) {
       const text = questionForm.elements.title.value.trim();
       suggestions.hidden = !text;
       if (!text) return;
-      suggestions.innerHTML = '<p class="field-hint" role="status">Looking for saved questions…</p>';
+      suggestions.innerHTML = '<p class="field-hint" role="status">သိမ်းဆည်းထားသော မေးခွန်းများ ရှာဖွေနေသည်…</p>';
       searchTimer = setTimeout(async () => {
         try {
           const result = await api("/question-library?search=" + encodeURIComponent(text));
           if (request !== searchRequest || !dialog.open || !suggestions.isConnected) return;
           suggestions.innerHTML = result.items.length
-            ? `<p class="suggestion-heading">${result.total} matching saved question${result.total === 1 ? "" : "s"}</p><div class="suggestion-list">${result.items.map((item, index) => `<button type="button" class="question-suggestion" data-suggestion="${index}"><span>${e(item.question.title)}</span><small>${e(kindLabels[item.question.kind] || item.question.kind)} · Use question</small></button>`).join("")}</div>`
-            : '<p class="field-hint">No saved question matches. Add this question to save it for reuse.</p>';
+            ? `<p class="suggestion-heading">ကိုက်ညီသော သိမ်းဆည်းထားသည့် မေးခွန်း ${result.total} ခု</p><div class="suggestion-list">${result.items.map((item, index) => `<button type="button" class="question-suggestion" data-suggestion="${index}"><span>${e(item.question.title)}</span><small>${e(kindLabels[item.question.kind] || item.question.kind)} · ဤမေးခွန်းကို သုံးရန်</small></button>`).join("")}</div>`
+            : '<p class="field-hint">ကိုက်ညီသော သိမ်းဆည်းထားသည့် မေးခွန်း မရှိပါ။ နောက်တစ်ကြိမ် ပြန်သုံးလိုပါက ဤမေးခွန်းကို သိမ်းထားပါ။</p>';
           suggestions.querySelectorAll("[data-suggestion]").forEach((button) => {
             button.onclick = () => applySuggestion(result.items[Number(button.dataset.suggestion)].question);
           });
         } catch (error) {
-          if (request === searchRequest && suggestions.isConnected) suggestions.innerHTML = '<p class="field-hint">Suggestions are unavailable. You can still write your question and retry adding it.</p>';
+          if (request === searchRequest && suggestions.isConnected) suggestions.innerHTML = '<p class="field-hint">အကြံပြုချက်များ မရပါ။ မေးခွန်းကို ဆက်ရေးပြီး ထည့်ကြည့်နိုင်ပါသည်။</p>';
         }
       }, 250);
     });
@@ -592,9 +602,9 @@ async function _loadEditor(formId) {
           if (values.repeat_fields)
             config.fields = JSON.parse(values.repeat_fields);
           else delete config.fields;
-          if (!values.title.trim()) throw new Error("Enter a question title.");
+          if (!values.title.trim()) throw new Error("မေးခွန်း ခေါင်းစဉ် ထည့်ပါ။");
           if (draft.sections.flatMap((s) => s.questions).some((other) => other !== originalQuestion && other.key === values.key))
-            throw new Error("This unique key is already used by another question.");
+            throw new Error("ဤမေးခွန်းကုဒ်ကို အခြားမေးခွန်းတစ်ခုက အသုံးပြုထားပြီး ဖြစ်သည်။");
           const options = choiceKinds.includes(values.kind) ? readOptions(values.options) : [];
           const updated = {
             ...q,
@@ -620,7 +630,7 @@ async function _loadEditor(formId) {
           if (qi === undefined) {
             questions.push(updated);
             if (si === undefined) {
-              draft.sections.push({ title: "Questions", description: "", enabled: true, conditions: null, questions });
+              draft.sections.push({ title: "မေးခွန်းများ", description: "", enabled: true, conditions: null, questions });
               si = draft.sections.length - 1;
             }
           }
@@ -628,7 +638,7 @@ async function _loadEditor(formId) {
           mark();
           dialog.close();
           draw();
-          toast("Question saved in the library. Save changes to keep the form updated.");
+          toast("မေးခွန်းကို စာကြည့်တိုက်တွင် သိမ်းဆည်းပြီးပါပြီ။ စစ်တမ်းတွင် အသက်ဝင်စေရန် ပြောင်းလဲမှုများကို သိမ်းဆည်းပါ။");
           if (event.submitter?.name === "next") editQuestion(si);
         } catch (error) {
           errorMessage(error);
@@ -637,7 +647,7 @@ async function _loadEditor(formId) {
     };
     if (qi !== undefined) {
       document.querySelector("#remove-question").onclick = () => {
-        if (confirm("Delete this draft question?")) {
+        if (confirm("ဤမူကြမ်းမေးခွန်းကို ဖျက်မလား။")) {
           questions.splice(qi, 1);
           mark();
           dialog.close();
@@ -663,8 +673,8 @@ export async function loadPreview(formId) {
     console.error("Preview load error:", error);
     setContent(
       `<div class="notice error" role="alert">${e(
-        "Failed to load preview: " + error.message
-      )}</div><button class="button" id="retry-preview">Retry</button>`
+        "အစမ်းကြည့်ရှုမှုကို ဖွင့်မရပါ။ " + error.message
+      )}</div><button class="button" id="retry-preview">ထပ်စမ်းကြည့်ရန်</button>`
     );
     document.querySelector("#retry-preview").onclick = () => loadPreview(formId);
   }
@@ -677,16 +687,16 @@ async function _loadPreview(formId) {
       form.versions.find((v) => v.id == params.get("version")) ||
       form.versions.at(-1);
   describe(
-    `Version ${version.number} · Check the survey on desktop, tablet and mobile before sharing.`,
+    `ဗားရှင်း ${version.number} · မျှဝေမီ စစ်တမ်းကို ဒက်စတော့၊ တက်ဘလက်နှင့် မိုဘိုင်းတွင် စစ်ဆေးပါ။`,
   );
   actions(
     button(
-      "Back to builder",
+      "တည်းဖြတ်ရန် ပြန်သွားရန်",
       `/dashboard/forms/${formId}?version=${version.id}`,
     ),
   );
   setContent(
-    `<div class="preview-controls" role="group" aria-label="Preview device"><span class="badge">${e(version.status)}</span><button class="button small" data-width="900" aria-pressed="true">Desktop</button><button class="button small" data-width="768" aria-pressed="false">Tablet</button><button class="button small" data-width="390" aria-pressed="false">Mobile</button></div><div id="preview-frame" class="preview-frame"></div>`,
+    `<div class="preview-controls" role="group" aria-label="အစမ်းကြည့် စက်ပစ္စည်း">${badge(version.status)}<button class="button small" data-width="900" aria-pressed="true">ဒက်စတော့</button><button class="button small" data-width="768" aria-pressed="false">တက်ဘလက်</button><button class="button small" data-width="390" aria-pressed="false">မိုဘိုင်း</button></div><div id="preview-frame" class="preview-frame"></div>`,
   );
   const paint = () =>
     renderSurvey(document.querySelector("#preview-frame"), version, {
@@ -706,7 +716,7 @@ async function _loadPreview(formId) {
           body: { answers },
         });
         toast(
-          "All visible answers passed validation. No submission was saved.",
+          "အဖြေအားလုံး စစ်ဆေးမှု အောင်မြင်ပါသည်။ တင်သွင်းမှုကို သိမ်းဆည်းထားခြင်း မရှိပါ။",
         );
       },
     });

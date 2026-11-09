@@ -7,7 +7,7 @@ if (passwordToggle) {
   passwordToggle.addEventListener('click', function () {
     const showPassword = passwordInput.type === 'password';
     passwordInput.type = showPassword ? 'text' : 'password';
-    passwordToggle.textContent = showPassword ? 'Hide' : 'Show';
+    passwordToggle.textContent = showPassword ? 'ဝှက်ရန်' : 'ပြရန်';
     passwordToggle.setAttribute('aria-pressed', String(showPassword));
   });
 }

@@ -69,10 +69,12 @@ def main():
                 context.route('**/*',lambda r:r.continue_() if r.request.url.startswith(base) else r.abort())
                 page=context.new_page();page.set_default_timeout(12000)
                 errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
-                routes=['','/forms','/departments','/reports','/users','/data','/data?tab=answers','/settings','/audit',f'/forms/{draft_id}',f'/forms/{form_id}/preview']
+                routes=['','/survey-builder','/forms','/departments','/reports','/users','/data','/data?tab=answers','/settings','/audit',f'/forms/{draft_id}',f'/forms/{form_id}/preview']
                 def ready():
                     page.locator('#content .skeleton').wait_for(state='detached')
                     page.locator('#content[aria-busy=true]').wait_for(state='detached')
+                    if page.locator('body').get_attribute('data-page') == 'survey-builder':
+                        page.locator('#years-table tbody tr').first.wait_for()
                     page.evaluate('document.fonts.ready')
                 for width in (() if '--interactions' in sys.argv else ((1440,390) if phase=='before' else (1440,1024,768,390))):
                     page.set_viewport_size({'width':width,'height':1000})
