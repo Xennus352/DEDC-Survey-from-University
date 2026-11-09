@@ -198,6 +198,8 @@ class UniversitySurveyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('name="description_100"', text)
         self.assertIn("ကွန်ပျူတာတက္ကသိုလ် (ရန်ကုန်)", text)
         self.assertIn("ရန်ကုန် နည်းပညာတက္ကသိုလ်", text)
+        self.assertIn("data-survey-error-dialog", text)
+        self.assertIn("data-survey-error-close", text)
 
     async def test_submission_saves_one_row_per_question_and_skips_duplicates(self):
         _, token = await self.get_csrf("/surveys/university/1")

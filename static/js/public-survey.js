@@ -28,6 +28,20 @@
     }
   }
 
+  function isQuestionComplete(question) {
+    const checked = question.querySelector('input[type="radio"]:checked');
+    if (!checked) return false;
+    if (checked.value === '0') return true;
+    const count = question.querySelector('input[type="number"]');
+    const description = question.querySelector('textarea');
+    return Boolean(
+      count &&
+        description &&
+        count.value.trim() !== '' &&
+        description.value.trim() !== ''
+    );
+  }
+
   function initCombobox(root) {
     const input = root.querySelector('[data-combobox-input]');
     const hidden = root.querySelector('[data-combobox-value]');
@@ -410,20 +424,6 @@
     const submitProgress = document.querySelector('[data-submit-progress]');
     const total = questions.length;
 
-    function isComplete(question) {
-      const checked = question.querySelector('input[type="radio"]:checked');
-      if (!checked) return false;
-      if (checked.value === '0') return true;
-      const count = question.querySelector('input[type="number"]');
-      const description = question.querySelector('textarea');
-      return Boolean(
-        count &&
-          description &&
-          count.value.trim() !== '' &&
-          description.value.trim() !== ''
-      );
-    }
-
     function setGroupCount(key, completed, groupTotal) {
       document.querySelectorAll('[data-group-count]').forEach(function (node) {
         if (node.dataset.groupCount === String(key)) {
@@ -437,7 +437,7 @@
       const groupTotals = new Map();
 
       questions.forEach(function (question) {
-        const done = isComplete(question);
+        const done = isQuestionComplete(question);
         question.classList.toggle('is-complete', done);
         if (done) completed += 1;
 
@@ -515,21 +515,88 @@
     const stageKicker = form.querySelector('[data-stage-kicker]');
     const overviewTitle = form.querySelector('[data-overview-title]');
     const openButtons = Array.from(document.querySelectorAll('[data-open-group]'));
+    const startButton = form.querySelector('[data-start-survey]');
+    const submitBar = form.querySelector('[data-submit-bar]');
     const closeButton = form.querySelector('[data-close-stage]');
     const prevButtons = Array.from(form.querySelectorAll('[data-prev-group]'));
     const nextButtons = Array.from(form.querySelectorAll('[data-next-group]'));
     const navItems = Array.from(document.querySelectorAll('.uni-group-nav__item'));
+    const quickLinks = Array.from(form.querySelectorAll('[data-quick-group]'));
     const groupIndex = new Map();
+    const groupByKey = new Map();
+    const visitedGroups = new Set();
+    const leftGroups = new Set();
     let currentIndex = -1;
 
     groups.forEach(function (group, index) {
-      groupIndex.set(String(group.dataset.surveyGroup), index);
+      const key = String(group.dataset.surveyGroup);
+      groupIndex.set(key, index);
+      groupByKey.set(key, group);
     });
 
     function currentKey() {
       return currentIndex >= 0 && groups[currentIndex]
         ? String(groups[currentIndex].dataset.surveyGroup)
         : '';
+    }
+
+    function updateQuickLinks() {
+      const activeKey = currentKey();
+      quickLinks.forEach(function (link) {
+        const key = String(link.dataset.quickGroup);
+        const group = groupByKey.get(key);
+        if (!group) return;
+
+        const questions = Array.from(
+          group.querySelectorAll('[data-survey-question]')
+        );
+        const completed = questions.filter(isQuestionComplete).length;
+        const isComplete =
+          questions.length > 0 && completed === questions.length;
+        const visited = visitedGroups.has(key);
+        const isCurrent = key === activeKey;
+        const left = leftGroups.has(key);
+        const isActive = visited && !isComplete && !left;
+        const icon = link.querySelector('[data-quick-icon]');
+
+        link.classList.toggle('is-current', isCurrent);
+        link.classList.toggle('is-right', visited && isComplete);
+        link.classList.toggle('is-wrong', visited && !isComplete && left);
+        link.classList.toggle('is-active', isActive);
+        link.classList.toggle('is-pending', !visited);
+        if (isCurrent) {
+          link.setAttribute('aria-current', 'step');
+        } else {
+          link.removeAttribute('aria-current');
+        }
+
+        if (icon) {
+          if (visited && isComplete) {
+            icon.textContent = '✓';
+          } else if (visited && left) {
+            icon.textContent = '✕';
+          } else if (visited) {
+            icon.textContent = '•';
+          } else {
+            icon.textContent = '○';
+          }
+        }
+
+        let status = 'မဖြေရသေးပါ';
+        if (visited) {
+          if (isComplete) {
+            status = 'ဖြေဆိုပြီး';
+          } else if (left) {
+            status = 'မပြည့်စုံပါ';
+          } else {
+            status = 'ဖြေဆိုနေဆဲ';
+          }
+        }
+        link.setAttribute(
+          'aria-label',
+          String(link.dataset.quickTitle || '') + ' - ' + status
+        );
+      });
     }
 
     function syncNavigation() {
@@ -547,9 +614,16 @@
         button.disabled =
           currentIndex < 0 || currentIndex >= groups.length - 1;
       });
+      if (submitBar) {
+        submitBar.hidden = currentIndex < groups.length - 1;
+      }
+      updateQuickLinks();
     }
 
     function showOverview(shouldFocus) {
+      if (currentIndex >= 0 && groups[currentIndex]) {
+        leftGroups.add(String(groups[currentIndex].dataset.surveyGroup));
+      }
       currentIndex = -1;
       groups.forEach(function (group) {
         group.hidden = true;
@@ -577,8 +651,12 @@
     function openIndex(index, options) {
       if (index < 0 || index >= groups.length) return;
       const settings = options || {};
+      if (currentIndex >= 0 && currentIndex !== index && groups[currentIndex]) {
+        leftGroups.add(String(groups[currentIndex].dataset.surveyGroup));
+      }
       const group = groups[index];
       currentIndex = index;
+      visitedGroups.add(String(group.dataset.surveyGroup));
 
       groups.forEach(function (item) {
         item.hidden = item !== group;
@@ -633,6 +711,18 @@
       });
     });
 
+    if (startButton) {
+      startButton.addEventListener('click', function () {
+        openIndex(0);
+      });
+    }
+
+    quickLinks.forEach(function (link) {
+      link.addEventListener('click', function () {
+        openKey(link.dataset.quickGroup);
+      });
+    });
+
     if (closeButton) {
       closeButton.addEventListener('click', function () {
         showOverview(true);
@@ -652,6 +742,9 @@
         }
       });
     });
+
+    form.addEventListener('change', updateQuickLinks);
+    form.addEventListener('input', updateQuickLinks);
 
     function groupForQuestion(question) {
       const group = question.closest('[data-survey-group]');
@@ -677,6 +770,8 @@
       }
     }
 
+    updateQuickLinks();
+
     return {
       openKey: openKey,
       showOverview: showOverview,
@@ -694,6 +789,80 @@
     const form = document.querySelector('[data-public-survey]');
     if (!form) return;
 
+    const errorDialog = form.querySelector('[data-survey-error-dialog]');
+    const errorMessage = form.querySelector('[data-survey-error-message]');
+    const errorList = form.querySelector('[data-survey-error-list]');
+    const errorClose = form.querySelector('[data-survey-error-close]');
+
+    function focusElement(target) {
+      if (!target) return;
+      const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)'
+      ).matches;
+      window.requestAnimationFrame(function () {
+        target.focus({ preventScroll: true });
+        target.scrollIntoView({
+          behavior: reduceMotion ? 'auto' : 'smooth',
+          block: 'center',
+        });
+      });
+    }
+
+    function showSurveyError(groups, identityInvalid) {
+      if (!errorDialog) return;
+
+      if (errorMessage) {
+        errorMessage.textContent = identityInvalid
+          ? 'စာရင်းမှ သင့်အဖွဲ့အစည်းကို ရွေးချယ်ပြီး မေးခွန်းအားလုံးကို ဖြေဆိုပါ။'
+          : 'မေးခွန်းအားလုံးကို ဖြေဆိုပြီးမှ ထပ်မံပေးပို့ပါ။';
+      }
+
+      if (errorList) {
+        errorList.textContent = '';
+        groups.forEach(function (title) {
+          const item = document.createElement('li');
+          item.textContent = title;
+          errorList.appendChild(item);
+        });
+        errorList.hidden = groups.length === 0;
+      }
+
+      if (typeof errorDialog.showModal === 'function') {
+        if (!errorDialog.open) errorDialog.showModal();
+      } else {
+        errorDialog.setAttribute('open', '');
+      }
+    }
+
+    if (errorDialog) {
+      if (errorClose) {
+        errorClose.addEventListener('click', function () {
+          if (typeof errorDialog.close === 'function') {
+            errorDialog.close();
+          } else {
+            errorDialog.removeAttribute('open');
+          }
+        });
+      }
+
+      errorDialog.addEventListener('click', function (event) {
+        if (event.target !== errorDialog) return;
+        const bounds = errorDialog.getBoundingClientRect();
+        if (
+          event.clientX < bounds.left ||
+          event.clientX > bounds.right ||
+          event.clientY < bounds.top ||
+          event.clientY > bounds.bottom
+        ) {
+          if (typeof errorDialog.close === 'function') {
+            errorDialog.close();
+          } else {
+            errorDialog.removeAttribute('open');
+          }
+        }
+      });
+    }
+
     const questions = Array.from(
       form.querySelectorAll('[data-survey-question]')
     )
@@ -706,16 +875,20 @@
     form.addEventListener('submit', function (event) {
       let firstInvalid = null;
       let firstInvalidQuestion = null;
+      let identityInvalid = false;
+      const invalidQuestions = [];
 
       comboboxes.forEach(function (combobox) {
-        if (!combobox.validate() && !firstInvalid) {
-          firstInvalid = combobox.element;
-        }
+        if (combobox.validate()) return;
+        identityInvalid = true;
+        if (!firstInvalid) firstInvalid = combobox.element;
       });
 
       questions.forEach(function (question) {
         const invalid = question.validate();
-        if (invalid && !firstInvalid) {
+        if (!invalid) return;
+        invalidQuestions.push(question);
+        if (!firstInvalid) {
           firstInvalid = invalid;
           firstInvalidQuestion = question;
         }
@@ -724,6 +897,43 @@
       if (!firstInvalid) return;
 
       event.preventDefault();
+
+      const errorGroups = [];
+      invalidQuestions.forEach(function (question) {
+        const group = question.closest('[data-survey-group]');
+        if (!group) return;
+        const title = group.dataset.groupTitle || '';
+        if (title && errorGroups.indexOf(title) === -1) {
+          errorGroups.push(title);
+        }
+      });
+
+      if (firstInvalidQuestion && wizard) {
+        const key = wizard.groupForQuestion(firstInvalidQuestion);
+        if (key) wizard.openKey(key, { focusTitle: false });
+      } else if (wizard) {
+        wizard.showOverview();
+      }
+
+      if (errorDialog) {
+        errorDialog.addEventListener(
+          'close',
+          function () {
+            if (firstInvalidQuestion && wizard) {
+              const key = wizard.groupForQuestion(firstInvalidQuestion);
+              if (key) {
+                wizard.openKey(key, { focus: firstInvalid });
+                return;
+              }
+            }
+            if (wizard) wizard.showOverview();
+            focusElement(firstInvalid);
+          },
+          { once: true }
+        );
+        showSurveyError(errorGroups, identityInvalid);
+        return;
+      }
 
       if (firstInvalidQuestion && wizard) {
         const key = wizard.groupForQuestion(firstInvalidQuestion);
@@ -734,17 +944,7 @@
       }
 
       if (wizard) wizard.showOverview();
-
-      const reduceMotion = window.matchMedia(
-        '(prefers-reduced-motion: reduce)'
-      ).matches;
-      window.requestAnimationFrame(function () {
-        firstInvalid.focus({ preventScroll: true });
-        firstInvalid.scrollIntoView({
-          behavior: reduceMotion ? 'auto' : 'smooth',
-          block: 'center',
-        });
-      });
+      focusElement(firstInvalid);
     });
   }
 

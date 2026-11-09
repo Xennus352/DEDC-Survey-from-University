@@ -198,6 +198,8 @@ class MinistrySurveyTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn('name="description_100"', text)
         self.assertIn("သိပ္ပံနှင့် နည်းပညာ ဝန်ကြီးဌာန", text)
         self.assertIn("ပညာရေး ဝန်ကြီးဌာန", text)
+        self.assertIn("data-survey-error-dialog", text)
+        self.assertIn("data-survey-error-close", text)
 
     async def test_submission_saves_one_row_per_question_and_skips_duplicates(
         self,
