@@ -21,7 +21,7 @@ import {
   pagination,
   bindFilters,
   searchFilter,
-} from "./ui.js";
+} from "./ui.js?v=20261112-orgs2";
 
 // Dynamic imports with error boundaries
 let loadEditor, loadPreview, loadImport;
@@ -117,19 +117,27 @@ async function searchWorkspace(query) {
     toast(error.message);
   }
 }
-document.querySelector(".topbar .search").onsubmit = (event) => {
-  event.preventDefault();
-  searchWorkspace(document.querySelector("#global-search").value);
-};
-document.querySelector("[data-mobile-search]").onclick = () => {
-  const dialog = modal("အလုပ်ခွင်တွင် ရှာဖွေရန်", `<form id="mobile-search-form" class="field-stack"><label>စစ်တမ်းများ၊ မေးခွန်းများနှင့် အသုံးပြုသူများကို ရှာဖွေရန်<input name="query" type="search" minlength="2" required placeholder="အနည်းဆုံး စာလုံးနှစ်လုံး ရိုက်ထည့်ပါ"></label><div class="dialog-actions"><button class="button primary" type="submit">ရှာဖွေရန်</button></div></form>`);
-  const form = dialog.querySelector("form");
-  form.elements.query.focus();
-  form.onsubmit = (event) => {
+const topbarSearch = document.querySelector(".topbar .search");
+if (topbarSearch) {
+  topbarSearch.onsubmit = (event) => {
     event.preventDefault();
-    searchWorkspace(form.elements.query.value);
+    const input = document.querySelector("#global-search");
+    if (input) searchWorkspace(input.value);
   };
-};
+}
+
+const mobileSearch = document.querySelector("[data-mobile-search]");
+if (mobileSearch) {
+  mobileSearch.onclick = () => {
+    const dialog = modal("အလုပ်ခွင်တွင် ရှာဖွေရန်", `<form id="mobile-search-form" class="field-stack"><label>စစ်တမ်းများ၊ မေးခွန်းများနှင့် အသုံးပြုသူများကို ရှာဖွေရန်<input name="query" type="search" minlength="2" required placeholder="အနည်းဆုံး စာလုံးနှစ်လုံး ရိုက်ထည့်ပါ"></label><div class="dialog-actions"><button class="button primary" type="submit">ရှာဖွေရန်</button></div></form>`);
+    const form = dialog.querySelector("form");
+    form.elements.query.focus();
+    form.onsubmit = (event) => {
+      event.preventDefault();
+      searchWorkspace(form.elements.query.value);
+    };
+  };
+}
 
 document.querySelector("#workspace-dialog [data-close-dialog]").onclick = () =>
   document.querySelector("#workspace-dialog").close();
@@ -153,8 +161,10 @@ document.addEventListener("keydown", (event) => {
     !["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement.tagName)
   ) {
     event.preventDefault();
-    if (matchMedia("(max-width:600px)").matches) document.querySelector("[data-mobile-search]").click();
-    else document.querySelector("#global-search").focus();
+    const mobileSearchButton = document.querySelector("[data-mobile-search]");
+    const globalSearch = document.querySelector("#global-search");
+    if (matchMedia("(max-width:800px)").matches && mobileSearchButton) mobileSearchButton.click();
+    else if (globalSearch) globalSearch.focus();
   }
   if (event.key === "Escape") {
     const wasOpen = document.body.classList.contains("sidebar-open");
@@ -189,26 +199,522 @@ window.addEventListener("unhandledrejection", (event) => {
   event.preventDefault();
 });
 
-export async function createForm() {
-  const dialog = modal(
-    "စစ်တမ်း အသစ်ဖန်တီးရန်",
-    `<form id="create-form" class="field-stack"><label>စစ်တမ်းခေါင်းစဉ်<input name="title" required maxlength="255" placeholder="ဥပမာ တက္ကသိုလ် ဒီဂျစ်တယ်ဖွံ့ဖြိုးရေး စစ်တမ်း"></label><label>ဖြေဆိုသူအုပ်စု<select name="audience"><option value="university">တက္ကသိုလ်</option><option value="ministry">ဝန်ကြီးဌာန</option><option value="general">အထွေထွေ</option></select></label><div class="dialog-actions"><button class="button primary" type="submit">စစ်တမ်း စတင်ဖန်တီးရန်</button></div></form>`,
+let surveyWizard = null;
+
+function monthName(month) {
+  return new Intl.DateTimeFormat("en", { month: "long" }).format(
+    new Date(2000, month - 1, 1),
   );
-  document.querySelector("#create-form").onsubmit = async (event) => {
+}
+
+function surveyAudienceLabel(orgType) {
+  return label(orgType);
+}
+
+function getDefaultYearMonth() {
+  const now = new Date();
+  return { year: now.getFullYear(), month: now.getMonth() + 1 };
+}
+
+const SURVEY_MONTH_NAMES = ["", "ဇန်နဝါရီ", "ဖေဖော်ဝါရီ", "မတ်", "ဧပြီ", "မေ", "ဇွန်", "ဇူလိုင်", "ဩဂုတ်", "စက်တင်ဘာ", "အောက်တိုဘာ", "နိုဝင်ဘာ", "ဒီဇင်ဘာ"];
+const SURVEY_WIZARD_STEPS = ["အမျိုးအစား", "ခုနှစ်", "မေးခွန်းများ"];
+const QUESTION_LABEL = "မေးခွန်း";
+const WIZARD_CHECK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-9"/></svg>';
+
+function wizardStepsHTML(active) {
+  const items = SURVEY_WIZARD_STEPS.map((text, index) => {
+    const step = index + 1;
+    const state = step < active ? " is-done" : step === active ? " is-active" : "";
+    return `<li class="wizard-steps__item${state}"${step === active ? ' aria-current="step"' : ""}><span class="wizard-steps__dot">${step < active ? WIZARD_CHECK_ICON : step}</span><span class="wizard-steps__label">${text}</span></li>`;
+  });
+  return `<ol class="wizard-steps">${items.join('<li class="wizard-steps__sep" aria-hidden="true"></li>')}</ol>`;
+}
+
+export async function createForm() {
+  const defaults = getDefaultYearMonth();
+  surveyWizard = {
+    orgType: null,
+    startYear: defaults.year,
+    startMonth: defaults.month,
+    endYear: defaults.year,
+    endMonth: defaults.month,
+    status: 1,
+  };
+  const dialog = modal("စစ်တမ်း အသစ်ဖန်တီးရန်", "");
+  dialog.dataset.variant = "survey-wizard";
+  renderSurveyAudienceStep(dialog);
+}
+
+function renderSurveyAudienceStep(dialog) {
+  document.querySelector("#dialog-title").textContent = "စစ်တမ်း အသစ်ဖန်တီးရန်";
+  const content = dialog.querySelector("#dialog-content");
+  content.innerHTML = `
+    ${wizardStepsHTML(1)}
+    <div class="survey-wizard">
+      <p class="dialog-intro">မည်သည့် ဖြေဆိုသူအုပ်စုအတွက် စစ်တမ်း ဖန်တီးမည်ကို ရွေးပါ။</p>
+      <div class="survey-audience-grid">
+        <button class="survey-audience-card" type="button" data-audience="university">
+          <span class="survey-audience-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11v5c0 1 2.2 3 5 3s5-2 5-3v-5"/><path d="M21 9v5"/></svg></span>
+          <strong>တက္ကသိုလ်</strong>
+          <span>တက္ကသိုလ်များအတွက် စစ်တမ်း မေးခွန်းများ ဖန်တီးပါ</span>
+        </button>
+        <button class="survey-audience-card" type="button" data-audience="ministry">
+          <span class="survey-audience-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 11h.01M15 11h.01"/></svg></span>
+          <strong>ဝန်ကြီးဌာန</strong>
+          <span>ဝန်ကြီးဌာနများအတွက် စစ်တမ်း မေးခွန်းများ ဖန်တီးပါ</span>
+        </button>
+      </div>
+    </div>`;
+  content.querySelectorAll("[data-audience]").forEach((button) => {
+    button.onclick = () => {
+      surveyWizard.orgType = button.dataset.audience;
+      renderSurveyYearStep(dialog);
+    };
+  });
+}
+
+async function renderSurveyYearStep(dialog) {
+  document.querySelector("#dialog-title").textContent = "ခုနှစ် ရွေးချယ်ရန်";
+  const content = dialog.querySelector("#dialog-content");
+  const monthOptions = (selected) => SURVEY_MONTH_NAMES
+    .map((name, month) => (month ? `<option value="${month}"${month === selected ? " selected" : ""}>${name}</option>` : ""))
+    .join("");
+  content.innerHTML = `
+    ${wizardStepsHTML(2)}
+    <div class="survey-wizard">
+      <div class="survey-wizard-summary"><span>အမျိုးအစား <strong>${e(surveyAudienceLabel(surveyWizard.orgType))}</strong></span></div>
+      <p class="dialog-intro">စစ်တမ်း စတင်ရက် မှ ပြီးဆုံးရက် အထိ ရွေးပါ။</p>
+      <div class="wizard-range">
+        <div class="wizard-range__end">
+          <span class="wizard-range__tag">စတင်ရက်</span>
+          <div class="wizard-range__fields">
+            <label class="wizard-field"><span>လ</span><select name="start-month">${monthOptions(surveyWizard.startMonth)}</select></label>
+            <label class="wizard-field"><span>ခုနှစ်</span><input type="number" name="start-year" min="1900" max="2100" value="${surveyWizard.startYear}" inputmode="numeric" required></label>
+          </div>
+        </div>
+        <span class="wizard-range__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="wizard-range__end">
+          <span class="wizard-range__tag">ပြီးဆုံးရက်</span>
+          <div class="wizard-range__fields">
+            <label class="wizard-field"><span>လ</span><select name="end-month">${monthOptions(surveyWizard.endMonth)}</select></label>
+            <label class="wizard-field"><span>ခုနှစ်</span><input type="number" name="end-year" min="1900" max="2100" value="${surveyWizard.endYear}" inputmode="numeric" required></label>
+          </div>
+        </div>
+      </div>
+      <label class="wizard-switch">
+        <span class="sf-toggle"><input type="checkbox" name="publish" ${surveyWizard.status === 1 ? "checked" : ""}><span class="sf-toggle__track" aria-hidden="true"></span></span>
+        <span class="wizard-switch__text"><strong>ချက်ချင်း ထုတ်ဝေရန်</strong></span>
+      </label>
+      <div class="survey-wizard-actions">
+        <button class="button" type="button" data-back>နောက်သို့</button>
+        <div class="right"><button class="button primary" type="button" data-next>ဆက်လုပ်ရန်</button></div>
+      </div>
+    </div>`;
+
+  const startYear = content.querySelector('[name="start-year"]');
+  const startMonth = content.querySelector('[name="start-month"]');
+  const endYear = content.querySelector('[name="end-year"]');
+  const endMonth = content.querySelector('[name="end-month"]');
+  const publish = content.querySelector('input[name="publish"]');
+
+  [startYear, startMonth, endYear, endMonth].forEach((field) => {
+    field.oninput = () => field.setCustomValidity("");
+    field.onchange = () => field.setCustomValidity("");
+  });
+
+  content.querySelector("[data-back]").onclick = () => renderSurveyAudienceStep(dialog);
+
+  content.querySelector("[data-next]").onclick = () => {
+    const sy = Number(startYear.value);
+    const sm = Number(startMonth.value);
+    const ey = Number(endYear.value);
+    const em = Number(endMonth.value);
+
+    if (!Number.isInteger(sy) || sy < 1900 || sy > 2100) {
+      startYear.setCustomValidity("စတင်မှုခုနှစ်ကို 1900 မှ 2100 အတွင်း ထည့်ပါ။");
+      startYear.reportValidity();
+      return;
+    }
+    if (!Number.isInteger(sm) || sm < 1 || sm > 12) {
+      startMonth.setCustomValidity("စတင်မှုလကို 1 မှ 12 အတွင်း ထည့်ပါ။");
+      startMonth.reportValidity();
+      return;
+    }
+    if (!Number.isInteger(ey) || ey < 1900 || ey > 2100) {
+      endYear.setCustomValidity("ပြီးဆုံးခုနှစ်ကို 1900 မှ 2100 အတွင်း ထည့်ပါ။");
+      endYear.reportValidity();
+      return;
+    }
+    if (!Number.isInteger(em) || em < 1 || em > 12) {
+      endMonth.setCustomValidity("ပြီးဆုံးလကို 1 မှ 12 အတွင်း ထည့်ပါ။");
+      endMonth.reportValidity();
+      return;
+    }
+
+    const start = sy * 100 + sm;
+    const end = ey * 100 + em;
+    if (start > end) {
+      endYear.setCustomValidity("စတင်မှု ရက်စွဲသည် ပြီးဆုံး ရက်စွဲမှာ မဖြုတ်နိုင်ပါ။");
+      endYear.reportValidity();
+      return;
+    }
+
+    surveyWizard.startYear = sy;
+    surveyWizard.startMonth = sm;
+    surveyWizard.endYear = ey;
+    surveyWizard.endMonth = em;
+    surveyWizard.status = publish.checked ? 1 : 0;
+    renderSurveyQuestionsStep(dialog);
+  };
+}
+
+function surveyQuestionTemplate(index) {
+  return `<div class="survey-question-row" data-survey-question>
+    <span class="survey-question-num" aria-hidden="true"><span data-question-number>${index + 1}</span></span>
+    <textarea data-question required maxlength="10000" rows="2" placeholder="မေးခွန်း စာသား ထည့်ပါ" aria-label="မေးခွန်း ${index + 1}"></textarea>
+    <button class="icon-button" type="button" data-remove-question aria-label="မေးခွန်း ဖယ်ရှားရန်" title="မေးခွန်း ဖယ်ရှားရန်">×</button>
+  </div>`;
+}
+
+function surveyGroupTemplate(index) {
+  return `<fieldset class="survey-question-group" data-survey-group>
+    <legend><span class="wizard-chip" data-group-number>${index + 1}</span>မေးခွန်း ခေါင်းစဉ်</legend>
+    <label class="wizard-field"><span>ခေါင်းစဉ်</span><input type="text" data-group-title required maxlength="10000" placeholder="ဥပမာ ဒီဂျစ်တယ် အခြေခံအဆောက်အအုံ"></label>
+    <div class="survey-group-questions" data-group-questions>${surveyQuestionTemplate(0)}</div>
+    <div class="survey-group-actions">
+      <button class="button small" type="button" data-add-question>+ မေးခွန်း ထပ်ထည့်ရန်</button>
+      <button class="button small danger" type="button" data-remove-group>ခေါင်းစဉ် ဖယ်ရှားရန်</button>
+    </div>
+  </fieldset>`;
+}
+
+function renumberSurveyGroups(list) {
+  [...list.querySelectorAll("[data-survey-group]")].forEach((group, groupIndex) => {
+    group.querySelector("[data-group-number]").textContent = groupIndex + 1;
+    [...group.querySelectorAll("[data-survey-question]")].forEach((row, questionIndex) => {
+      row.querySelector("[data-question-number]").textContent = questionIndex + 1;
+      row.querySelector("[data-question]").setAttribute("aria-label", `${QUESTION_LABEL} ${questionIndex + 1}`);
+    });
+  });
+}
+
+function collectSurveyGroups(form) {
+  return [...form.querySelectorAll("[data-survey-group]")]
+    .map((group) => {
+      const title = group.querySelector("[data-group-title]").value.trim();
+      const description = group.querySelector("[data-group-description]")?.value.trim();
+      const questions = [...group.querySelectorAll("[data-question]")]
+        .map((field) => field.value.trim())
+        .filter(Boolean);
+      return { title, description: description || null, questions };
+    })
+    .filter((group) => group.title && group.questions.length);
+}
+
+function renderSurveyQuestionsStep(dialog) {
+  document.querySelector("#dialog-title").textContent = "မေးခွန်းများ ထည့်သွင်းရန်";
+  const content = dialog.querySelector("#dialog-content");
+  content.innerHTML = `
+    ${wizardStepsHTML(3)}
+    <form id="survey-wizard-form" class="survey-wizard" novalidate>
+      <div class="survey-wizard-summary">
+        <span>အမျိုးအစား <strong>${e(surveyAudienceLabel(surveyWizard.orgType))}</strong></span>
+        <span>ခုနှစ် <strong>${e(surveyWizard.startYear + "/" + surveyWizard.startMonth + " မှ " + surveyWizard.endYear + "/" + surveyWizard.endMonth + " အထိ")}</strong></span>
+      </div>
+      <p class="dialog-intro">မေးခွန်း ခေါင်းစဉ်တစ်ခုနှင့် ယင်းအောက်ရှိ မေးခွန်းများကို ထည့်ပါ။ ခေါင်းစဉ်တစ်ခုတွင် မေးခွန်း မည်မျှပါဝင်သည်ကို သင်ကိုယ်တိုင် သတ်မှတ်နိုင်ပါသည်။</p>
+      <div class="survey-group-list" data-group-list>${surveyGroupTemplate(0)}</div>
+      <button class="wizard-add-group" type="button" data-add-group>+ မေးခွန်း ခေါင်းစဉ် ထပ်ထည့်ရန်</button>
+      <div class="survey-wizard-actions">
+        <button class="button" type="button" data-back>နောက်သို့</button>
+        <div class="right"><button class="button primary" type="submit">စစ်တမ်း ဖန်တီးရန်</button></div>
+      </div>
+    </form>`;
+  const form = content.querySelector("#survey-wizard-form");
+  const list = content.querySelector("[data-group-list]");
+  const bindQuestion = (row) => {
+    const field = row.querySelector("[data-question]");
+    field.oninput = () => field.setCustomValidity("");
+    row.querySelector("[data-remove-question]").onclick = () => {
+      const group = row.closest("[data-survey-group]");
+      const questions = group.querySelectorAll("[data-survey-question]");
+      if (questions.length === 1) {
+        toast("အနည်းဆုံး မေးခွန်း တစ်ခု လိုအပ်ပါသည်။");
+        return;
+      }
+      row.remove();
+      renumberSurveyGroups(list);
+    };
+  };
+  const bindGroup = (group) => {
+    group.querySelectorAll("input,textarea").forEach((field) => {
+      field.oninput = () => field.setCustomValidity("");
+    });
+    group.querySelectorAll("[data-survey-question]").forEach(bindQuestion);
+    group.querySelector("[data-add-question]").onclick = () => {
+      const container = group.querySelector("[data-group-questions]");
+      container.insertAdjacentHTML(
+        "beforeend",
+        surveyQuestionTemplate(container.children.length),
+      );
+      const row = container.lastElementChild;
+      bindQuestion(row);
+      renumberSurveyGroups(list);
+      row.querySelector("[data-question]").focus();
+    };
+    group.querySelector("[data-remove-group]").onclick = () => {
+      if (list.children.length === 1) {
+        toast("အနည်းဆုံး ခေါင်းစဉ် တစ်ခု လိုအပ်ပါသည်။");
+        return;
+      }
+      group.remove();
+      renumberSurveyGroups(list);
+    };
+  };
+  list.querySelectorAll("[data-survey-group]").forEach(bindGroup);
+  content.querySelector("[data-add-group]").onclick = () => {
+    list.insertAdjacentHTML("beforeend", surveyGroupTemplate(list.children.length));
+    bindGroup(list.lastElementChild);
+    renumberSurveyGroups(list);
+    list.lastElementChild.querySelector("[data-group-title]").focus();
+  };
+  content.querySelector("[data-back]").onclick = () => renderSurveyYearStep(dialog);
+  form.onsubmit = (event) => {
     event.preventDefault();
-    busy(event.submitter, async () => {
+    if (!form.reportValidity()) return;
+    const groups = collectSurveyGroups(form);
+    if (!groups.length) {
+      errorMessage(new Error("ခေါင်းစဉ်နှင့် မေးခွန်း အနည်းဆုံး တစ်ခု ထည့်ပါ။"));
+      return;
+    }
+    const submitButton =
+      event.submitter || form.querySelector('button[type="submit"]');
+    busy(submitButton, async () => {
       try {
-        const form = await api("/forms", {
-          method: "POST",
-          body: Object.fromEntries(new FormData(event.target)),
-        });
-        // Navigate to the form builder page
-        location.href = "/dashboard/forms/" + form.id;
+        const body = {
+          org_type: surveyWizard.orgType,
+          start_year: surveyWizard.startYear,
+          start_month: surveyWizard.startMonth,
+          end_year: surveyWizard.endYear,
+          end_month: surveyWizard.endMonth,
+          status: surveyWizard.status,
+          groups,
+        };
+        await api("/survey/forms/create", { method: "POST", body });
+        dialog.close();
+        toast(
+          `${surveyAudienceLabel(surveyWizard.orgType)} စစ်တမ်းကို ${surveyWizard.startYear + "/" + surveyWizard.startMonth + " မှ " + surveyWizard.endYear + "/" + surveyWizard.endMonth + " အထိ"} အတွက် ဖန်တီးပြီးပါပြီ။`,
+        );
+        if (location.pathname === "/dashboard/forms") await formsPage();
+        else location.href = "/dashboard/forms";
       } catch (error) {
         errorMessage(error);
       }
     });
   };
+}
+
+// ============================================================
+// Edit modal: question titles of one survey year (edit icon)
+// ============================================================
+
+let surveyEdit = null;
+
+async function editSurveyYear(form) {
+  if (!form) return;
+  let data;
+  try {
+    data = await api(`/survey/builder/groups/${form.org_type}/${form.year_id}`);
+  } catch (error) {
+    toast(error.message);
+    return;
+  }
+  surveyEdit = { form, groups: data.groups || [] };
+  const dialog = modal("မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်", "");
+  dialog.dataset.variant = "survey-edit";
+  renderSurveyGroupsList(dialog);
+}
+
+function renderSurveyGroupsList(dialog) {
+  const { form, groups } = surveyEdit;
+  document.querySelector("#dialog-title").textContent = "မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်";
+  const content = dialog.querySelector("#dialog-content");
+  const rows = groups
+    .map((group, index) => {
+      const titleText = group.qTDetail || "ခေါင်းစဉ် မရွေးထားသော မေးခွန်းများ";
+      return `<li class="survey-edit-group${group.qTID == null ? " is-untitled" : ""}">
+        <span class="wizard-chip" aria-hidden="true">${index + 1}</span>
+        <div class="survey-edit-group__body">
+          <strong>${e(titleText)}</strong>
+          <small>${QUESTION_LABEL} ${group.questions.length} ခု</small>
+        </div>
+        ${group.qTID == null
+          ? ""
+          : `<div class="survey-edit-group__actions">
+          <button class="button small" type="button" data-edit-group="${group.qTID}">ပြင်ဆင်ရန်</button>
+          <button class="button small danger" type="button" data-delete-group="${group.qTID}">ဖျက်ရန်</button>
+        </div>`}
+      </li>`;
+    })
+    .join("");
+  content.innerHTML = `
+    <div class="survey-wizard">
+      <div class="survey-wizard-summary">
+        <span>အမျိုးအစား <strong>${e(surveyOrgLabel(form.org_type))}</strong></span>
+        <span>ခုနှစ် <strong>${e(formatYearRange(form))}</strong></span>
+      </div>
+      ${groups.length
+        ? `<p class="dialog-intro">မေးခွန်း ခေါင်းစဉ်ကို ရွေးပါ။</p>
+      <ul class="survey-edit-list">${rows}</ul>`
+        : `<p class="dialog-intro">ဤစစ်တမ်းတွင် မေးခွန်း များ မရှိသေးပါ။</p>`}
+    </div>`;
+  content.querySelectorAll("[data-edit-group]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        const group = groups.find((g) => String(g.qTID) === button.dataset.editGroup);
+        if (group) renderSurveyGroupEditor(dialog, group);
+      }),
+  );
+  content.querySelectorAll("[data-delete-group]").forEach(
+    (button) =>
+      (button.onclick = () => {
+        const group = groups.find((g) => String(g.qTID) === button.dataset.deleteGroup);
+        if (group) renderSurveyGroupDelete(dialog, group);
+      }),
+  );
+}
+
+function surveyEditQuestionTemplate(index, question) {
+  const idAttr = question ? ` data-question-id="${question.id}"` : "";
+  const value = question ? e(question.detail) : "";
+  return `<div class="survey-question-row" data-edit-question${idAttr}>
+    <span class="survey-question-num" aria-hidden="true">${index + 1}</span>
+    <textarea data-question required maxlength="10000" rows="2" placeholder="မေးခွန်း စာသား ထည့်ပါ" aria-label="${QUESTION_LABEL} ${index + 1}">${value}</textarea>
+    <button class="icon-button" type="button" data-remove-question aria-label="မေးခွန်း ဖယ်ရှားရန်" title="မေးခွန်း ဖယ်ရှားရန်">×</button>
+  </div>`;
+}
+
+function renderSurveyGroupEditor(dialog, group) {
+  const { form } = surveyEdit;
+  document.querySelector("#dialog-title").textContent = "ခေါင်းစဉ် ပြင်ဆင်ရန်";
+  const content = dialog.querySelector("#dialog-content");
+  content.innerHTML = `
+    <form id="survey-edit-form" class="survey-wizard" novalidate>
+      <div class="survey-wizard-summary">
+        <span>အမျိုးအစား <strong>${e(surveyOrgLabel(form.org_type))}</strong></span>
+        <span>ခုနှစ် <strong>${e(formatYearRange(form))}</strong></span>
+      </div>
+      <label class="wizard-field"><span>ခေါင်းစဉ်</span><input type="text" data-edit-title required maxlength="10000" value="${e(group.qTDetail || "")}"></label>
+      <div class="survey-group-questions" data-edit-questions>
+        ${group.questions.map((question, index) => surveyEditQuestionTemplate(index, question)).join("")}
+      </div>
+      <div class="survey-group-actions">
+        <button class="button small" type="button" data-add-question>+ မေးခွန်း ထပ်ထည့်ရန်</button>
+      </div>
+      <div class="survey-wizard-actions">
+        <button class="button" type="button" data-back>နောက်သို့</button>
+        <div class="right"><button class="button primary" type="submit">သိမ်းဆည်းရန်</button></div>
+      </div>
+    </form>`;
+  const editForm = content.querySelector("#survey-edit-form");
+  const list = content.querySelector("[data-edit-questions]");
+  const titleInput = content.querySelector("[data-edit-title]");
+  titleInput.oninput = () => titleInput.setCustomValidity("");
+  const renumberQuestions = () => {
+    list.querySelectorAll("[data-edit-question]").forEach((row, index) => {
+      row.querySelector(".survey-question-num").textContent = index + 1;
+      row.querySelector("[data-question]").setAttribute("aria-label", `${QUESTION_LABEL} ${index + 1}`);
+    });
+  };
+  const bindRow = (row) => {
+    const field = row.querySelector("[data-question]");
+    field.oninput = () => field.setCustomValidity("");
+    row.querySelector("[data-remove-question]").onclick = () => {
+      if (list.querySelectorAll("[data-edit-question]").length === 1) {
+        toast("အနည်းဆုံး မေးခွန်း တစ်ခု လိုအပ်ပါသည်။");
+        return;
+      }
+      row.remove();
+      renumberQuestions();
+    };
+  };
+  list.querySelectorAll("[data-edit-question]").forEach(bindRow);
+  content.querySelector("[data-add-question]").onclick = () => {
+    list.insertAdjacentHTML("beforeend", surveyEditQuestionTemplate(list.children.length, null));
+    const row = list.lastElementChild;
+    bindRow(row);
+    renumberQuestions();
+    row.querySelector("[data-question]").focus();
+  };
+  content.querySelector("[data-back]").onclick = () => renderSurveyGroupsList(dialog);
+  editForm.onsubmit = (event) => {
+    event.preventDefault();
+    if (!editForm.reportValidity()) return;
+    const title = titleInput.value.trim();
+    const questions = [...list.querySelectorAll("[data-edit-question]")].map((row) => {
+      const item = { detail: row.querySelector("[data-question]").value.trim() };
+      if (row.dataset.questionId) item.id = Number(row.dataset.questionId);
+      return item;
+    });
+    const submitButton = event.submitter || editForm.querySelector('button[type="submit"]');
+    busy(submitButton, async () => {
+      try {
+        const updated = await api(
+          `/survey/builder/groups/${form.org_type}/${form.year_id}/${group.qTID}`,
+          { method: "PUT", body: { title, questions } },
+        );
+        group.qTID = updated.qTID;
+        group.qTDetail = updated.qTDetail;
+        group.questions = updated.questions;
+        toast("ခေါင်းစဉ်နှင့် မေးခွန်းများ သိမ်းဆည်းပြီးပါပြီ။");
+        renderSurveyGroupsList(dialog);
+      } catch (error) {
+        errorMessage(error);
+      }
+    });
+  };
+}
+
+function renderSurveyGroupDelete(dialog, group) {
+  const { form } = surveyEdit;
+  document.querySelector("#dialog-title").textContent = "ခေါင်းစဉ်ကို ဖျက်မလား။";
+  const content = dialog.querySelector("#dialog-content");
+  content.innerHTML = `
+    <p id="delete-group-description">“${e(group.qTDetail || "ခေါင်းစဉ် မရွေးထားသော မေးခွန်းများ")}” ၎င်းအောက်ရှိ မေးခွန်းများ အားလုံးကို အပြီးအပိုင် ဖျက်ပစ်ပါမည်။ ပြန်လည်ရယူ၍ မရနိုင်ပါ။</p>
+    <div class="dialog-actions">
+      <button class="button" type="button" data-cancel-group>မလုပ်တော့ပါ</button>
+      <button class="button danger" type="button" data-confirm-group>ခေါင်းစဉ် ဖျက်ရန်</button>
+    </div>`;
+  dialog.setAttribute("aria-describedby", "delete-group-description");
+  const cleanup = () => dialog.removeAttribute("aria-describedby");
+  const cancelButton = content.querySelector("[data-cancel-group]");
+  const confirmButton = content.querySelector("[data-confirm-group]");
+  cancelButton.onclick = () => {
+    cleanup();
+    renderSurveyGroupsList(dialog);
+  };
+  cancelButton.focus();
+  confirmButton.onclick = () =>
+    busy(confirmButton, async () => {
+      const preventClose = (event) => event.preventDefault();
+      const closeButton = dialog.querySelector("[data-close-dialog]");
+      closeButton.disabled = true;
+      dialog.dataset.deleting = "true";
+      dialog.addEventListener("cancel", preventClose);
+      try {
+        await api(`/survey/builder/groups/${form.org_type}/${form.year_id}/${group.qTID}`, { method: "DELETE" });
+        surveyEdit.groups = surveyEdit.groups.filter((g) => g !== group);
+        cleanup();
+        toast("ခေါင်းစဉ်နှင့် မေးခွန်းများ ဖျက်ပြီးပါပြီ။");
+        renderSurveyGroupsList(dialog);
+        if (location.pathname === "/dashboard/forms") await formsPage();
+      } catch (error) {
+        errorMessage(error);
+      } finally {
+        closeButton.disabled = false;
+        delete dialog.dataset.deleting;
+        dialog.removeEventListener("cancel", preventClose);
+      }
+    });
 }
 
 async function overview() {
@@ -228,11 +734,11 @@ async function overview() {
         ["အလုပ်စာအုပ် မှတ်တမ်းများ", data.source_rows, "မူရင်းအဖြေများ သိမ်းဆည်းထားသည်"],
       ].map(([label,value,note]) => `<div class="stat"><p>${label}</p><strong>${value.toLocaleString()}</strong><small>${note}</small></div>`).join("")}</section>
       <div class="overview-main">
-        <section class="panel"><div class="panel-head"><div><h2>တင်သွင်းမှု လှုပ်ရှားမှု</h2><p>လွန်ခဲ့သော ရက် ၃၀ အတွင်း ရရှိသော တုံ့ပြန်ချက်များ</p></div><a class="table-link" href="/dashboard/reports">အစီရင်ခံစာများ ကြည့်ရန် ↗</a></div><div class="panel-body"><div class="chart-summary"><strong>${received}</strong><span>ယခုလ တုံ့ပြန်ချက်များ</span></div><div class="chart" role="img" aria-label="${e(data.trend.map(d => `${d.date}: ${d.count}`).join('; '))}">${data.trend.map(d => `<div class="chart-column" tabindex="0" title="${d.date}: ${d.count} တင်သွင်းမှု"><div class="chart-bar" style="height:${d.count / max * 100}%"></div></div>`).join('')}</div><div class="chart-axis"><span>${data.trend[0].date}</span><span>${data.trend.at(-1).date}</span></div>${received === 0 ? '<p class="editor-meta">ထုတ်ဝေထားသော စစ်တမ်းများကို ဖြေဆိုပြီးပါက တုံ့ပြန်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။</p>' : ''}</div></section>
+        <section class="panel"><div class="panel-head"><div><h2>တင်သွင်းမှု လှုပ်ရှားမှု</h2><p>လွန်ခဲ့သော ရက် ၃၀ အတွင်း ရရှိသော တုံ့ပြန်ချက်များ</p></div><a class="table-link" href="/dashboard/reports">တက္ကသိုလ် အစီရင်ခံစာများ ကြည့်ရန် ↗</a></div><div class="panel-body"><div class="chart-summary"><strong>${received}</strong><span>ယခုလ တုံ့ပြန်ချက်များ</span></div><div class="chart" role="img" aria-label="${e(data.trend.map(d => `${d.date}: ${d.count}`).join('; '))}">${data.trend.map(d => `<div class="chart-column" tabindex="0" title="${d.date}: ${d.count} တင်သွင်းမှု"><div class="chart-bar" style="height:${d.count / max * 100}%"></div></div>`).join('')}</div><div class="chart-axis"><span>${data.trend[0].date}</span><span>${data.trend.at(-1).date}</span></div>${received === 0 ? '<p class="editor-meta">ထုတ်ဝေထားသော စစ်တမ်းများကို ဖြေဆိုပြီးပါက တုံ့ပြန်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။</p>' : ''}</div></section>
         <section class="panel"><div class="panel-head"><h2>ဆက်လုပ်ဆောင်ရန်</h2></div><div class="panel-body">${[
           ['စစ်တမ်းများ','နောက်စစ်တမ်းတစ်ခု တည်ဆောက်ပြီး ထုတ်ဝေပါ','/dashboard/forms'],
           ['အလုပ်စာအုပ် တင်သွင်းရန်','ရှိပြီးသား မေးခွန်းများကို မူကြမ်းအဖြစ် ယူဆောင်လာပါ','/dashboard/data'],
-          ['တုံ့ပြန်ချက်များ စစ်ဆေးရန်','အဖြေများကို စစ်ဆေးပြီး အစီရင်ခံစာများ ပြင်ဆင်ပါ','/dashboard/reports'],
+          ['တက္ကသိုလ် အစီရင်ခံစာများ','လက်ရှိ စစ်တမ်းကာလများ၏ တင်သွင်းမှုကို စောင့်ကြည့်ပါ','/dashboard/reports'],
         ].map(([title,description,url]) => `<a class="quick-link" href="${url}"><div><strong>${title}</strong><p>${description}</p></div><span aria-hidden="true">↗</span></a>`).join('')}<p class="editor-meta">${data.active_users} အသုံးပြုနေသော အကောင့်များ · စုစုပေါင်း ${data.users}</p></div></section>
       </div>
       <div class="overview-lower"><section class="panel"><div class="panel-head"><div><h2>သင့်စစ်တမ်းများ</h2><p>မူကြမ်းကို ဆက်လုပ်ပါ သို့မဟုတ် ထုတ်ဝေပြီး စစ်တမ်းကို ပြန်စစ်ဆေးပါ</p></div><a class="table-link" href="/dashboard/forms">အားလုံးကြည့်ရန် ↗</a></div>${formTable(forms.items)}</section><section class="panel"><div class="panel-head"><h2>လတ်တလော လုပ်ဆောင်ချက်များ</h2><a class="table-link" href="/dashboard/audit">အားလုံးကြည့်ရန် ↗</a></div>${recent.items.length ? `<ul class="activity-list">${recent.items.map(a => `<li><strong>${e(a.action_label || label(a.action))}</strong><small>${e(a.actor_name || "စနစ်")} · ${dateTime(a.created_at)}</small></li>`).join('')}</ul>` : empty('လုပ်ဆောင်ချက် မရှိသေးပါ','သင်လုပ်ဆောင်သည်နှင့်အမျှ စီမံခန့်ခွဲသူ လုပ်ဆောင်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။')}</section></div>
@@ -300,110 +806,426 @@ function formTable(items, search = "") {
         button("အလုပ်စာအုပ် တင်သွင်းရန်", "/dashboard/data"),
       );
 }
+// ============================================================
+// Forms page — DEDC survey board (native `year` surveys)
+// ============================================================
 
+const SURVEY_ORG_META = {
+  university: {
+    label: "တက္ကသိုလ်",
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-5 9 5-9 5-9-5z"/><path d="M7 11v5c0 1 2.2 3 5 3s5-2 5-3v-5"/><path d="M21 9v5"/></svg>',
+  },
+  ministry: {
+    label: "ဝန်ကြီးဌာန",
+    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-4h6v4M9 11h.01M15 11h.01"/></svg>',
+  },
+};
 
-async function formsPage() {
-  describe("စစ်တမ်းများ ဖန်တီးခြင်း၊ စီစဉ်ခြင်းနှင့် ထုတ်ဝေခြင်း။ ဗားရှင်းတိုင်းကို သင်ထိန်းချုပ်နိုင်ပါသည်။");
+const SURVEY_ICONS = {
+  forms: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg>',
+  titles: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16M4 5v13a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V5"/><path d="M8 10h8M8 14h5"/></svg>',
+  questions: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v13H9l-5 4zM9 8a3 3 0 0 1 6 0c0 2-3 2-3 4m0 2h.01"/></svg>',
+  period: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
+  search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>',
+  eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+  trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>',
+  building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M8 7h2M8 11h2M8 15h2M16 9h2a2 2 0 0 1 2 2v10"/></svg>',
+  landmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M4 9h16M6 9V6l6-3 6 3v3M7 9v9M12 9v9M17 9v9"/></svg>',
+};
+
+const REPORT_ICONS = {
+  years: SURVEY_ICONS.period,
+  universities: SURVEY_ICONS.building,
+  reports: SURVEY_ICONS.forms,
+  completion:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>',
+  clock:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  trend:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 4-4 3 2 4-5"/></svg>',
+};
+
+function surveyOrgLabel(orgType) {
+  return SURVEY_ORG_META[orgType]?.label || label(orgType);
+}
+
+function formatYearRange(form) {
+  // Format: "2026 March to 2027 November" in Myanmar numerals
+  const monthNames = SURVEY_MONTH_NAMES;
+  const startYear = form.year_from;
+  const startMonth = form.month_from;
+  const endYear = form.year_to;
+  const endMonth = form.month_to;
+  if (startYear && endYear && startMonth && endMonth) {
+    return `${startYear} ${monthNames[startMonth]} မှ ${endYear} ${monthNames[endMonth]} အထိ`;
+  } else if (form.year_label) {
+    return form.year_label;
+  }
+  return "";
+}
+
+function surveyKpiCard({ icon, value, title, hint, tone }) {
+  return `<div class="sf-kpi sf-kpi--${tone}">
+    <span class="sf-kpi__icon" aria-hidden="true">${icon}</span>
+    <div class="sf-kpi__body">
+      <strong>${value}</strong>
+      <span class="sf-kpi__label">${title}</span>
+      <small class="sf-kpi__hint">${hint}</small>
+    </div>
+  </div>`;
+}
+
+function surveyOrgPill(orgType) {
+  const meta = SURVEY_ORG_META[orgType] || { label: surveyOrgLabel(orgType), icon: "" };
+  return `<span class="sf-org sf-org--${e(orgType)}">${meta.icon}<span>${e(meta.label)}</span></span>`;
+}
+
+function surveyToggle(form) {
+  const published = form.year_status === 1 || form.is_active;
+  return `<label class="sf-toggle">
+    <input type="checkbox" data-toggle-status data-year-id="${form.year_id}" data-org-type="${e(form.org_type)}" ${published ? "checked" : ""} aria-label="${e(surveyOrgLabel(form.org_type))} စစ်တမ်း ထုတ်ဝေမှု">
+    <span class="sf-toggle__track" aria-hidden="true"></span>
+  </label>`;
+}
+
+function surveyStatusBadge(form) {
+  const published = form.year_status === 1 || form.is_active;
+  return `<span class="sf-status ${published ? "sf-status--published" : "sf-status--draft"}">
+    <span class="sf-status__dot" aria-hidden="true"></span>${published ? "ထုတ်ဝေထားသည်" : "မူကြမ်း"}
+  </span>`;
+}
+
+function surveyRow(form) {
+  const yearRange = formatYearRange(form);
+  const titleCount = form.question_title_count ?? 0;
+  const questionCount = form.question_count ?? 0;
+  return `<tr class="sf-row sf-row--${e(form.org_type)}">
+    <td class="sf-cell-period">
+      <span class="sf-period-icon" aria-hidden="true">${SURVEY_ICONS.period}</span>
+      <div class="sf-period">
+        <strong>${e(yearRange || "ကာလ မသတ်မှတ်ထားပါ")}</strong>
+      </div>
+    </td>
+    <td>${surveyOrgPill(form.org_type)}</td>
+    <td class="numeric"><span class="sf-count sf-count--titles" title="ကွဲပြားသော မေးခွန်းခေါင်းစဉ် အရေအတွက်">${titleCount}</span></td>
+    <td class="numeric"><span class="sf-count sf-count--questions">${questionCount}</span></td>
+    <td class="sf-cell-status">
+      <div class="sf-status-group">
+        ${surveyToggle(form)}
+        ${surveyStatusBadge(form)}
+      </div>
+    </td>
+    <td class="sf-cell-actions">
+      <div class="sf-actions">
+        <button type="button" class="icon-button" data-detail-year="${form.year_id}" data-org-type="${e(form.org_type)}" title="အသေးစိတ် ကြည့်ရန်" aria-label="${e(yearRange)} — အသေးစိတ် ကြည့်ရန်">${SURVEY_ICONS.eye}</button>
+        <button type="button" class="icon-button" data-edit-year="${form.year_id}" data-org-type="${e(form.org_type)}" title="မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်" aria-label="${e(yearRange)} — မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်">${SURVEY_ICONS.edit}</button>
+        <button type="button" class="icon-button danger" data-delete-year="${form.year_id}" data-org-type="${e(form.org_type)}" title="ဖျက်ရန်" aria-label="${e(yearRange)} — ဖျက်ရန်">${SURVEY_ICONS.trash}</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+function surveyBoard(surveys, orgFilter, search) {
+  const rows = orgFilter
+    ? surveys.filter((form) => form.org_type === orgFilter)
+    : surveys;
+  const params = new URLSearchParams(location.search);
+  const pageSize = Math.max(1, Number(params.get("limit") || 25));
+  const page = Math.max(1, Number(params.get("page") || 1) || 1);
+  const pageRows = rows.slice((page - 1) * pageSize, page * pageSize);
+  const counts = {
+    all: surveys.length,
+    university: surveys.filter((form) => form.org_type === "university").length,
+    ministry: surveys.filter((form) => form.org_type === "ministry").length,
+  };
+  const totalQuestions = surveys.reduce((sum, form) => sum + (form.question_count || 0), 0);
+  const totalTitles = surveys.reduce((sum, form) => sum + (form.question_title_count || 0), 0);
+
+  const segments = [
+    { value: "", label: "အားလုံး", count: counts.all, dot: false },
+    { value: "university", label: "တက္ကသိုလ်", count: counts.university, dot: "university" },
+    { value: "ministry", label: "ဝန်ကြီးဌာန", count: counts.ministry, dot: "ministry" },
+  ];
+
+  return `
+  <section class="sf-stage" aria-label="DEDC စစ်တမ်းများ">
+    <div class="sf-kpis">
+      ${surveyKpiCard({ icon: SURVEY_ICONS.forms, value: counts.all.toLocaleString(), title: "စစ်တမ်း စုစုပေါင်း", hint: `${counts.university} တက္ကသိုလ် · ${counts.ministry} ဝန်ကြီးဌာန`, tone: "total" })}
+      ${surveyKpiCard({ icon: SURVEY_ICONS.titles, value: totalTitles.toLocaleString(), title: "မေးခွန်း ခေါင်းစဉ်များ", hint: "ကွဲပြားသော ခေါင်းစဉ် အရေအတွက်", tone: "titles" })}
+      ${surveyKpiCard({ icon: SURVEY_ICONS.questions, value: totalQuestions.toLocaleString(), title: "မေးခွန်း စုစုပေါင်း", hint: "စစ်တမ်းများတွင် ပါဝင်သည့် မေးခွန်းများ", tone: "questions" })}
+      ${surveyKpiCard({ icon: SURVEY_ICONS.edit, value: (counts.all ? Math.round((surveys.filter((form) => (form.year_status === 1 || form.is_active)).length / counts.all) * 100) : 0) + "%", title: "ထုတ်ဝေထားသည်", hint: "ဖြေဆိုသူများ ဝင်ရောက်နိုင်သည်", tone: "published" })}
+    </div>
+    <section class="sf-board" aria-label="စစ်တမ်း စာရင်း">
+      <div class="sf-toolbar">
+        <div class="sf-segmented" role="group" aria-label="ဖြေဆိုသူ အုပ်စု အားဖြင့် စစ်ထုတ်ရန်">
+          ${segments.map((segment) => `
+          <button type="button" class="sf-seg ${orgFilter === segment.value ? "is-active" : ""}" data-org-filter="${segment.value}" aria-pressed="${orgFilter === segment.value}">
+            ${segment.dot ? `<span class="sf-seg__dot sf-seg__dot--${segment.dot}" aria-hidden="true"></span>` : ""}
+            <span>${segment.label}</span><span class="sf-seg__count">${segment.count}</span>
+          </button>`).join("")}
+        </div>
+        <p class="sf-toolbar__summary">${rows.length ? `စစ်တမ်း <strong>${rows.length}</strong> ခု ပြသနေသည်${orgFilter ? ` · ${surveyOrgLabel(orgFilter)}` : ""}` : ""}</p>
+        <form class="sf-search" data-filter-form role="search">
+          <input type="hidden" name="org_type" value="${e(orgFilter)}">
+          ${SURVEY_ICONS.search}<input type="search" name="search" placeholder="ကာလ သို့မဟုတ် အမျိုးအစား ရှာဖွေရန်…" value="${e(search)}" aria-label="စစ်တမ်းများ ရှာဖွေရန်">
+          <button class="button small" type="submit">ရှာဖွေရန်</button>
+
+        </form>
+      </div>
+      ${rows.length
+        ? `<div class="table-wrap sf-table-wrap" tabindex="0" role="region" aria-label="ဘေးတိုက် လှိမ့်ကြည့်နိုင်သော စစ်တမ်း စာရင်း"><table class="sf-table">
+          <thead><tr>
+            <th scope="col">စစ်တမ်းကာလ</th>
+            <th scope="col">အမျိုးအစား</th>
+            <th scope="col" class="numeric"><span class="sf-th-hint">ခေါင်းစဉ်များ</span><small>ကွဲပြားသော ခေါင်းစဉ်</small></th>
+            <th scope="col" class="numeric"><span class="sf-th-hint">မေးခွန်းများ</span><small>စုစုပေါင်း မေးခွန်း</small></th>
+            <th scope="col">အခြေအနေ / ထုတ်ဝေမှု</th>
+            <th scope="col">လုပ်ဆောင်ချက်များ</th>
+          </tr></thead>
+          <tbody>${pageRows.map(surveyRow).join("")}</tbody>
+        </table></div>
+        <footer class="sf-board__footer">
+          <span>${pageRows.length.toLocaleString()} / ${rows.length.toLocaleString()} စစ်တမ်း ပြသနေသည်</span>
+          <div class="sf-legend" aria-hidden="true">
+            <span class="sf-legend__item"><i class="sf-legend__dot sf-legend__dot--university"></i>တက္ကသိုလ်</span>
+            <span class="sf-legend__item"><i class="sf-legend__dot sf-legend__dot--ministry"></i>ဝန်ကြီးဌာန</span>
+          </div>
+        </footer>
+        ${pagination(rows.length)}`
+        : `<div class="sf-empty">${empty(
+            search || orgFilter ? "ကိုက်ညီသော စစ်တမ်း မရှိပါ" : "နောက်စစ်တမ်းကို ဤနေရာမှ စတင်ပါ",
+            search || orgFilter
+              ? "အခြားကာလတစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် စစ်ထုတ်မှုများကို ရှင်းလင်းပြီး စစ်တမ်းအားလုံးကို ကြည့်ပါ။"
+              : "အစမှ စစ်တမ်း ဖန်တီးပါ သို့မဟုတ် သင့်လက်ရှိ DEDC အလုပ်စာအုပ်ကို တင်သွင်းပါ။",
+            search || orgFilter ? button("စစ်ထုတ်မှု ရှင်းလင်းရန်", "/dashboard/forms") : button("အလုပ်စာအုပ် တင်သွင်းရန်", "/dashboard/data"),
+          )}</div>`}
+    </section>
+  </section>`;
+}
+
+function findSurvey(yearId, orgType) {
+  return surveyBoardData.find(
+    (form) => form.year_id == yearId && form.org_type === orgType,
+  );
+}
+
+async function showSurveyDetail(form) {
+  if (!form) return;
   try {
-    const p = new URLSearchParams(location.search),
-      data = await api("/forms?" + p);
-    actions(
-      `<a class="button" href="/dashboard/data">အလုပ်စာအုပ် တင်သွင်းရန်</a><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`,
+    const questions = await api(
+      `/survey/questions/${form.org_type}/by-year/${form.year_id}`,
     );
-    setContent(
-      `<div class="collection-intro"><div><h2>စစ်တမ်း စာကြည့်တိုက်</h2><p>မူကြမ်းများ၊ ထုတ်ဝေထားသည့် စစ်တမ်းများနှင့် မော်ကွန်းတင်ထားသည့် စစ်တမ်းများ</p></div><span class="collection-count">စစ်တမ်း ${data.total} ခု</span></div><section class="panel">${searchFilter(p.get("search") || "")}${formTable(data.items, p.get("search"))}${pagination(data.total)}</section>`,
+    const groups = [];
+    const index = new Map();
+    for (const question of questions) {
+      const key = question.qTDetail || "ခေါင်းစဉ် မရွေးထားသော မေးခွန်းများ";
+      if (!index.has(key)) {
+        const group = { title: key, description: question.title_description, questions: [] };
+        index.set(key, group);
+        groups.push(group);
+      }
+      index.get(key).questions.push(question.uQDetail || question.mQDetail || "—");
+    }
+    modal(
+      "စစ်တမ်း အသေးစိတ်",
+      `<div class="sf-detail">
+        <div class="sf-detail__meta">
+          ${surveyOrgPill(form.org_type)}
+          <span class="sf-detail__period">${SURVEY_ICONS.period}<span>${e(formatYearRange(form))}</span></span>
+        </div>
+        <p class="sf-detail__summary">ခေါင်းစဉ် <strong>${groups.length}</strong> ခု · မေးခွန်း <strong>${questions.length}</strong> ခု ပါဝင်သည်။</p>
+        ${groups.length
+          ? groups
+              .map(
+                (group) => `<section class="sf-detail__group">
+                  <h3><span>${e(group.title)}</span><span class="sf-detail__count">${group.questions.length}</span></h3>
+                  ${group.description ? `<p>${e(group.description)}</p>` : ""}
+                  <ol>${group.questions.map((question) => `<li>${e(question)}</li>`).join("")}</ol>
+                </section>`,
+              )
+              .join("")
+          : `<p class="sf-detail__summary">ဤစစ်တမ်းတွင် မေးခွန်း များ မရှိသေးပါ။</p>`}
+      </div>`,
     );
   } catch (error) {
+    toast(error.message);
+  }
+}
+
+function deleteSurveyYear(form) {
+  if (!form) return;
+  const yearRange = formatYearRange(form);
+  confirmDelete(
+    "စစ်တမ်းကို ဖျက်မလား။",
+    `“${yearRange}” ${surveyOrgLabel(form.org_type)} စစ်တမ်းကာလနှင့် ၎င်းအောက်ရှိ မေးခွန်းများ အားလုံးကို အပြီးအပိုင် ဖျက်ပစ်ပါမည်။ ပြန်လည်ရယူ၍ မရနိုင်ပါ။`,
+    "စစ်တမ်းကာလ ဖျက်ရန်",
+    async () => {
+      await api(`/survey/years/${form.year_id}`, { method: "DELETE" });
+      toast("စစ်တမ်းကာလ ဖျက်ပြီးပါပြီ။");
+      await load();
+    },
+  );
+}
+
+let surveyBoardData = [];
+
+async function formsPage() {
+  describe(
+    "DEDC ဒေတာဘေ့စ်ရှိ တက္ကသိုလ်နှင့် ဝန်ကြီးဌာန စစ်တမ်းများကို ကြည့်ရှုပါ။ အုပ်စုအားဖြင့် စစ်ထုတ်ပြီး ထုတ်ဝေမှုကို ထိန်းချုပ်နိုင်ပါသည်။",
+  );
+  const p = new URLSearchParams(location.search);
+  const orgFilter = ["university", "ministry"].includes(p.get("org_type"))
+    ? p.get("org_type")
+    : "";
+  const search = (p.get("search") || "").trim();
+  let surveys = [];
+  try {
+    const params = new URLSearchParams({ limit: "100" });
+    if (search) params.set("search", search);
+    surveys = await api("/survey/forms?" + params);
+  } catch (error) {
+    console.error("Could not load native DEDC surveys:", error);
     setContent(
       `<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">ထပ်စမ်းကြည့်ရန်</button>`,
     );
     document.querySelector("#retry").onclick = formsPage;
     return;
   }
+  surveyBoardData = surveys;
+  actions(
+    `<a class="button" href="/dashboard/data">အလုပ်စာအုပ် တင်သွင်းရန်</a><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`,
+  );
+  setContent(surveyBoard(surveys, orgFilter, search));
   document.querySelector("#create-action").onclick = createForm;
   bindFilters(load);
-  setupBulkDelete();
-}
 
-function setupBulkDelete() {
-  const selectAll = document.querySelector("th input[type='checkbox'][data-select-all='forms']");
-  if (!selectAll) return;
+  // Segmented audience filter (all / university / ministry)
+  document.querySelectorAll("[data-org-filter]").forEach((button) => {
+    button.onclick = () => {
+      const value = button.dataset.orgFilter;
+      const params = new URLSearchParams(location.search);
+      params.delete("page");
+      if (value) params.set("org_type", value);
+      else params.delete("org_type");
+      const query = params.toString();
+      history.pushState({}, "", location.pathname + (query ? "?" + query : ""));
+      load();
+    };
+  });
 
-  selectAll.onchange = () => {
-    document
-      .querySelectorAll("td input[data-select-form]")
-      .forEach((cb) => (cb.checked = selectAll.checked));
-    updateBulkDeleteButton();
-  };
-
-  document
-    .querySelectorAll("td input[data-select-form]")
-    .forEach((cb) => (cb.onchange = updateBulkDeleteButton));
-
-  function updateBulkDeleteButton() {
-    const selected = [
-      ...document.querySelectorAll("td input[data-select-form]:checked"),
-    ].map((cb) => Number(cb.dataset.selectForm));
-    // Update select all state
-    const all = document.querySelectorAll("td input[data-select-form]");
-    const checked = document.querySelectorAll("td input[data-select-form]:checked");
-    if (all.length > 0) {
-      selectAll.checked = all.length === checked.length;
-      selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
-    }
-    let btn = document.querySelector("#bulk-delete-forms");
-    if (selected.length) {
-      if (!btn) {
-        btn = document.createElement("button");
-        btn.id = "bulk-delete-forms";
-        btn.className = "button danger small";
-        btn.textContent = `ရွေးထားသော ${selected.length} ခုကို ဖျက်ရန်`;
-        document.querySelector("#page-actions").appendChild(btn);
-      } else {
-        btn.textContent = `ရွေးထားသော ${selected.length} ခုကို ဖျက်ရန်`;
+  // Publish toggle for a survey year
+  document.querySelectorAll("[data-toggle-status]").forEach((control) => {
+    control.addEventListener("change", async () => {
+      const yearId = control.dataset.yearId;
+      const form = findSurvey(yearId, control.dataset.orgType);
+      const published = control.checked;
+      try {
+        await api(`/survey/years/${yearId}`, {
+          method: "PUT",
+          body: {
+            year_from: form?.month_from || 1,
+            year_to: form?.year_to || new Date().getFullYear(),
+            status: published ? 1 : 0,
+          },
+        });
+        const badge = control.closest("tr")?.querySelector(".sf-status");
+        if (badge) {
+          badge.className = `sf-status ${published ? "sf-status--published" : "sf-status--draft"}`;
+          badge.innerHTML = `<span class="sf-status__dot" aria-hidden="true"></span>${published ? "ထုတ်ဝေထားသည်" : "မူကြမ်း"}`;
+        }
+        toast(published ? "စစ်တမ်းကို ထုတ်ဝေပြီးပါပြီ။" : "စစ်တမ်းကို မူကြမ်း အဖြစ် ပြောင်းလဲပြီးပါပြီ။");
+      } catch (error) {
+        control.checked = !published;
+        toast(error.message);
       }
-      btn.onclick = () => bulkDeleteForms(selected);
-    } else if (btn) {
-      btn.remove();
-    }
-  }
-}
+    });
+  });
 
-function bulkDeleteForms(ids) {
-  confirmDelete(
-    `ရွေးထားသော စစ်တမ်း ${ids.length} ခုကို ဖျက်မလား။`,
-    "ရွေးထားသော စစ်တမ်းများနှင့် ၎င်းတို့၏ မေးခွန်းများကို အပြီးအပိုင် ဖျက်ပစ်ပါမည်။ ပြန်လည်ရယူ၍ မရနိုင်ပါ။ တင်သွင်းချက်များ သို့မဟုတ် သိမ်းဆည်းထားသော အလုပ်စာအုပ် အချက်အလက်များ ရှိနေသော စစ်တမ်းများကို မဖျက်ဘဲ မော်ကွန်းတင်ထားသင့်ပါသည်။",
-    `စစ်တမ်း ${ids.length} ခု ဖျက်ရန်`,
-    async () => {
-      await api("/forms/bulk-delete", { method: "POST", body: { ids } });
-      toast(`စစ်တမ်း ${ids.length} ခု ဖျက်ပြီးပါပြီ။`);
-      await load();
-    },
+  // Row actions
+  document.querySelectorAll("[data-edit-year]").forEach(
+    (button) =>
+      (button.onclick = () =>
+        editSurveyYear(
+          findSurvey(button.dataset.editYear, button.dataset.orgType),
+        )),
+  );
+  document.querySelectorAll("[data-detail-year]").forEach(
+    (button) =>
+      (button.onclick = () =>
+        showSurveyDetail(
+          findSurvey(button.dataset.detailYear, button.dataset.orgType),
+        )),
+  );
+  document.querySelectorAll("[data-delete-year]").forEach(
+    (button) =>
+      (button.onclick = () =>
+        deleteSurveyYear(
+          findSurvey(button.dataset.deleteYear, button.dataset.orgType),
+          button,
+        )),
   );
 }
 
 
 async function departments() {
-  describe("စစ်တမ်းများတွင် ပါဝင်သည့် ဝန်ကြီးဌာနများနှင့် တက္ကသိုလ်များ။");
+  describe("စနစ်တွင် သတ်မှတ်ထားသော တက္ကသိုလ်များကို စီမံခန့်ခွဲပါ။");
   try {
     const params = new URLSearchParams(location.search);
-    const data = await api("/departments?" + params);
-    const type = params.get("type") || "";
-    const rows = data.items, total = data.total;
-    const filtered = !!params.get("search") || !!type;
-    actions('<button class="button primary" id="add-org">ဌာန ထည့်ရန်</button>');
-    setContent(`<div class="organization-grid single-column"><section class="panel directory-panel">
-      <div class="panel-head"><div><h2>ဌာန လမ်းညွှန် <span class="inline-count">${total}</span></h2><p>စစ်တမ်းများတွင် ပါဝင်သည့် အဖွဲ့အစည်းများကို တစ်နေရာတည်းတွင် စီမံပါ</p></div></div>
-      <div class="directory-summary"><span><strong>${data.counts.university || 0}</strong> တက္ကသိုလ်</span><span><strong>${data.counts.ministry || 0}</strong> ဝန်ကြီးဌာန</span></div><form class="filters" data-filter-form><input type="search" name="search" aria-label="အဖွဲ့အစည်းများ ရှာဖွေရန်" placeholder="ဌာနများ ရှာဖွေရန်…" value="${e(params.get("search") || "")}"><label><span id="directory-type-label">အမျိုးအစား</span><select name="type" aria-labelledby="directory-type-label"><option value="">အမျိုးအစားအားလုံး</option><option value="university" ${type === "university" ? "selected" : ""}>တက္ကသိုလ်</option><option value="ministry" ${type === "ministry" ? "selected" : ""}>ဝန်ကြီးဌာန</option></select></label><button class="button" type="submit">ရှာဖွေရန်</button>${filtered ? '<a class="button text-button" href="/dashboard/departments">စစ်ထုတ်မှု ရှင်းလင်းရန်</a>' : ""}</form>
-      ${rows.length ? table(["အမည်", "အဖွဲ့အစည်း", "ကဏ္ဍ", "လုပ်ဆောင်ချက်များ"], rows.map((org) => `<tr><td class="title">${e(org.name)}</td><td>${org.organization === "university" ? "တက္ကသိုလ်" : "ဝန်ကြီးဌာန"}</td><td>${org.organization === "university" ? e(org.type || "မသတ်မှတ်ထားပါ") : "—"}</td><td><div class="row-actions"><button class="button small" data-edit-org="${org.id}" data-org-type="${org.organization}">ပြင်ဆင်ရန်</button><button class="button small danger" data-delete-org="${org.id}" data-org-type="${org.organization}">ဖျက်ရန်</button></div></td></tr>`)) : empty(filtered ? "ကိုက်ညီသော ဌာန မရှိပါ" : "ဌာန မထည့်ရသေးပါ", filtered ? "အခြားအမည်တစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် စစ်ထုတ်မှုများ ရှင်းလင်းပြီး ဌာနအားလုံးကို ကြည့်ပါ။" : "စစ်တမ်းများတွင် ပါဝင်သည့် တက္ကသိုလ် သို့မဟုတ် ဝန်ကြီးဌာနကို ထည့်ပါ။", filtered ? button("စစ်ထုတ်မှု ရှင်းလင်းရန်", "/dashboard/departments") : '<button class="button" data-add-department>ပထမဆုံး ဌာန ထည့်ရန်</button>')}
-      ${pagination(total)}
-    </section></div>`);
+    params.set("limit", params.get("limit") || "25");
+    const data = await api("/universities?" + params);
+    const rows = data.items;
+    const total = data.total;
+    const search = params.get("search") || "";
+    actions('<button class="button primary" id="add-org">တက္ကသိုလ် ထည့်ရန်</button>');
+    setContent(`<section class="panel directory-page">
+      <div class="panel-head">
+        <div class="directory-title">
+          <span class="directory-title__icon">${SURVEY_ICONS.building}</span>
+          <div>
+            <h2>တက္ကသိုလ် လမ်းညွှန် <span class="inline-count">${total.toLocaleString()}</span></h2>
+            <p>စနစ်တွင် သတ်မှတ်ထားသော တက္ကသိုလ်များကို တစ်နေရာတည်းတွင် စီမံပါ</p>
+          </div>
+        </div>
+      </div>
+      <div class="directory-toolbar">
+        <form class="directory-search" data-filter-form>
+          ${SURVEY_ICONS.search}
+          <input type="search" name="search" aria-label="တက္ကသိုလ်များ ရှာဖွေရန်" placeholder="တက္ကသိုလ်အမည် ရှာဖွေရန်…" value="${e(search)}">
+          ${search ? '<a class="directory-search__clear" href="/dashboard/departments" aria-label="ရှာဖွေမှု ရှင်းလင်းရန်" title="ရှာဖွေမှု ရှင်းလင်းရန်">×</a>' : ""}
+        </form>
+        <span class="directory-count"><strong>${total.toLocaleString()}</strong> တက္ကသိုလ်</span>
+      </div>
+      ${rows.length
+        ? table(
+            ["တက္ကသိုလ်အမည်", "အမျိုးအစား", "လုပ်ဆောင်ချက်များ"],
+            rows.map(
+              (uni) => `<tr>
+                <td class="title"><div class="uni-cell"><span class="uni-cell__mark">${SURVEY_ICONS.building}</span><div><strong>${e(uni.name)}</strong></div></div></td>
+                <td><span class="uni-type">${e(uni.type || "မသတ်မှတ်ထားပါ")}</span></td>
+                <td><div class="row-actions"><button class="button small" data-edit-org="${uni.id}">${SURVEY_ICONS.edit}<span>ပြင်ဆင်ရန်</span></button><button class="button small danger" data-delete-org="${uni.id}">${SURVEY_ICONS.trash}<span>ဖျက်ရန်</span></button></div></td>
+              </tr>`,
+            ),
+          )
+        : empty(
+            search ? "ကိုက်ညီသော တက္ကသိုလ် မရှိပါ" : "တက္ကသိုလ် မထည့်ရသေးပါ",
+            search
+              ? "အခြားအမည်တစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် ရှာဖွေမှုကို ရှင်းလင်းပါ။"
+              : "စနစ်တွင် ပါဝင်မည့် ပထမဆုံး တက္ကသိုလ်ကို ထည့်ပါ။",
+            search
+              ? button("ရှာဖွေမှု ရှင်းလင်းရန်", "/dashboard/departments")
+              : '<button class="button" data-add-department>ပထမဆုံး တက္ကသိုလ် ထည့်ရန်</button>',
+          )}
+      ${total ? pagination(total) : ""}
+    </section>`);
     document.querySelector("#add-org").onclick = () => openAddOrgDialog();
     document.querySelector("[data-add-department]")?.addEventListener("click", () => openAddOrgDialog());
-    document.querySelectorAll("[data-edit-org]").forEach((button) => button.onclick = () => {
-      openAddOrgDialog(button.dataset.orgType, rows.find((org) => org.organization === button.dataset.orgType && org.id === Number(button.dataset.editOrg)));
+    document.querySelectorAll("[data-edit-org]").forEach((button) => {
+      button.onclick = () => openAddOrgDialog(rows.find((uni) => uni.id === Number(button.dataset.editOrg)));
     });
-    document.querySelectorAll("[data-delete-org]").forEach((button) => button.onclick = () => deleteOrg(button.dataset.orgType, Number(button.dataset.deleteOrg), button));
+    document.querySelectorAll("[data-delete-org]").forEach((button) => {
+      button.onclick = () => deleteOrg(Number(button.dataset.deleteOrg), button);
+    });
     bindFilters(load);
   } catch (error) {
     setContent(`<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">ထပ်စမ်းကြည့်ရန်</button>`);
@@ -411,43 +1233,159 @@ async function departments() {
   }
 }
 
-function openAddOrgDialog(orgType = "", org = null) {
+async function ministries() {
+  describe("စနစ်တွင် သတ်မှတ်ထားသော ဝန်ကြီးဌာနများကို စီမံခန့်ခွဲပါ။");
+  try {
+    const params = new URLSearchParams(location.search);
+    params.set("limit", params.get("limit") || "25");
+    const data = await api("/ministries?" + params);
+    const rows = data.items;
+    const total = data.total;
+    const search = params.get("search") || "";
+    actions('<button class="button primary" id="add-ministry">ဝန်ကြီးဌာန ထည့်ရန်</button>');
+    setContent(`<section class="panel directory-page ministry-directory">
+      <div class="panel-head">
+        <div class="directory-title">
+          <span class="directory-title__icon">${SURVEY_ICONS.landmark}</span>
+          <div>
+            <h2>ဝန်ကြီးဌာန လမ်းညွှန် <span class="inline-count">${total.toLocaleString()}</span></h2>
+            <p>စနစ်တွင် သတ်မှတ်ထားသော ဝန်ကြီးဌာနများကို တစ်နေရာတည်းတွင် စီမံပါ</p>
+          </div>
+        </div>
+      </div>
+      <div class="directory-toolbar">
+        <form class="directory-search" data-filter-form>
+          ${SURVEY_ICONS.search}
+          <input type="search" name="search" aria-label="ဝန်ကြီးဌာနများ ရှာဖွေရန်" placeholder="ဝန်ကြီးဌာနအမည် ရှာဖွေရန်…" value="${e(search)}">
+          ${search ? '<a class="directory-search__clear" href="/dashboard/ministries" aria-label="ရှာဖွေမှု ရှင်းလင်းရန်" title="ရှာဖွေမှု ရှင်းလင်းရန်">×</a>' : ""}
+        </form>
+        <span class="directory-count"><strong>${total.toLocaleString()}</strong> ဝန်ကြီးဌာန</span>
+      </div>
+      ${rows.length
+        ? table(
+            ["ဝန်ကြီးဌာနအမည်", "လုပ်ဆောင်ချက်များ"],
+            rows.map(
+              (ministry) => `<tr>
+                <td class="title"><div class="uni-cell"><span class="uni-cell__mark">${SURVEY_ICONS.landmark}</span><div><strong>${e(ministry.name)}</strong></div></div></td>
+                <td><div class="row-actions"><button class="button small" data-edit-ministry="${ministry.id}">${SURVEY_ICONS.edit}<span>ပြင်ဆင်ရန်</span></button><button class="button small danger" data-delete-ministry="${ministry.id}">${SURVEY_ICONS.trash}<span>ဖျက်ရန်</span></button></div></td>
+              </tr>`,
+            ),
+          )
+        : empty(
+            search ? "ကိုက်ညီသော ဝန်ကြီးဌာန မရှိပါ" : "ဝန်ကြီးဌာန မထည့်ရသေးပါ",
+            search
+              ? "အခြားအမည်တစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် ရှာဖွေမှုကို ရှင်းလင်းပါ။"
+              : "စနစ်တွင် ပါဝင်မည့် ပထမဆုံး ဝန်ကြီးဌာနကို ထည့်ပါ။",
+            search
+              ? button("ရှာဖွေမှု ရှင်းလင်းရန်", "/dashboard/ministries")
+              : '<button class="button" data-add-ministry>ပထမဆုံး ဝန်ကြီးဌာန ထည့်ရန်</button>',
+          )}
+      ${total ? pagination(total) : ""}
+    </section>`);
+    document.querySelector("#add-ministry").onclick = () => openMinistryDialog();
+    document.querySelector("[data-add-ministry]")?.addEventListener("click", () => openMinistryDialog());
+    document.querySelectorAll("[data-edit-ministry]").forEach((button) => {
+      button.onclick = () => openMinistryDialog(rows.find((ministry) => ministry.id === Number(button.dataset.editMinistry)));
+    });
+    document.querySelectorAll("[data-delete-ministry]").forEach((button) => {
+      button.onclick = () => deleteMinistry(Number(button.dataset.deleteMinistry), button);
+    });
+    bindFilters(load);
+  } catch (error) {
+    setContent(`<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry-ministries">ထပ်စမ်းကြည့်ရန်</button>`);
+    document.querySelector("#retry-ministries").onclick = ministries;
+  }
+}
+
+function openAddOrgDialog(org = null) {
   const isEdit = !!org;
-  const dialog = modal(isEdit ? "ဌာန ပြင်ဆင်ရန်" : "ဌာန ထည့်ရန်", `
-    <form id="org-select-form" class="field-stack">
-      <label><span id="org-type-label">အမျိုးအစား</span><select name="org_type" aria-labelledby="org-type-label" required ${isEdit ? "disabled" : ""}><option value="">အမျိုးအစား ရွေးပါ</option><option value="university" ${orgType === "university" ? "selected" : ""}>တက္ကသိုလ်</option><option value="ministry" ${orgType === "ministry" ? "selected" : ""}>ဝန်ကြီးဌာန</option></select></label>
-      <label><span id="org-name-label">အမည်</span><input name="name" aria-labelledby="org-name-label" required maxlength="255" autocomplete="organization" placeholder="တက္ကသိုလ် သို့မဟုတ် ဝန်ကြီးဌာနအမည် ထည့်ပါ" value="${e(org?.name || "")}"></label>
-      <details id="org-university-details" ${isEdit && orgType === "university" && org.type !== "Unspecified" ? "open" : ""} hidden><summary>တက္ကသိုလ် အသေးစိတ်</summary><label><span id="org-category-label">ကဏ္ဍ (ရွေးချယ်နိုင်)</span><input name="uni_type" aria-labelledby="org-category-label" maxlength="100" placeholder="ဥပမာ အစိုးရ သို့မဟုတ် ပုဂ္ဂလိက" value="${e(org?.type === "Unspecified" ? "" : org?.type || "")}"></label></details>
-      <div class="dialog-actions"><button class="button" type="button" data-cancel-org>မလုပ်တော့ပါ</button><button class="button primary" type="submit">${isEdit ? "သိမ်းဆည်းရန်" : "ဖန်တီးရန်"}</button></div>
+  const dialog = modal(isEdit ? "တက္ကသိုလ် ပြင်ဆင်ရန်" : "တက္ကသိုလ် ထည့်ရန်", `
+    <form id="org-select-form" class="dialog-form">
+      <div class="dialog-form__intro">
+        <span class="dialog-icon">${SURVEY_ICONS.building}</span>
+        <div>
+          <strong>${isEdit ? "တက္ကသိုလ် အချက်အလက် ပြင်ဆင်ခြင်း" : "တက္ကသိုလ် အသစ် ထည့်ခြင်း"}</strong>
+          <p>တက္ကသိုလ်အမည်နှင့် အမျိုးအစားကို ဖြည့်စွက်ပါ။</p>
+        </div>
+      </div>
+      <label class="form-field"><span>တက္ကသိုလ်အမည် <em>*</em></span><input name="name" required maxlength="255" autocomplete="organization" placeholder="ဥပမာ ရန်ကုန် ကွန်ပျူတာတက္ကသိုလ်" value="${e(org?.name || "")}"></label>
+      <label class="form-field"><span>တက္ကသိုလ် အမျိုးအစား <em>*</em></span><input name="uni_type" required maxlength="100" list="university-type-options" autocomplete="off" placeholder="ဥပမာ Public သို့မဟုတ် Private" value="${e(org?.type || "")}"><datalist id="university-type-options"><option value="Public"></option><option value="Private"></option><option value="Government"></option><option value="Unspecified"></option></datalist><small>ဥပမာ — Public (အစိုးရ) သို့မဟုတ် Private (ပုဂ္ဂလိက)</small></label>
+      <div class="dialog-actions"><button class="button" type="button" data-cancel-org>မလုပ်တော့ပါ</button><button class="button primary" type="submit">${isEdit ? "သိမ်းဆည်းရန်" : "တက္ကသိုလ် ဖန်တီးရန်"}</button></div>
     </form>`);
   dialog.dataset.variant = "organization";
   const form = dialog.querySelector("#org-select-form");
-  const type = form.elements.org_type;
   const name = form.elements.name;
-  function updateFields() {
-    const chosen = type.value;
-    dialog.querySelector("#org-name-label").textContent = chosen === "university" ? "တက္ကသိုလ်အမည်" : chosen === "ministry" ? "ဝန်ကြီးဌာနအမည်" : "အမည်";
-    name.placeholder = chosen === "university" ? "တက္ကသိုလ်အမည် ထည့်ပါ" : chosen === "ministry" ? "ဝန်ကြီးဌာနအမည် ထည့်ပါ" : "တက္ကသိုလ် သို့မဟုတ် ဝန်ကြီးဌာနအမည် ထည့်ပါ";
-    dialog.querySelector("#org-university-details").hidden = chosen !== "university";
-  }
-  type.onchange = updateFields;
-  updateFields();
+  const type = form.elements.uni_type;
   form.querySelector("[data-cancel-org]").onclick = () => dialog.close();
-  if (!isEdit) type.focus();
-  else name.focus();
+  name.focus();
   form.onsubmit = (event) => {
     event.preventDefault();
-    const title = name.value.trim();
-    name.setCustomValidity(title ? "" : "ဌာနအမည် ထည့်ပါ။");
+    name.setCustomValidity(name.value.trim() ? "" : "တက္ကသိုလ်အမည် ထည့်ပါ။");
+    type.setCustomValidity(type.value.trim() ? "" : "တက္ကသိုလ် အမျိုးအစား ထည့်ပါ။");
     if (!form.reportValidity()) return;
-    busy(event.submitter, async () => {
+    busy(event.submitter || form.querySelector('button[type="submit"]'), async () => {
       try {
-        const university = type.value === "university";
-        const path = university ? "/universities" : "/ministries";
-        const body = { name: title, ...(university ? { type: form.elements.uni_type.value.trim() || "Unspecified" } : {}) };
-        await api(path + (isEdit ? "/" + org.id : ""), { method: isEdit ? "PUT" : "POST", body });
+        await api("/universities" + (isEdit ? "/" + org.id : ""), {
+          method: isEdit ? "PUT" : "POST",
+          body: { name: name.value.trim(), type: type.value.trim() },
+        });
         dialog.close();
-        toast(`${university ? "တက္ကသိုလ်" : "ဝန်ကြီးဌာန"} ${isEdit ? "ပြင်ဆင်ပြီးပါပြီ" : "ဖန်တီးပြီးပါပြီ"}။`);
+        toast(`တက္ကသိုလ် ${isEdit ? "ပြင်ဆင်ပြီးပါပြီ" : "ဖန်တီးပြီးပါပြီ"}။`);
+        await load();
+      } catch (error) {
+        errorMessage(error);
+      }
+    });
+  };
+  name.oninput = () => name.setCustomValidity("");
+  type.oninput = () => type.setCustomValidity("");
+}
+
+function deleteOrg(id, btn) {
+  const name = btn.closest("tr").querySelector(".uni-cell strong")?.textContent.trim() || "ဤတက္ကသိုလ်";
+  confirmDelete(
+    "တက္ကသိုလ်ကို ဖျက်မလား။",
+    `“${name}” ကို အပြီးအပိုင် ဖျက်ပစ်ပါမည်။ ပြန်လည်ရယူ၍ မရနိုင်ပါ။`,
+    "တက္ကသိုလ် ဖျက်ရန်",
+    async () => {
+      await api(`/universities/${id}`, { method: "DELETE" });
+      toast("တက္ကသိုလ် ဖျက်ပြီးပါပြီ။");
+      await load();
+    },
+  );
+}
+
+function openMinistryDialog(ministry = null) {
+  const isEdit = !!ministry;
+  const dialog = modal(isEdit ? "ဝန်ကြီးဌာန ပြင်ဆင်ရန်" : "ဝန်ကြီးဌာန ထည့်ရန်", `
+    <form id="ministry-form" class="dialog-form">
+      <div class="dialog-form__intro">
+        <span class="dialog-icon">${SURVEY_ICONS.landmark}</span>
+        <div>
+          <strong>${isEdit ? "ဝန်ကြီးဌာန အချက်အလက် ပြင်ဆင်ခြင်း" : "ဝန်ကြီးဌာန အသစ် ထည့်ခြင်း"}</strong>
+          <p>ဝန်ကြီးဌာနအမည်ကို ဖြည့်စွက်ပါ။</p>
+        </div>
+      </div>
+      <label class="form-field"><span>ဝန်ကြီးဌာနအမည် <em>*</em></span><input name="name" required maxlength="255" autocomplete="organization" placeholder="ဥပမာ သိပ္ပံနှင့် နည်းပညာ ဝန်ကြီးဌာန" value="${e(ministry?.name || "")}"></label>
+      <div class="dialog-actions"><button class="button" type="button" data-cancel-ministry>မလုပ်တော့ပါ</button><button class="button primary" type="submit">${isEdit ? "သိမ်းဆည်းရန်" : "ဝန်ကြီးဌာန ဖန်တီးရန်"}</button></div>
+    </form>`);
+  dialog.dataset.variant = "organization";
+  const form = dialog.querySelector("#ministry-form");
+  const name = form.elements.name;
+  form.querySelector("[data-cancel-ministry]").onclick = () => dialog.close();
+  name.focus();
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    name.setCustomValidity(name.value.trim() ? "" : "ဝန်ကြီးဌာနအမည် ထည့်ပါ။");
+    if (!form.reportValidity()) return;
+    busy(event.submitter || form.querySelector('button[type="submit"]'), async () => {
+      try {
+        await api("/ministries" + (isEdit ? "/" + ministry.id : ""), {
+          method: isEdit ? "PUT" : "POST",
+          body: { name: name.value.trim() },
+        });
+        dialog.close();
+        toast(`ဝန်ကြီးဌာန ${isEdit ? "ပြင်ဆင်ပြီးပါပြီ" : "ဖန်တီးပြီးပါပြီ"}။`);
         await load();
       } catch (error) {
         errorMessage(error);
@@ -457,16 +1395,15 @@ function openAddOrgDialog(orgType = "", org = null) {
   name.oninput = () => name.setCustomValidity("");
 }
 
-function deleteOrg(orgType, id, btn) {
-  const isMinistry = orgType === "ministry";
-  const name = btn.closest("tr").querySelector(".title").textContent;
+function deleteMinistry(id, btn) {
+  const name = btn.closest("tr").querySelector(".uni-cell strong")?.textContent.trim() || "ဤဝန်ကြီးဌာန";
   confirmDelete(
-    `ဌာန ${isMinistry ? "ဝန်ကြီးဌာန" : "တက္ကသိုလ်"}ကို ဖျက်မလား။`,
+    "ဝန်ကြီးဌာနကို ဖျက်မလား။",
     `“${name}” ကို အပြီးအပိုင် ဖျက်ပစ်ပါမည်။ ပြန်လည်ရယူ၍ မရနိုင်ပါ။`,
-    (isMinistry ? "ဝန်ကြီးဌာန" : "တက္ကသိုလ်") + " ဖျက်ရန်",
+    "ဝန်ကြီးဌာန ဖျက်ရန်",
     async () => {
-      await api(`/${isMinistry ? "ministries" : "universities"}/${id}`, { method: "DELETE" });
-      toast(`${isMinistry ? "ဝန်ကြီးဌာန" : "တက္ကသိုလ်"} ဖျက်ပြီးပါပြီ။`);
+      await api(`/ministries/${id}`, { method: "DELETE" });
+      toast("ဝန်ကြီးဌာန ဖျက်ပြီးပါပြီ။");
       await load();
     },
   );
@@ -491,127 +1428,435 @@ function reportFilters(p, formData, users) {
   </form>`;
 }
 
+const REPORT_STATUS = {
+  completed: { label: "ပြီးစီး" },
+  in_progress: { label: "ဆောင်ရွက်နေဆဲ" },
+  not_started: { label: "မစတင်ရသေး" },
+};
+
+function reportNumber(value) {
+  return Number(value || 0).toLocaleString();
+}
+
+function reportPercent(value) {
+  return `${(Number(value) || 0).toLocaleString(undefined, {
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function reportStatusMeta(status) {
+  return REPORT_STATUS[status] || REPORT_STATUS.not_started;
+}
+
+function reportStatusBadge(status) {
+  const meta = reportStatusMeta(status);
+  return `<span class="rp-state rp-state--${e(status)}"><i aria-hidden="true"></i>${e(meta.label)}</span>`;
+}
+
+function reportKpiCard({ icon, value, title, hint, tone = "primary", meter = null }) {
+  return `<article class="rp-kpi rp-kpi--${e(tone)}">
+    <span class="rp-kpi__icon" aria-hidden="true">${icon}</span>
+    <div class="rp-kpi__body">
+      <p class="rp-kpi__label">${e(title)}</p>
+      <strong class="rp-kpi__value">${value}</strong>
+      <small class="rp-kpi__hint">${hint}</small>
+    </div>
+    ${
+      meter === null
+        ? ""
+        : `<span class="rp-kpi__meter" aria-hidden="true"><span style="width:${Math.min(100, Math.max(0, Number(meter) || 0))}%"></span></span>`
+    }
+  </article>`;
+}
+
+function reportYearCard(year, totalUniversities) {
+  const completion = Number(year.completion_percent) || 0;
+  const coverage = Number(year.answer_coverage_percent) || 0;
+  const lastSubmitted = year.last_submitted_at
+    ? dateTime(year.last_submitted_at)
+    : "တင်သွင်းမှု မရှိသေးပါ";
+  return `<article class="rp-year">
+    <div class="rp-year__head">
+      <div class="rp-year__identity">
+        <span class="rp-year__icon" aria-hidden="true">${SURVEY_ICONS.period}</span>
+        <div>
+          <h3>${e(year.label)}</h3>
+          <p>${reportNumber(year.question_count)} မေးခွန်း · ${reportNumber(year.submitted_universities)} / ${reportNumber(totalUniversities)} တက္ကသိုလ်</p>
+        </div>
+      </div>
+      ${reportStatusBadge(year.status)}
+    </div>
+    <div class="rp-meter rp-meter--lg" role="progressbar" aria-label="${e(year.label)} တက္ကသိုလ် တင်သွင်းမှု" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${completion}">
+      <span style="width:${Math.min(100, completion)}%"></span>
+    </div>
+    <div class="rp-year__foot">
+      <span class="rp-year__stat"><strong>${reportPercent(completion)}</strong><small>တင်သွင်းပြီး</small></span>
+      <span class="rp-year__stat"><strong>${reportNumber(year.pending_universities)}</strong><small>ကျန်ရှိ</small></span>
+      <span class="rp-year__stat"><strong>${reportPercent(coverage)}</strong><small>အဖြေ လွှမ်းခြုံမှု</small></span>
+      <span class="rp-year__last">${REPORT_ICONS.clock}<span>${e(lastSubmitted)}</span></span>
+    </div>
+    <div class="rp-year__actions" aria-label="${e(year.label)} တက္ကသိုလ် စာရင်း">
+      <button class="rp-year__action rp-year__action--answered" type="button" data-report-year="${Number(year.year_id)}" data-report-state="answered" aria-haspopup="dialog">
+        <span class="rp-year__action-icon" aria-hidden="true">${REPORT_ICONS.completion}</span>
+        <span class="rp-year__action-label">တင်သွင်းပြီး</span>
+        <strong>${reportNumber(year.submitted_universities)}</strong>
+      </button>
+      <button class="rp-year__action rp-year__action--pending" type="button" data-report-year="${Number(year.year_id)}" data-report-state="pending" aria-haspopup="dialog">
+        <span class="rp-year__action-icon" aria-hidden="true">${REPORT_ICONS.clock}</span>
+        <span class="rp-year__action-label">မတင်သွင်းရသေး</span>
+        <strong>${reportNumber(year.pending_universities)}</strong>
+      </button>
+    </div>
+  </article>`;
+}
+
+function reportRecentCard(report) {
+  const completion = Number(report.completion_percent) || 0;
+  return `<article class="rp-recent">
+    <div class="rp-recent__top">
+      <span class="rp-org-mark" aria-hidden="true">${e(String(report.university || "?").slice(0, 1).toUpperCase())}</span>
+      <div class="rp-recent__identity">
+        <strong>${e(report.university)}</strong>
+        <small>${e(report.university_type || "တက္ကသိုလ်")}</small>
+      </div>
+      ${reportStatusBadge(report.status)}
+    </div>
+    <div class="rp-recent__row">
+      <span class="rp-period">${SURVEY_ICONS.period}${e(report.year_label)}</span>
+      <span>${reportNumber(report.answered_questions)} / ${reportNumber(report.question_count)} မေးခွန်း</span>
+      <time>${e(dateTime(report.submitted_at))}</time>
+    </div>
+    <div class="rp-meter rp-meter--sm" aria-hidden="true">
+      <span style="width:${Math.min(100, completion)}%"></span>
+    </div>
+  </article>`;
+}
+
+function reportUniversityModal(data) {
+  const answered = data.state === "answered";
+  const title = `${data.year_label} · ${answered ? "တင်သွင်းပြီး တက္ကသိုလ်များ" : "မတင်သွင်းရသေး တက္ကသိုလ်များ"}`;
+  const intro = answered
+    ? `${reportNumber(data.total)} တက္ကသိုလ်က ${reportNumber(data.question_count)} မေးခွန်းအတွက် အဖြေ တင်သွင်းထားပါသည်။`
+    : `${reportNumber(data.total)} တက္ကသိုလ်က ဤစစ်တမ်းကာလအတွက် အဖြေ မတင်သွင်းရသေးပါ။`;
+  let body;
+  if (!data.universities.length) {
+    body = `<div class="rp-roster-empty"><span aria-hidden="true">${answered ? REPORT_ICONS.completion : REPORT_ICONS.clock}</span><p>${answered ? "တင်သွင်းထားသော တက္ကသိုလ် မရှိသေးပါ။" : "တင်သွင်းရန် ကျန်ရှိသော တက္ကသိုလ် မရှိပါ။"}</p></div>`;
+  } else if (answered) {
+    body = `<div class="rp-roster">${table(
+      ["တက္ကသိုလ်", "ဖြေဆိုပြီး", "အခြေအနေ", "နောက်ဆုံး တင်သွင်းချိန်"],
+      data.universities.map(
+        (row) =>
+          `<tr><td class="title"><strong>${e(row.university)}</strong><small>${e(row.university_type || "တက္ကသိုလ်")}</small></td><td class="numeric">${reportNumber(row.answered_questions)} / ${reportNumber(row.question_count)}</td><td>${reportStatusBadge(row.status)}</td><td>${e(dateTime(row.last_submitted_at))}</td></tr>`,
+      ),
+    )}</div>`;
+  } else {
+    body = `<div class="rp-roster">${table(
+      ["တက္ကသိုလ်", "အမျိုးအစား", "အခြေအနေ"],
+      data.universities.map(
+        (row) =>
+          `<tr><td class="title"><strong>${e(row.university)}</strong></td><td>${e(row.university_type || "—")}</td><td>${reportStatusBadge(row.status)}</td></tr>`,
+      ),
+    )}</div>`;
+  }
+  modal(title, `<p class="dialog-intro">${e(intro)}</p>${body}`);
+}
+
+function reportLegacySection(p, data, formData, users) {
+  const analytics = data.analytics;
+  const peak = Math.max(1, ...analytics.trend.map((day) => day.count));
+  return `<details class="rp-more" ${location.search ? "open" : ""}>
+    <summary class="rp-more__summary">
+      <span class="rp-more__identity">
+        <span class="rp-more__icon" aria-hidden="true">${SURVEY_ICONS.forms}</span>
+        <span>
+          <strong>အသေးစိတ် တင်သွင်းမှု မှတ်တမ်းများ</strong>
+          <small>ဖောင် တင်သွင်းချက်များကို စစ်ထုတ်၊ စစ်ဆေးပြီး တင်ပို့ပါ။</small>
+        </span>
+      </span>
+      <span class="rp-more__aside">
+        <span class="rp-more__count">${reportNumber(data.total)} မှတ်တမ်း</span>
+        <span class="rp-more__chevron" aria-hidden="true">⌄</span>
+      </span>
+    </summary>
+    <div class="rp-more__body">
+      <div class="rp-more__toolbar">
+        <span>
+          <strong>အစီရင်ခံစာ တင်ပို့ရန်</strong>
+          <small>လက်ရှိ စစ်ထုတ်မှုအတိုင်း ဒေါင်းလုဒ်လုပ်ပါ။</small>
+        </span>
+        <details class="export-menu"><summary class="button">ဖိုင် ရွေးရန်</summary><div><a href="/api/admin/reports/export/csv?${e(p)}">CSV ဒေါင်းလုဒ်</a><a href="/api/admin/reports/export/xlsx?${e(p)}">Excel ဒေါင်းလုဒ်</a><a href="/api/admin/reports/export/pdf?${e(p)}">PDF ဒေါင်းလုဒ်</a></div></details>
+      </div>
+      ${reportFilters(p, formData, users)}
+      ${
+        data.items.length
+          ? table(
+              [
+                "",
+                "တင်သွင်းမှု",
+                "စစ်တမ်း",
+                "တင်သွင်းသူ",
+                "အခြေအနေ",
+                "ရရှိချိန်",
+                "",
+              ],
+              data.items.map(
+                (r) =>
+                  `<tr><td><input type="checkbox" data-select-submission="${r.id}" aria-label="တင်သွင်းမှု ${r.id} ကို ရွေးရန်"></td><td>#${r.id}</td><td class="title">${e(r.form)}<small>ဗားရှင်း ${r.version} · ${date(r.reporting_start)} → ${date(r.reporting_end)}</small></td><td>${e(r.username)}</td><td>${badge(r.status)}</td><td>${date(r.created_at)}</td><td><button class="button small" data-view-submission="${r.id}">အဖြေများ ကြည့်ရန်</button></td></tr>`,
+              ),
+            )
+          : empty(
+              "ကိုက်ညီသော တင်သွင်းချက် မရှိပါ",
+              "အခြားရက်စွဲအပိုင်းအခြား စမ်းကြည့်ပါ၊ စစ်ထုတ်မှုများ ရှင်းလင်းပါ၊ သို့မဟုတ် ထုတ်ဝေထားသော စစ်တမ်းမှတစ်ဆင့် တုံ့ပြန်ချက်များ စုဆောင်းပါ။",
+              button("အလုပ်စာအုပ် အဖြေများ ကြည့်ရန်", "/dashboard/data?tab=answers"),
+            )
+      }
+      ${pagination(data.total)}
+      ${
+        data.items.length
+          ? '<div class="filters rp-review-bar"><span>ရွေးထားသည်များကို စစ်ဆေးရန်</span><button class="button small" data-review="approved">အတည်ပြုရန်</button><button class="button small danger" data-review="rejected">ပယ်ချရန်</button><button class="button small" data-review="pending_review">စစ်ဆေးရန် စောင့်ဆိုင်းအဖြစ် မှတ်ရန်</button></div>'
+          : ""
+      }
+      <div class="overview-grid report-insights rp-insights">
+        <section class="panel">
+          <div class="panel-head"><div><h2>စစ်ထုတ်ထားသည့် တင်သွင်းမှု လမ်းကြောင်း</h2><p>${analytics.completion_percent}% ပြီးစီး · ပျမ်းမျှ ပြီးစီးချိန် · ${analytics.average_seconds === null ? "—" : analytics.average_seconds + " စက္ကန့်"}</p></div></div>
+          <div class="panel-body">${
+            analytics.trend.length
+              ? `<div class="chart" role="img" aria-label="${e(analytics.trend.map((day) => day.date + ": " + day.count).join("; "))}">${analytics.trend.map((day) => `<div class="chart-column" tabindex="0" title="${day.date}: ${day.count}"><div class="chart-bar" style="height:${Math.max(1, (day.count / peak) * 100)}%"></div></div>`).join("")}</div>`
+              : empty(
+                  "ဤရွေးချယ်မှုအတွက် လုပ်ဆောင်ချက် မရှိပါ",
+                  "တင်သွင်းထားသော တုံ့ပြန်ချက်များ ပါဝင်ရန် စစ်ထုတ်မှုများကို ပြောင်းပါ။",
+                )
+          }</div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>ဖြေဆိုသူများ၏ လုပ်ဆောင်ချက်</h2></div>
+          ${
+            analytics.by_user.length
+              ? table(
+                  ["အသုံးပြုသူ", "တင်သွင်းမှုများ"],
+                  analytics.by_user.map(
+                    (row) =>
+                      `<tr><td>${e(row.username)}</td><td class="numeric">${row.count}</td></tr>`,
+                  ),
+                )
+              : empty(
+                  "ဖြေဆိုသူ လုပ်ဆောင်ချက် မရှိပါ",
+                  "တင်သွင်းထားသော တုံ့ပြန်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။",
+                )
+          }
+        </section>
+      </div>
+      ${
+        analytics.question_distribution.length
+          ? `<section class="panel rp-question-distribution"><div class="panel-head"><h2>အဖြေ ဖြန့်ဝေမှု · ${e(p.get("question"))}</h2></div>${table(
+              ["အဖြေ", "တုံ့ပြန်ချက်များ"],
+              analytics.question_distribution.map(
+                (item) =>
+                  `<tr><td>${e(item.display_value ?? valueText(item.answer))}</td><td class="numeric">${item.count}</td></tr>`,
+              ),
+            )}</section>`
+          : ""
+      }
+    </div>
+  </details>`;
+}
+
 async function reportsPage() {
-  describe(
-    "တင်သွင်းချက်များကို စစ်ထုတ်ပါ၊ အဖြေများကို စစ်ဆေးပါ၊ ရလဒ်များကို တင်ပို့ပါ။",
-  );
-  let data, formData, users;
+  describe("");
+  actions("");
   const p = new URLSearchParams(location.search);
-  try {
-    [data, formData, users] = await Promise.all([
+  let activity = null;
+  let data, formData, users;
+  let activityError = null;
+  let legacyError = null;
+  const [activityResult, legacyResult] = await Promise.allSettled([
+    api("/reports/university"),
+    Promise.all([
       api("/reports?" + p),
       api("/forms?limit=100"),
       api("/users?limit=100"),
-    ]);
-    actions(
-      `<details class="export-menu"><summary class="button">အစီရင်ခံစာ တင်ပို့ရန်</summary><div><a href="/api/admin/reports/export/csv?${e(p)}">CSV ဒေါင်းလုဒ်</a><a href="/api/admin/reports/export/xlsx?${e(p)}">Excel ဒေါင်းလုဒ်</a><a href="/api/admin/reports/export/pdf?${e(p)}">PDF ဒေါင်းလုဒ်</a></div></details>`,
-    );
+    ]),
+  ]);
+  if (activityResult.status === "fulfilled") activity = activityResult.value;
+  else activityError = activityResult.reason;
+  if (legacyResult.status === "fulfilled") {
+    [data, formData, users] = legacyResult.value;
+  } else {
+    legacyError = legacyResult.reason;
+  }
+
+  if (!activity && !data) {
+    const message =
+      (activityError && activityError.message) ||
+      (legacyError && legacyError.message) ||
+      "အစီရင်ခံစာ အချက်အလက်များကို ဖွင့်မရပါ။";
     setContent(
-      `<section class="stats"><div class="stat"><p>ကိုက်ညီသော တင်သွင်းချက်များ</p><strong>${data.total}</strong></div><div class="stat"><p>ပြီးစီး</p><strong>${data.statuses.completed || 0}</strong></div><div class="stat"><p>အတည်ပြုထားသည်</p><strong>${data.statuses.approved || 0}</strong></div><div class="stat"><p>ပယ်ချထားသည်</p><strong>${data.statuses.rejected || 0}</strong></div></section><section class="panel report-results">${reportFilters(p, formData, users)}${data.items.length
-        ? table(
-            [
-              "",
-              "တင်သွင်းမှု",
-              "စစ်တမ်း",
-              "တင်သွင်းသူ",
-              "အခြေအနေ",
-              "ရရှိချိန်",
-              "",
-            ],
-            data.items.map(
-              (r) =>
-                `<tr><td><input type="checkbox" data-select-submission="${r.id}" aria-label="တင်သွင်းမှု ${r.id} ကို ရွေးရန်"></td><td>#${r.id}</td><td class="title">${e(r.form)}<small>ဗားရှင်း ${r.version} · ${date(r.reporting_start)} → ${date(r.reporting_end)}</small></td><td>${e(r.username)}</td><td>${badge(r.status)}</td><td>${date(r.created_at)}</td><td><button class="button small" data-view-submission="${r.id}">အဖြေများ ကြည့်ရန်</button></td></tr>`,
-            ),
-          )
-        : empty(
-            "ကိုက်ညီသော တင်သွင်းချက် မရှိပါ",
-            "အခြားရက်စွဲအပိုင်းအခြား စမ်းကြည့်ပါ၊ စစ်ထုတ်မှုများ ရှင်းလင်းပါ၊ သို့မဟုတ် ထုတ်ဝေထားသော စစ်တမ်းမှတစ်ဆင့် တုံ့ပြန်ချက်များ စုဆောင်းပါ။",
-            button("အလုပ်စာအုပ် အဖြေများ ကြည့်ရန်", "/dashboard/data?tab=answers"),
-          )
-      }${pagination(data.total)}${data.items.length ? '<div class="filters"><span>ရွေးထားသည်များကို စစ်ဆေးရန်</span><button class="button small" data-review="approved">အတည်ပြုရန်</button><button class="button small danger" data-review="rejected">ပယ်ချရန်</button><button class="button small" data-review="pending_review">စစ်ဆေးရန် စောင့်ဆိုင်းအဖြစ် မှတ်ရန်</button></div>' : ""}</section>`,
+      `<div class="notice error" role="alert">${e(message)}</div><button class="button" id="retry-reports" type="button">ထပ်စမ်းကြည့်ရန်</button>`,
     );
-  } catch (error) {
-    setContent(
-      `<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">ထပ်စမ်းကြည့်ရန်</button>`,
-    );
-    document.querySelector("#retry").onclick = reportsPage;
+    document.querySelector("#retry-reports").onclick = reportsPage;
     return;
   }
-  const analytics = data.analytics;
-  const peak = Math.max(1, ...analytics.trend.map((day) => day.count));
-  document.querySelector("#content").insertAdjacentHTML(
-    "beforeend",
-    `<div class="overview-grid report-insights"><section class="panel"><div class="panel-head"><div><h2>စစ်ထုတ်ထားသည့် တင်သွင်းမှု လမ်းကြောင်း</h2><p>${analytics.completion_percent}% ပြီးစီး · ပျမ်းမျှ ပြီးစီးချိန် · ${analytics.average_seconds === null ? "—" : analytics.average_seconds + " စက္ကန့်"}</p></div></div><div class="panel-body">${analytics.trend.length ? `<div class="chart" role="img" aria-label="${e(analytics.trend.map((day) => day.date + ": " + day.count).join("; "))}">${analytics.trend.map((day) => `<div class="chart-column" tabindex="0" title="${day.date}: ${day.count}"><div class="chart-bar" style="height:${Math.max(1, (day.count / peak) * 100)}%"></div></div>`).join("")}</div>` : empty("ဤရွေးချယ်မှုအတွက် လုပ်ဆောင်ချက် မရှိပါ", "တင်သွင်းထားသော တုံ့ပြန်ချက်များ ပါဝင်ရန် စစ်ထုတ်မှုများကို ပြောင်းပါ။")}</div></section><section class="panel"><div class="panel-head"><h2>ဖြေဆိုသူများ၏ လုပ်ဆောင်ချက်</h2></div>${
-      analytics.by_user.length
-        ? table(
-            ["အသုံးပြုသူ", "တင်သွင်းမှုများ"],
-            analytics.by_user.map(
-              (row) =>
-                `<tr><td>${e(row.username)}</td><td class="numeric">${row.count}</td></tr>`,
-            ),
-          )
-        : empty(
-            "ဖြေဆိုသူ လုပ်ဆောင်ချက် မရှိပါ",
-            "တင်သွင်းထားသော တုံ့ပြန်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။",
-          )
-    }</section></div>${
-      analytics.question_distribution.length
-        ? `<section class="panel" style="margin-top:22px"><div class="panel-head"><h2>အဖြေ ဖြန့်ဝေမှု · ${e(p.get("question"))}</h2></div>${table(
-            ["အဖြေ", "တုံ့ပြန်ချက်များ"],
-            analytics.question_distribution.map(
-              (item) =>
-                `<tr><td>${e(item.display_value ?? valueText(item.answer))}</td><td class="numeric">${item.count}</td></tr>`,
-            ),
-          )}</section>`
-        : ""
-    }`,
-  );
-  const results = document.querySelector('.report-results');
-  const filters = results.querySelector('.report-filters');
-  const filterPanel = document.createElement('section');
-  filterPanel.className = 'panel report-filter-panel';
-  filterPanel.setAttribute('aria-label', 'အစီရင်ခံစာ စစ်ထုတ်မှုများ');
-  filterPanel.append(filters);
-  document.querySelector('#content').prepend(filterPanel);
-  results.before(document.querySelector('.report-insights'));
-  bindFilters(load);
-  document.querySelectorAll("[data-view-submission]").forEach(
-    (b) =>
-      (b.onclick = () =>
-        busy(b, async () => {
-          try {
-            const detail = await api(
-              "/submissions/" + b.dataset.viewSubmission,
-            );
-            modal(
-              "တင်သွင်းမှု #" + detail.id,
-              `<p class="editor-meta">${e(detail.form)} · ဗားရှင်း ${detail.version} · ${e(detail.username)}</p>${detail.sections.map((s) => `<section class="stack"><h3>${e(s.title)}</h3>${s.answers.map((a) => `<div class="notice"><strong>${e(a.title)}</strong><p class="source-text">${["file", "image"].includes(a.kind) && a.value?.file_id ? `<a class="table-link" href="/api/files/${Number(a.value.file_id)}">${e(a.display_value || "ပူးတွဲဖိုင် ဒေါင်းလုဒ်လုပ်ရန်")} ↗</a>` : e(a.display_value ?? valueText(a.value))}</p></div>`).join("")}</section>`).join("")}`,
-            );
-          } catch (error) {
-            toast(error.message);
+
+  const totals = activity?.totals || {
+    universities: 0,
+    active_years: 0,
+    questions: 0,
+    reports_expected: 0,
+    reports_submitted: 0,
+    reports_pending: 0,
+    participating_universities: 0,
+    completion_percent: 0,
+    answer_coverage_percent: 0,
+    answers: 0,
+    last_submitted_at: null,
+  };
+  const activeYears = activity?.active_years || [];
+  const recentReports = activity?.recent_reports || [];
+  const activityPanel = activity
+    ? `<div class="rp-kpis">
+        ${reportKpiCard({
+          icon: REPORT_ICONS.years,
+          value: reportNumber(totals.active_years),
+          title: "လက်ရှိ စစ်တမ်းကာလ",
+          hint: "သက်ဝင်နေသော စစ်တမ်းကာလများ",
+          tone: "years",
+        })}
+        ${reportKpiCard({
+          icon: REPORT_ICONS.universities,
+          value: reportNumber(totals.participating_universities),
+          title: "ပါဝင်တင်သွင်းသည့် တက္ကသိုလ်",
+          hint: `<strong>${reportNumber(totals.universities)}</strong> တက္ကသိုလ်အနက်`,
+          tone: "universities",
+        })}
+        ${reportKpiCard({
+          icon: REPORT_ICONS.reports,
+          value: reportNumber(totals.reports_submitted),
+          title: "တင်သွင်းပြီး အစီရင်ခံစာ",
+          hint: `<strong>${reportNumber(totals.reports_pending)}</strong> ခု ကျန်ရှိ`,
+          tone: "reports",
+        })}
+        ${reportKpiCard({
+          icon: REPORT_ICONS.completion,
+          value: reportPercent(totals.completion_percent),
+          title: "တင်သွင်းမှု ပြီးစီးနှုန်း",
+          hint: `အဖြေ လွှမ်းခြုံမှု <strong>${reportPercent(totals.answer_coverage_percent)}</strong>`,
+          tone: "completion",
+          meter: totals.completion_percent,
+        })}
+      </div>
+      <div class="rp-grid">
+        <section class="rp-panel rp-panel--years">
+          <header class="rp-panel__head">
+            <div><h2>လက်ရှိ စစ်တမ်းကာလများ</h2><p>သက်ဝင်နေသော နှစ်များနှင့် တက္ကသိုလ် တင်သွင်းမှု တိုးတက်မှု</p></div>
+            <span class="rp-count">${reportNumber(activeYears.length)} ကာလ</span>
+          </header>
+          ${
+            activeYears.length
+              ? `<div class="rp-year-list">${activeYears.map((year) => reportYearCard(year, totals.universities)).join("")}</div>`
+              : `<div class="rp-empty rp-empty--compact"><span class="rp-empty__icon" aria-hidden="true">${REPORT_ICONS.years}</span><h3>လက်ရှိ စစ်တမ်းကာလ မရှိပါ</h3><p>စစ်တမ်းကာလတစ်ခုကို ထုတ်ဝေပြီးပါက ၎င်း၏ တက္ကသိုလ် တင်သွင်းမှု အခြေအနေ ဤနေရာတွင် ပေါ်လာပါမည်။</p><a class="button" href="/dashboard/forms">စစ်တမ်းများ ကြည့်ရန်</a></div>`
           }
-        })),
-  );
-  document.querySelectorAll("[data-review]").forEach(
-    (b) =>
-      (b.onclick = () =>
-        busy(b, async () => {
-          const ids = [
-            ...document.querySelectorAll("[data-select-submission]:checked"),
-          ].map((c) => Number(c.dataset.selectSubmission));
-          if (!ids.length) return toast("အနည်းဆုံး တင်သွင်းမှုတစ်ခု ရွေးပါ။");
-          try {
-            await api("/submissions/review", {
-              method: "POST",
-              body: { ids, status: b.dataset.review },
-            });
-            toast("စစ်ဆေးမှု ရလဒ် သိမ်းဆည်းပြီးပါပြီ။");
-            load();
-          } catch (error) {
-            toast(error.message);
+        </section>
+        <section class="rp-panel rp-panel--recent">
+          <header class="rp-panel__head">
+            <div><h2>မကြာသေးမီ တင်သွင်းမှုများ</h2><p>လက်ရှိ စစ်တမ်းကာလများအတွင်း နောက်ဆုံး တင်သွင်းခဲ့သည့် တက္ကသိုလ်များ</p></div>
+            <span class="rp-count">${reportNumber(recentReports.length)} ခု</span>
+          </header>
+          ${
+            recentReports.length
+              ? `<div class="rp-recent-list">${recentReports.map(reportRecentCard).join("")}</div>`
+              : `<div class="rp-empty rp-empty--compact"><span class="rp-empty__icon" aria-hidden="true">${REPORT_ICONS.reports}</span><h3>တင်သွင်းမှု မရှိသေးပါ</h3><p>တက္ကသိုလ်များ တင်သွင်းပြီးပါက နောက်ဆုံး အစီရင်ခံစာများ ဤနေရာတွင် ပေါ်လာပါမည်။</p></div>`
           }
-        })),
+        </section>
+      </div>`
+    : `<div class="notice error" role="alert">${e(activityError?.message || "တက္ကသိုလ် အစီရင်ခံစာ အချက်အလက်များကို ဖွင့်မရပါ။")}</div><button class="button" id="retry-activity" type="button">တက္ကသိုလ် အစီရင်ခံစာများ ထပ်စမ်းကြည့်ရန်</button>`;
+
+  setContent(
+    `<section class="rp-stage">
+      <div class="rp-intro">
+        <div>
+          <span class="rp-eyebrow"><i aria-hidden="true"></i>တက္ကသိုလ် စစ်တမ်း လုပ်ငန်းစဉ်</span>
+          <h2>လက်ရှိ စစ်တမ်းကာလများ၏ တင်သွင်းမှု အခြေအနေ</h2>
+          <p>သက်ဝင်နေသော စစ်တမ်းကာလများတွင် တက္ကသိုလ်များ၏ တင်သွင်းမှုကို တစ်နေရာတည်းမှ စောင့်ကြည့်ပါ။</p>
+          <div class="rp-intro__facts">
+            <span><strong>${reportNumber(totals.questions)}</strong> မေးခွန်း</span>
+            <span><strong>${reportNumber(totals.answers)}</strong> အဖြေ</span>
+            <span><strong>${reportNumber(totals.reports_expected)}</strong> မျှော်မှန်း အစီရင်ခံစာ</span>
+          </div>
+        </div>
+        <div class="rp-intro__status">
+          <span class="rp-live"><i aria-hidden="true"></i>လက်ရှိ အခြေအနေ</span>
+          <small>${totals.last_submitted_at ? `နောက်ဆုံး တင်သွင်းချိန်<br><strong>${e(dateTime(totals.last_submitted_at))}</strong>` : "တင်သွင်းမှု မရှိသေးပါ"}</small>
+        </div>
+      </div>
+      ${activityPanel}
+      ${
+        data
+          ? reportLegacySection(p, data, formData, users)
+          : `<div class="notice error" role="alert">${e(legacyError?.message || "အသေးစိတ် တင်သွင်းမှု မှတ်တမ်းများကို ဖွင့်မရပါ။")}</div><button class="button" id="retry-legacy" type="button">အသေးစိတ် မှတ်တမ်းများ ထပ်စမ်းကြည့်ရန်</button>`
+      }
+    </section>`,
   );
+
+  const bindRefresh = (selector) => {
+    const node = document.querySelector(selector);
+    if (node) node.onclick = () => busy(node, reportsPage);
+  };
+  bindRefresh("#retry-activity");
+  bindRefresh("#retry-legacy");
+  document.querySelectorAll("[data-report-state]").forEach((button) => {
+    button.onclick = () =>
+      busy(button, async () => {
+        try {
+          const report = await api(
+            `/reports/university/${Number(button.dataset.reportYear)}/universities?state=${encodeURIComponent(button.dataset.reportState)}`,
+          );
+          reportUniversityModal(report);
+        } catch (error) {
+          toast(error.message);
+        }
+      });
+  });
+
+  if (data) {
+    bindFilters(load);
+    document.querySelectorAll("[data-view-submission]").forEach(
+      (b) =>
+        (b.onclick = () =>
+          busy(b, async () => {
+            try {
+              const detail = await api(
+                "/submissions/" + b.dataset.viewSubmission,
+              );
+              modal(
+                "တင်သွင်းမှု #" + detail.id,
+                `<p class="editor-meta">${e(detail.form)} · ဗားရှင်း ${detail.version} · ${e(detail.username)}</p>${detail.sections.map((s) => `<section class="stack"><h3>${e(s.title)}</h3>${s.answers.map((a) => `<div class="notice"><strong>${e(a.title)}</strong><p class="source-text">${["file", "image"].includes(a.kind) && a.value?.file_id ? `<a class="table-link" href="/api/files/${Number(a.value.file_id)}">${e(a.display_value || "ပူးတွဲဖိုင် ဒေါင်းလုဒ်လုပ်ရန်")} ↗</a>` : e(a.display_value ?? valueText(a.value))}</p></div>`).join("")}</section>`).join("")}`,
+              );
+            } catch (error) {
+              toast(error.message);
+            }
+          })),
+    );
+    document.querySelectorAll("[data-review]").forEach(
+      (b) =>
+        (b.onclick = () =>
+          busy(b, async () => {
+            const ids = [
+              ...document.querySelectorAll("[data-select-submission]:checked"),
+            ].map((c) => Number(c.dataset.selectSubmission));
+            if (!ids.length) return toast("အနည်းဆုံး တင်သွင်းမှုတစ်ခု ရွေးပါ။");
+            try {
+              await api("/submissions/review", {
+                method: "POST",
+                body: { ids, status: b.dataset.review },
+              });
+              toast("စစ်ဆေးမှု ရလဒ် သိမ်းဆည်းပြီးပါပြီ။");
+              load();
+            } catch (error) {
+              toast(error.message);
+            }
+          })),
+    );
+  }
 }
 
 async function usersPage() {
@@ -783,11 +2028,11 @@ async function safeLoad(pageFn, pageName) {
 async function load() {
   const pages = {
     overview: () => safeLoad(overview, "အကျဉ်းချုပ်"),
-    "survey-builder": () => describe("စစ်တမ်းခုနှစ်များ၊ ခေါင်းစဉ်များနှင့် မေးခွန်းများကို စီမံပါ။"),
     forms: () => safeLoad(formsPage, "စစ်တမ်းများ"),
-    departments: () => safeLoad(departments, "ဌာနများ"),
-    submissions: () => safeLoad(reportsPage, "အစီရင်ခံစာများ"),
-    reports: () => safeLoad(reportsPage, "အစီရင်ခံစာများ"),
+    departments: () => safeLoad(departments, "တက္ကသိုလ်များ"),
+    ministries: () => safeLoad(ministries, "ဝန်ကြီးဌာနများ"),
+    submissions: () => safeLoad(reportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
+    reports: () => safeLoad(reportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
     users: () => safeLoad(usersPage, "အသုံးပြုသူများ"),
     audit: () => safeLoad(audit, "လုပ်ဆောင်ချက် မှတ်တမ်း"),
     settings: () => safeLoad(settings, "ဆက်တင်များ"),
@@ -820,9 +2065,9 @@ async function load() {
 const workspacePages = {
   "/dashboard": ["overview", "အကျဉ်းချုပ်"],
   "/dashboard/forms": ["forms", "စစ်တမ်းများ"],
-  "/dashboard/survey-builder": ["survey-builder", "စစ်တမ်း ဖန်တီးခြင်း"],
-  "/dashboard/departments": ["departments", "ဌာနများ"],
-  "/dashboard/reports": ["reports", "အစီရင်ခံစာများနှင့် ခွဲခြမ်းစိတ်ဖြာမှု"],
+  "/dashboard/departments": ["departments", "တက္ကသိုလ်များ"],
+  "/dashboard/ministries": ["ministries", "ဝန်ကြီးဌာနများ"],
+  "/dashboard/reports": ["reports", "တက္ကသိုလ် အစီရင်ခံစာများ"],
   "/dashboard/users": ["users", "အသုံးပြုသူများနှင့် စစ်တမ်းကောက်သူများ"],
   "/dashboard/data": ["data", "ဒေတာ စီမံခန့်ခွဲမှု"],
   "/dashboard/audit": ["audit", "လုပ်ဆောင်ချက် မှတ်တမ်း"],
@@ -867,7 +2112,6 @@ document.addEventListener("click", (event) => {
   const link = event.target.closest("a[href]");
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || link.target || link.hasAttribute("download")) return;
   const url = new URL(link.href);
-  if (url.pathname === "/dashboard/survey-builder" || location.pathname === "/dashboard/survey-builder") return;
   if (url.origin !== location.origin || !workspacePages[url.pathname] || !workspacePages[location.pathname] || url.hash) return;
   if (document.querySelector("#workspace-dialog").open) return;
   event.preventDefault();

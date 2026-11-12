@@ -16,15 +16,16 @@ metadata = MetaData()
 for name in ('ministry', 'university', 'userrole', 'user', 'unisurvey', 'ministrysurvey'):
     schema.metadata.tables[name].to_metadata(metadata)
 year = Table('year', metadata,
-    Column('yID', Integer, primary_key=True), Column('yearFrom', Date),
-    Column('yearTo', Date), Column('status', Integer, server_default='1'))
+    Column('yID', Integer, primary_key=True, autoincrement=True), Column('yearFrom', Date),
+    Column('yearTo', Date), Column('status', Integer, server_default='1'),
+    sqlite_autoincrement=True)
 titles = Table('questiontitle', metadata,
-    Column('qTID', Integer, primary_key=True), Column('qTDetail', Text, nullable=False),
-    Column('description', Text))
+    Column('qTID', Integer, primary_key=True, autoincrement=True), Column('qTDetail', Text, nullable=False),
+    Column('description', Text), sqlite_autoincrement=True)
 for name, pk, detail in [('uniquestion', 'uQId', 'uQDetail'), ('ministryquestion', 'mQId', 'mQDetail')]:
-    Table(name, metadata, Column(pk, Integer, primary_key=True),
+    Table(name, metadata, Column(pk, Integer, primary_key=True, autoincrement=True),
         Column(detail, Text, nullable=False), Column('qTID', ForeignKey('questiontitle.qTID')),
-        Column('yID', ForeignKey('year.yID'), nullable=False))
+        Column('yID', ForeignKey('year.yID'), nullable=False), sqlite_autoincrement=True)
 
 
 def detect_layout(connection, names):
@@ -164,16 +165,8 @@ class ExistingLayout:
                 connection.execute(titles.delete().where(titles.c.qTID == row['qTID']))
 
     def write_metadata(self, connection, parts, digest):
+        # Metadata storage disabled - no-op
+        # Previously this wrote JSON metadata to questiontitle with negative IDs
         if self.private:
             self.payload = ''.join(parts)
-            return
-        previous = {m['part']: r['qTID'] for r, m in self.records(connection, 'metadata')}
-        for i, part in enumerate(parts):
-            self.put_record(connection, {
-                'qTDetail': f'[DEDC form metadata {i + 1}]',
-                'description': dumps({'$dedc': FORMAT, 'kind': 'metadata', 'part': i,
-                                      'total': len(parts), 'digest': digest, 'data': part}),
-            }, previous.get(i))
-        for part, identifier in previous.items():
-            if part >= len(parts):
-                connection.execute(titles.delete().where(titles.c.qTID == identifier))
+        return

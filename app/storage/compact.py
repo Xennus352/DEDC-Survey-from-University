@@ -133,9 +133,14 @@ def write_state(connection, files, state, layout=None):
     state = loads(dumps(state))
     if layout:
         layout.write_sources(connection, state)
-    for name in ('userrole', 'user'):
-        for record in state.get(name, []):
-            upsert(connection, schema.metadata.tables[name], record)
+    # Sync auth tables that exist in both projection and native database
+    native_table_names = set(inspect(connection).get_table_names())
+    for name in ('userrole', 'user', 'admin_sessions'):
+        if name in native_table_names:
+            table = schema.metadata.tables.get(name)
+            if table is not None:
+                for record in state.get(name, []):
+                    upsert(connection, table, record)
     existing = {}
     for audience, table, pk in [('university', schema.uniquestion, 'uQId'), ('ministry', schema.ministryquestion, 'mQId')]:
         for row in (layout.question_rows(connection, table.name) if layout else rows(connection, table)):
@@ -270,22 +275,9 @@ def write_state(connection, files, state, layout=None):
     if layout:
         layout.write_metadata(connection, parts, digest)
         return
-    existing_metadata = []
-    for row in rows(connection, schema.uniquestion):
-        meta = envelope(row['description'])
-        if meta and meta.get('kind') == 'metadata':
-            existing_metadata.append(row['uQId'])
-    for i, part in enumerate(parts):
-        identifier = -(i + 1)
-        occupied = connection.execute(select(schema.uniquestion.c.description).where(schema.uniquestion.c.uQId == identifier)).scalar()
-        if occupied is not None and identifier not in existing_metadata:
-            raise RuntimeError('Reserved negative question ID is occupied; conversion refused.')
-        upsert(connection, schema.uniquestion, {'uQId': identifier, 'uQDetail': f'[DEDC form metadata {i + 1}]',
-            'yearFrom': 0, 'yearTo': 0,
-            'description': dumps({'$dedc': FORMAT, 'kind': 'metadata', 'part': i, 'total': len(parts), 'digest': digest, 'data': part})})
-    for identifier in existing_metadata:
-        if identifier < -len(parts):
-            connection.execute(schema.uniquestion.delete().where(schema.uniquestion.c.uQId == identifier))
+    # Metadata storage disabled - no-op
+    # Previously wrote JSON metadata to uniquestion with negative IDs
+    return
 
 
 def feature_payload(files, state):
@@ -304,8 +296,11 @@ def feature_payload(files, state):
 def projection_snapshot(session):
     from app.database import Base
     session.flush()
+    # Exclude native legacy tables that are managed via native SQL, not ORM projection
+    native_tables = {"year", "questiontitle", "uniquestion", "ministryquestion"}
     return {table.name: [dict(row) for row in session.connection().execute(select(table)).mappings()]
-            for table in Base.metadata.sorted_tables}
+            for table in Base.metadata.sorted_tables
+            if table.name not in native_tables}
 
 
 class CompactSession(Session):
@@ -348,6 +343,18 @@ class CompactSession(Session):
                 if not self._sql_lock:
                     raise RuntimeError('Could not acquire the DEDC workspace lock.')
             names = set(inspect(self.native).get_table_names())
+            # Ensure admin_sessions table exists in native database for session persistence
+            if 'admin_sessions' not in names:
+                self.native.execute(text("""
+                    CREATE TABLE admin_sessions (
+                        token_hash CHAR(64) PRIMARY KEY,
+                        user_id INT NULL,
+                        expires_at BIGINT NOT NULL
+                    )
+                """))
+                self.native.execute(text("CREATE INDEX ix_admin_sessions_expires_at ON admin_sessions (expires_at)"))
+                self.native.commit()
+                names.add('admin_sessions')
             from app.storage.existing import detect_layout
             self.layout = detect_layout(self.native, names)
             if self.layout:

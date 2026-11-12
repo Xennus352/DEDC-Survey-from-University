@@ -224,7 +224,23 @@ export function pagination(total, reload) {
   const p = Number(params.get("page") || 1),
     size = Number(params.get("limit") || 25),
     count = Math.max(1, Math.ceil(total / size));
-  return `<div class="pagination"><span>${total.toLocaleString()} မှတ်တမ်း · စာမျက်နှာ ${p} / ${count}</span><div class="actions"><button class="button small" data-pagination="${p - 1}" ${p <= 1 ? "disabled" : ""}>ယခင်</button><button class="button small" data-pagination="${p + 1}" ${p >= count ? "disabled" : ""}>နောက်သို့</button></div></div>`;
+  const first = Math.max(1, Math.min(p - 2, count - 4));
+  const last = Math.min(count, first + 4);
+  const pages = Array.from({ length: last - first + 1 }, (_, index) => first + index)
+    .map((page) =>
+      page === p
+        ? `<span class="pagination__page is-current" aria-current="page">${page}</span>`
+        : `<button class="pagination__page" type="button" data-pagination="${page}" aria-label="စာမျက်နှာ ${page} သို့ သွားရန်">${page}</button>`,
+    )
+    .join("");
+  return `<nav class="pagination" aria-label="စာမျက်နှာ ရွေးချယ်မှု">
+    <span class="pagination__summary"><strong>${total.toLocaleString()}</strong> မှတ်တမ်း · စာမျက်နှာ <strong>${p}</strong> / ${count}</span>
+    <div class="pagination__controls">
+      <button class="button small pagination__step" type="button" data-pagination="${p - 1}" ${p <= 1 ? "disabled" : ""}>← ယခင်</button>
+      <div class="pagination__pages">${pages}</div>
+      <button class="button small pagination__step" type="button" data-pagination="${p + 1}" ${p >= count ? "disabled" : ""}>နောက်သို့ →</button>
+    </div>
+  </nav>`;
 }
 export function bindFilters(reload) {
   document.querySelectorAll("[data-pagination]").forEach(

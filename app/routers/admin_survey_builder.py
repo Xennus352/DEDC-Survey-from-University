@@ -14,18 +14,21 @@ from app.crud.survey_builder import _extract_year, _extract_month
 from app.dependencies import get_db
 from app.schemas.survey_builder import (
     BulkQuestionCreate,
+    CreatedSurveyFormOutput,
     ExcelImportConfirm,
     ExcelImportPreview,
+    LegacySurveyCreateInput,
     MinistryQuestionInput,
     MinistryQuestionOutput,
     OrgType,
+    QuestionGroupOutput,
+    QuestionGroupUpdateInput,
     QuestionListParams,
     QuestionTitleInput,
     QuestionTitleOutput,
-    ReorderQuestionsRequest,
     SurveyFormVirtual,
-    SurveyFormWithQuestions,
     SurveyListParams,
+    YearQuestionGroupsOutput,
     UniQuestionInput,
     UniQuestionOutput,
     YearInput,
@@ -678,25 +681,77 @@ def list_survey_forms(
     return forms
 
 
-@router.get("/builder/{org_type}/{year_id}", response_model=SurveyFormWithQuestions)
-def get_survey_builder(
+@router.post("/forms/create", response_model=CreatedSurveyFormOutput, status_code=201)
+def create_survey_form(
+    data: LegacySurveyCreateInput,
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Create a native survey with its year, question titles and questions atomically."""
+    try:
+        result = crud.create_survey_with_questions(db, data)
+        db.commit()
+        return result
+    except ValueError as error:
+        db.native.rollback()
+        raise HTTPException(400, str(error)) from error
+    except HTTPException:
+        db.native.rollback()
+        raise
+    except Exception:
+        db.native.rollback()
+        raise
+
+
+@router.get("/builder/groups/{org_type}/{year_id}", response_model=YearQuestionGroupsOutput)
+def get_year_question_groups(
     org_type: OrgType,
     year_id: int,
     db: Session = Depends(get_db),
     admin: AdminIdentity = Depends(require_admin),
 ):
-    """Get all data needed for the survey form builder (virtual form from year + org_type)."""
-    data = crud.get_survey_builder_data(db, org_type, year_id)
+    """Question titles of one year with the questions under each, for the edit modal."""
+    data = crud.get_year_question_groups(db, org_type, year_id)
     if not data:
-        raise HTTPException(404, "Year not found or no questions for this combination")
+        raise HTTPException(404, "Year not found")
     return data
 
 
-@router.post("/builder/reorder")
-def reorder_questions(
-    data: ReorderQuestionsRequest,
+@router.put("/builder/groups/{org_type}/{year_id}/{qTID}", response_model=QuestionGroupOutput)
+def update_year_question_group(
+    org_type: OrgType,
+    year_id: int,
+    qTID: int,
+    data: QuestionGroupUpdateInput,
     db: Session = Depends(get_db),
     admin: AdminIdentity = Depends(require_admin),
 ):
-    """Reorder questions in a survey form (virtual - display_order for UI only)."""
-    return {"message": "Order updated", "count": len(data.question_orders)}
+    """Rename a question title and rewrite the questions under it for one year."""
+    try:
+        result = crud.update_year_question_group(db, org_type, year_id, qTID, data)
+    except ValueError as error:
+        db.native.rollback()
+        raise HTTPException(400, str(error)) from error
+    except Exception:
+        db.native.rollback()
+        raise
+    if result is None:
+        db.native.rollback()
+        raise HTTPException(404, "Question title not found for this year")
+    db.commit()
+    return result
+
+
+@router.delete("/builder/groups/{org_type}/{year_id}/{qTID}", status_code=204)
+def delete_year_question_group(
+    org_type: OrgType,
+    year_id: int,
+    qTID: int,
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Delete a question title's questions for one year, then the title when orphaned."""
+    if not crud.delete_year_question_group(db, org_type, year_id, qTID):
+        db.native.rollback()
+        raise HTTPException(404, "Question title not found for this year")
+    db.commit()

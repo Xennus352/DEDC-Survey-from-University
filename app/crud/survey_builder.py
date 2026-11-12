@@ -21,10 +21,14 @@ from app.schemas.survey_builder import (
     MinistryQuestionOutput,
     OrgType,
     SurveyFormVirtual,
-    SurveyFormWithQuestions,
+    QuestionGroupOutput,
+    QuestionGroupQuestionOutput,
+    QuestionGroupUpdateInput,
+    YearQuestionGroupsOutput,
     SurveyListParams,
     YearListParams,
     QuestionListParams,
+    LegacySurveyCreateInput,
 )
 
 
@@ -79,11 +83,15 @@ def _get_native_connection(db: Session):
 # ============================================================
 
 def create_year(db: Session, data: YearInput) -> Year:
-    """Create a new year period in `year` table."""
+    """Create a new year period in `year` table.
+
+    The database owns ``yID``. Reading the primary key back from the insert is
+    deliberate: building ``max(yID) + 1`` in Python races with other writers and
+    can collide with negative rows left by older imports.
+    """
     conn = _get_native_connection(db)
     result = conn.execute(
         uni_schema.year.insert().values(
-            yID=max(conn.execute(select(func.max(uni_schema.year.c.yID))).scalar() or 0, 0) + 1,
             yearFrom=date(data.year_to, data.year_from, 1),
             yearTo=date(data.year_to, data.year_from, 1),
             status=data.status,
@@ -111,20 +119,77 @@ def update_year(db: Session, yID: int, data: YearInput) -> Any:
 
 
 def delete_year(db: Session, yID: int) -> bool:
-    """Delete a year period from `year` table (only if no questions reference it)."""
+    """Delete a year period and everything under it from `year` table.
+
+    Cascade deletes in dependency order so foreign-key constraints hold:
+    survey responses referencing the year's questions → the questions themselves →
+    question titles that become orphaned → finally the year period.
+    """
     conn = _get_native_connection(db)
 
-    # Check for referencing questions
-    uni_count = conn.execute(
-        select(func.count(uni_schema.uniquestion.c.uQId)).where(uni_schema.uniquestion.c.yID == yID)
-    ).scalar()
-    min_count = conn.execute(
-        select(func.count(min_schema.ministryquestion.c.mQId)).where(min_schema.ministryquestion.c.yID == yID)
-    ).scalar()
+    exists_year = conn.execute(
+        select(uni_schema.year.c.yID).where(uni_schema.year.c.yID == yID)
+    ).first()
+    if not exists_year:
+        return False
 
-    if uni_count > 0 or min_count > 0:
-        raise ValueError(f"Cannot delete year: {uni_count} university questions and {min_count} ministry questions reference it")
+    # Collect questions (and their titles) belonging to this year.
+    uni_qrows = conn.execute(
+        select(uni_schema.uniquestion.c.uQId, uni_schema.uniquestion.c.qTID).where(
+            uni_schema.uniquestion.c.yID == yID
+        )
+    ).all()
+    min_qrows = conn.execute(
+        select(min_schema.ministryquestion.c.mQId, min_schema.ministryquestion.c.qTID).where(
+            min_schema.ministryquestion.c.yID == yID
+        )
+    ).all()
+    deleted_qTIDs = {qTID for _, qTID in uni_qrows + min_qrows if qTID is not None}
 
+    # 1. Survey responses referencing this year's questions must go first.
+    if uni_qrows:
+        conn.execute(
+            uni_schema.unisurvey.delete().where(
+                uni_schema.unisurvey.c.uQId.in_([q[0] for q in uni_qrows])
+            )
+        )
+    if min_qrows:
+        conn.execute(
+            min_schema.ministrysurvey.delete().where(
+                min_schema.ministrysurvey.c.mQId.in_([q[0] for q in min_qrows])
+            )
+        )
+
+    # 2. The questions themselves.
+    conn.execute(uni_schema.uniquestion.delete().where(uni_schema.uniquestion.c.yID == yID))
+    conn.execute(min_schema.ministryquestion.delete().where(min_schema.ministryquestion.c.yID == yID))
+
+    # 3. Question titles that are now orphaned (not referenced by any remaining question).
+    if deleted_qTIDs:
+        still_referenced = {
+            row[0]
+            for row in conn.execute(
+                select(uni_schema.uniquestion.c.qTID).where(
+                    uni_schema.uniquestion.c.qTID.in_(list(deleted_qTIDs))
+                )
+            )
+        } | {
+            row[0]
+            for row in conn.execute(
+                select(min_schema.ministryquestion.c.qTID).where(
+                    min_schema.ministryquestion.c.qTID.in_(list(deleted_qTIDs))
+                )
+            )
+        }
+        orphaned = deleted_qTIDs - still_referenced
+        if orphaned:
+            conn.execute(
+                uni_schema.questiontitle.delete().where(
+                    uni_schema.questiontitle.c.qTID.in_(list(orphaned))
+                )
+            )
+
+    # 4. Finally the year period.
     conn.execute(uni_schema.year.delete().where(uni_schema.year.c.yID == yID))
     return True
 
@@ -222,11 +287,15 @@ def get_active_years(db: Session) -> list[YearOutput]:
 # ============================================================
 
 def create_question_title(db: Session, data: QuestionTitleInput) -> Any:
-    """Create a new question title in `questiontitle` table."""
+    """Create a new question title in `questiontitle` table.
+
+    ``qTID`` is generated by the database, never by application code. The
+    inserted primary key is returned so callers can attach questions to the
+    exact row that was just created.
+    """
     conn = _get_native_connection(db)
     result = conn.execute(
         uni_schema.questiontitle.insert().values(
-            qTID=max(conn.execute(select(func.max(uni_schema.questiontitle.c.qTID))).scalar() or 0, 0) + 1,
             qTDetail=data.qTDetail,
             description=data.description,
         )
@@ -367,16 +436,17 @@ def update_uni_question(db: Session, uQId: int, data: UniQuestionInput) -> Any:
 
 
 def delete_uni_question(db: Session, uQId: int) -> bool:
-    """Delete a university question from `uniquestion` table (only if no survey responses in `unisurvey` reference it)."""
+    """Delete a university question from `uniquestion` table.
+
+    Survey responses referencing the question are removed first so the
+    foreign-key constraint is satisfied.
+    """
     conn = _get_native_connection(db)
 
-    survey_count = conn.execute(
-        select(func.count(uni_schema.unisurvey.c.uniSurveyId)).where(uni_schema.unisurvey.c.uQId == uQId)
-    ).scalar()
-
-    if survey_count > 0:
-        raise ValueError(f"Cannot delete question: {survey_count} survey responses in `unisurvey` reference it")
-
+    # Remove survey responses referencing this question first.
+    conn.execute(
+        uni_schema.unisurvey.delete().where(uni_schema.unisurvey.c.uQId == uQId)
+    )
     conn.execute(uni_schema.uniquestion.delete().where(uni_schema.uniquestion.c.uQId == uQId))
     return True
 
@@ -522,16 +592,17 @@ def update_ministry_question(db: Session, mQId: int, data: MinistryQuestionInput
 
 
 def delete_ministry_question(db: Session, mQId: int) -> bool:
-    """Delete a ministry question from `ministryquestion` table (only if no survey responses in `ministrysurvey` reference it)."""
+    """Delete a ministry question from `ministryquestion` table.
+
+    Survey responses referencing the question are removed first so the
+    foreign-key constraint is satisfied.
+    """
     conn = _get_native_connection(db)
 
-    survey_count = conn.execute(
-        select(func.count(min_schema.ministrysurvey.c.mSurveyId)).where(min_schema.ministrysurvey.c.mQId == mQId)
-    ).scalar()
-
-    if survey_count > 0:
-        raise ValueError(f"Cannot delete question: {survey_count} survey responses in `ministrysurvey` reference it")
-
+    # Remove survey responses referencing this question first.
+    conn.execute(
+        min_schema.ministrysurvey.delete().where(min_schema.ministrysurvey.c.mQId == mQId)
+    )
     conn.execute(min_schema.ministryquestion.delete().where(min_schema.ministryquestion.c.mQId == mQId))
     return True
 
@@ -764,6 +835,69 @@ def find_or_create_ministry_question(db: Session, mQDetail: str, yID: int, qTID:
     return conn.execute(select(min_schema.ministryquestion).where(min_schema.ministryquestion.c.mQId == mQId)).first()
 
 
+def create_survey_with_questions(db: Session, data: LegacySurveyCreateInput) -> dict[str, Any]:
+    """Insert a year range, its question titles and questions as one native unit of work.
+
+    No identifier is generated in Python. MySQL assigns ``yID``/``qTID`` and the
+    primary keys are read back from each insert so child rows always reference
+    the row that was actually written. The caller is responsible for committing
+    the native connection; any exception leaves the inserts uncommitted and they
+    are rolled back by the session dependency.
+    """
+    conn = _get_native_connection(db)
+
+    year_result = conn.execute(
+        uni_schema.year.insert().values(
+            yearFrom=date(data.start_year, data.start_month, 1),
+            yearTo=date(data.end_year, data.end_month, 1),
+            status=data.status,
+        )
+    )
+    year_id = year_result.inserted_primary_key[0]
+
+    table = (
+        uni_schema.uniquestion
+        if data.org_type == "university"
+        else min_schema.ministryquestion
+    )
+    detail_column = "uQDetail" if data.org_type == "university" else "mQDetail"
+
+    groups: list[dict[str, Any]] = []
+    question_count = 0
+    for group in data.groups:
+        title_result = conn.execute(
+            uni_schema.questiontitle.insert().values(
+                qTDetail=group.title,
+                description=group.description,
+            )
+        )
+        qTID = title_result.inserted_primary_key[0]
+        question_ids: list[int] = []
+        for question in group.questions:
+            question_result = conn.execute(
+                table.insert().values(
+                    **{detail_column: question, "qTID": qTID, "yID": year_id}
+                )
+            )
+            question_ids.append(question_result.inserted_primary_key[0])
+        question_count += len(question_ids)
+        groups.append(
+            {
+                "qTID": qTID,
+                "qTDetail": group.title,
+                "description": group.description,
+                "question_ids": question_ids,
+            }
+        )
+
+    return {
+        "year_id": year_id,
+        "org_type": data.org_type,
+        "groups": groups,
+        "question_count": question_count,
+    }
+
+
 # ============================================================
 # Virtual Survey Forms (NO new table - defined by year + org_type)
 # ============================================================
@@ -790,6 +924,13 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
                 select(func.count(uni_schema.uniquestion.c.uQId)).where(uni_schema.uniquestion.c.yID == y.yID)
             ).scalar()
 
+            # Count the DISTINCT question titles referenced by this year's
+            # `uniquestion` rows (several questions can share one title).
+            qt_count = conn.execute(
+                select(func.count(func.distinct(uni_schema.uniquestion.c.qTID)))
+                .where(uni_schema.uniquestion.c.yID == y.yID)
+            ).scalar()
+
             month_names = [
                 "", "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -797,6 +938,7 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
             month_from = _extract_month(y.yearFrom)
             year_from = _extract_year(y.yearFrom)
             year_to = _extract_year(y.yearTo)
+            month_to = _extract_month(y.yearTo)
             month = month_names[month_from] if 1 <= month_from <= 12 else "Unknown"
             label = f"{month} {year_to}" if year_to else f"Month {month_from} Year {year_from}"
 
@@ -808,6 +950,12 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
                 description=None,
                 is_active=y.status == 1,
                 question_count=q_count or 0,
+                year_status=y.status,
+                year_from=year_from,
+                year_to=year_to,
+                month_from=month_from,
+                month_to=month_to,
+                question_title_count=qt_count or 0,
             ))
 
     # Get years with ministry questions
@@ -827,6 +975,13 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
                 select(func.count(min_schema.ministryquestion.c.mQId)).where(min_schema.ministryquestion.c.yID == y.yID)
             ).scalar()
 
+            # Count the DISTINCT question titles referenced by this year's
+            # `ministryquestion` rows (several questions can share one title).
+            qt_count = conn.execute(
+                select(func.count(func.distinct(min_schema.ministryquestion.c.qTID)))
+                .where(min_schema.ministryquestion.c.yID == y.yID)
+            ).scalar()
+
             month_names = [
                 "", "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
@@ -834,6 +989,7 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
             month_from = _extract_month(y.yearFrom)
             year_from = _extract_year(y.yearFrom)
             year_to = _extract_year(y.yearTo)
+            month_to = _extract_month(y.yearTo)
             month = month_names[month_from] if 1 <= month_from <= 12 else "Unknown"
             label = f"{month} {year_to}" if year_to else f"Month {month_from} Year {year_from}"
 
@@ -845,6 +1001,12 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
                 description=None,
                 is_active=y.status == 1,
                 question_count=q_count or 0,
+                year_status=y.status,
+                year_from=year_from,
+                year_to=year_to,
+                month_from=month_from,
+                month_to=month_to,
+                question_title_count=qt_count or 0,
             ))
 
     # Filter by search
@@ -861,72 +1023,256 @@ def get_virtual_survey_forms(db: Session, params: SurveyListParams) -> tuple[lis
     return forms[start:end], total
 
 
-def get_survey_builder_data(db: Session, org_type: OrgType, year_id: int) -> SurveyFormWithQuestions | None:
-    """Get all data needed for the survey form builder (virtual form)."""
+def _org_question_columns(org_type: OrgType):
+    """Return (table, id_column, detail_column) for the audience's question table."""
+    if org_type == "university":
+        return (
+            uni_schema.uniquestion,
+            uni_schema.uniquestion.c.uQId,
+            uni_schema.uniquestion.c.uQDetail,
+        )
+    return (
+        min_schema.ministryquestion,
+        min_schema.ministryquestion.c.mQId,
+        min_schema.ministryquestion.c.mQDetail,
+    )
+
+
+def _count_references_outside(conn, org_type: OrgType, year_id: int, qTID: int) -> int:
+    """Count questions referencing a title from outside this year + audience's table."""
+    if org_type == "university":
+        same_table = conn.execute(
+            select(func.count())
+            .select_from(uni_schema.uniquestion)
+            .where(
+                uni_schema.uniquestion.c.qTID == qTID,
+                uni_schema.uniquestion.c.yID != year_id,
+            )
+        ).scalar() or 0
+        other_table = conn.execute(
+            select(func.count())
+            .select_from(min_schema.ministryquestion)
+            .where(min_schema.ministryquestion.c.qTID == qTID)
+        ).scalar() or 0
+    else:
+        same_table = conn.execute(
+            select(func.count())
+            .select_from(min_schema.ministryquestion)
+            .where(
+                min_schema.ministryquestion.c.qTID == qTID,
+                min_schema.ministryquestion.c.yID != year_id,
+            )
+        ).scalar() or 0
+        other_table = conn.execute(
+            select(func.count())
+            .select_from(uni_schema.uniquestion)
+            .where(uni_schema.uniquestion.c.qTID == qTID)
+        ).scalar() or 0
+    return same_table + other_table
+
+
+def get_year_question_groups(db: Session, org_type: OrgType, year_id: int) -> YearQuestionGroupsOutput | None:
+    """Load a year's question titles with the questions under each, for the edit modal.
+
+    Questions without a title (NULL qTID) are kept in one trailing group with
+    qTID=None so they stay visible instead of silently disappearing.
+    """
     conn = _get_native_connection(db)
-    year = conn.execute(select(uni_schema.year).where(uni_schema.year.c.yID == year_id)).first()
+    year = conn.execute(select(uni_schema.year.c.yID).where(uni_schema.year.c.yID == year_id)).first()
     if not year:
         return None
 
-    if org_type == "university":
-        questions = get_uni_questions_by_year(db, year_id)
-        organizations = get_universities(db)
+    question_table, id_column, detail_column = _org_question_columns(org_type)
+    rows = conn.execute(
+        select(
+            id_column,
+            detail_column,
+            question_table.c.qTID,
+            uni_schema.questiontitle.c.qTDetail,
+        )
+        .select_from(
+            question_table.outerjoin(
+                uni_schema.questiontitle,
+                question_table.c.qTID == uni_schema.questiontitle.c.qTID,
+            )
+        )
+        .where(question_table.c.yID == year_id)
+        .order_by(id_column)
+    ).all()
+
+    groups: list[QuestionGroupOutput] = []
+    index: dict[int | None, QuestionGroupOutput] = {}
+    for question_id, question_detail, title_id, title_detail in rows:
+        group = index.get(title_id)
+        if group is None:
+            group = QuestionGroupOutput(qTID=title_id, qTDetail=title_detail, questions=[])
+            index[title_id] = group
+            groups.append(group)
+        group.questions.append(QuestionGroupQuestionOutput(id=question_id, detail=question_detail))
+    return YearQuestionGroupsOutput(year_id=year_id, org_type=org_type, groups=groups)
+
+
+def update_year_question_group(
+    db: Session,
+    org_type: OrgType,
+    year_id: int,
+    qTID: int,
+    data: QuestionGroupUpdateInput,
+) -> QuestionGroupOutput | None:
+    """Rename a question title and rewrite the questions under it for one year.
+
+    Questions sent without an id are inserted under the title, sent ids are
+    rewritten in place, and questions missing from the payload are deleted
+    (their survey responses first). The title row is shared across years by
+    the legacy schema, so a rename only happens in place when no other year
+    or audience references it. Otherwise a new title is created and only
+    this year's questions are re-pointed to it, keeping the old title intact
+    for everyone else.
+    """
+    conn = _get_native_connection(db)
+    title = conn.execute(
+        select(uni_schema.questiontitle)
+        .where(uni_schema.questiontitle.c.qTID == qTID)
+    ).first()
+    if not title:
+        return None
+
+    question_table, id_column, detail_column = _org_question_columns(org_type)
+    existing_rows = conn.execute(
+        select(id_column)
+        .where(
+            question_table.c.qTID == qTID,
+            question_table.c.yID == year_id,
+        )
+        .order_by(id_column)
+    ).all()
+    existing_ids = {row[0] for row in existing_rows}
+    if not existing_ids:
+        return None
+
+    requested_ids = {item.id for item in data.questions if item.id is not None}
+    unknown_ids = requested_ids - existing_ids
+    if unknown_ids:
+        raise ValueError("Every question id must belong to this title and year")
+
+    if data.title == title.qTDetail:
+        effective_qTID = qTID
+    elif _count_references_outside(conn, org_type, year_id, qTID) == 0:
+        # Nobody else uses this title: rename it in place.
+        conn.execute(
+            uni_schema.questiontitle.update()
+            .where(uni_schema.questiontitle.c.qTID == qTID)
+            .values({uni_schema.questiontitle.c.qTDetail: data.title})
+        )
+        effective_qTID = qTID
     else:
-        questions = get_ministry_questions_by_year(db, year_id)
-        organizations = get_ministries(db)
+        # Shared title: clone it under the new name and re-point only this
+        # year's questions, leaving the original title for the other years.
+        result = conn.execute(
+            uni_schema.questiontitle.insert()
+            .values(qTDetail=data.title, description=title.description)
+        )
+        effective_qTID = result.inserted_primary_key[0]
+        conn.execute(
+            question_table.update()
+            .where(
+                question_table.c.qTID == qTID,
+                question_table.c.yID == year_id,
+            )
+            .values({question_table.c.qTID: effective_qTID})
+        )
 
-    titles = get_all_question_titles(db)
-    years = get_active_years(db)
-
-    month_names = [
-        "", "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    ]
-    month_from = _extract_month(year.yearFrom)
-    year_from = _extract_year(year.yearFrom)
-    year_to = _extract_year(year.yearTo)
-    month = month_names[month_from] if 1 <= month_from <= 12 else "Unknown"
-    label = f"{month} {year_to}" if year_to else f"Month {month_from} Year {year_from}"
-
-    form = SurveyFormVirtual(
-        year_id=year_id,
-        year_label=label,
-        org_type=org_type,
-        title=f"{org_type.title()} Survey {label}",
-        description=None,
-        is_active=year.status == 1,
-        question_count=len(questions),
-    )
-
-    # Convert questions to link format (virtual - no table)
-    question_links = []
-    for i, q in enumerate(questions):
+    # Questions missing from the payload are deleted, their survey responses
+    # first, matching the cascade order of the whole-group delete.
+    removed_ids = list(existing_ids - requested_ids)
+    if removed_ids:
         if org_type == "university":
-            question_links.append({
-                "id": q.uQId,
-                "question_id": q.uQId,
-                "question_type": "uniquestion",
-                "display_order": i,
-                "is_required": True,
-                "question_detail": q.uQDetail,
-                "question_title": q.qTDetail,
-            })
+            conn.execute(
+                uni_schema.unisurvey.delete().where(uni_schema.unisurvey.c.uQId.in_(removed_ids))
+            )
         else:
-            question_links.append({
-                "id": q.mQId,
-                "question_id": q.mQId,
-                "question_type": "ministryquestion",
-                "display_order": i,
-                "is_required": True,
-                "question_detail": q.mQDetail,
-                "question_title": q.qTDetail,
-            })
+            conn.execute(
+                min_schema.ministrysurvey.delete().where(min_schema.ministrysurvey.c.mQId.in_(removed_ids))
+            )
+        conn.execute(question_table.delete().where(id_column.in_(removed_ids)))
 
-    return SurveyFormWithQuestions(
-        form=form,
-        questions=question_links,
-        available_questions=questions,
-        available_titles=titles,
-        years=years,
-        organizations=organizations,
+    questions_output: list[QuestionGroupQuestionOutput] = []
+    for item in data.questions:
+        if item.id is None:
+            result = conn.execute(
+                question_table.insert().values(
+                    {
+                        detail_column: item.detail,
+                        question_table.c.yID: year_id,
+                        question_table.c.qTID: effective_qTID,
+                    }
+                )
+            )
+            questions_output.append(
+                QuestionGroupQuestionOutput(id=result.inserted_primary_key[0], detail=item.detail)
+            )
+        else:
+            conn.execute(
+                question_table.update()
+                .where(
+                    id_column == item.id,
+                    question_table.c.yID == year_id,
+                )
+                .values({detail_column: item.detail})
+            )
+            questions_output.append(QuestionGroupQuestionOutput(id=item.id, detail=item.detail))
+    return QuestionGroupOutput(
+        qTID=effective_qTID,
+        qTDetail=data.title,
+        questions=questions_output,
     )
+
+
+def delete_year_question_group(db: Session, org_type: OrgType, year_id: int, qTID: int) -> bool:
+    """Delete a question title's questions for one year, then the title when orphaned.
+
+    Cascade order matches delete_year: survey responses referencing the
+    questions go first, then the questions themselves, and the shared title
+    row is only removed once nothing references it anymore.
+    """
+    conn = _get_native_connection(db)
+    question_table, id_column, _detail_column = _org_question_columns(org_type)
+    question_ids = [
+        row[0]
+        for row in conn.execute(
+            select(id_column).where(
+                question_table.c.qTID == qTID,
+                question_table.c.yID == year_id,
+            )
+        ).all()
+    ]
+    if not question_ids:
+        return False
+
+    if org_type == "university":
+        conn.execute(
+            uni_schema.unisurvey.delete().where(uni_schema.unisurvey.c.uQId.in_(question_ids))
+        )
+    else:
+        conn.execute(
+            min_schema.ministrysurvey.delete().where(min_schema.ministrysurvey.c.mQId.in_(question_ids))
+        )
+    conn.execute(question_table.delete().where(id_column.in_(question_ids)))
+
+    remaining = conn.execute(
+        select(func.count())
+        .select_from(uni_schema.uniquestion)
+        .where(uni_schema.uniquestion.c.qTID == qTID)
+    ).scalar() or 0
+    remaining += (
+        conn.execute(
+            select(func.count())
+            .select_from(min_schema.ministryquestion)
+            .where(min_schema.ministryquestion.c.qTID == qTID)
+        ).scalar() or 0
+    )
+    if remaining == 0:
+        conn.execute(
+            uni_schema.questiontitle.delete().where(uni_schema.questiontitle.c.qTID == qTID)
+        )
+    return True

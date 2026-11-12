@@ -1,7 +1,7 @@
 """Schemas for the admin survey form builder - using ONLY existing 10 tables."""
 from datetime import date, datetime
 from typing import Any, Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 OrgType = Literal["university", "ministry"]
@@ -107,19 +107,13 @@ class SurveyFormVirtual(BaseModel):
     description: Optional[str] = None
     is_active: bool
     question_count: int = 0
-
-
-class SurveyQuestionLinkOutput(BaseModel):
-    """Question link for form builder (virtual - no table)."""
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    question_id: int
-    question_type: QuestionSourceType
-    display_order: int
-    is_required: bool
-    question_detail: Optional[str] = None
-    question_title: Optional[str] = None
+    # New fields for legacy survey list
+    year_status: int = 0  # 0=draft, 1=published
+    year_from: Optional[int] = None  # Start year
+    year_to: Optional[int] = None    # End year
+    month_from: Optional[int] = None  # Start month
+    month_to: Optional[int] = None    # End month
+    question_title_count: int = 0    # Number of question titles
 
 
 class ExcelImportPreview(BaseModel):
@@ -156,23 +150,75 @@ class BulkQuestionCreate(BaseModel):
     question_titles: list[dict[str, Any]] = Field(default_factory=list, description="List of question title data for questiontitle")
 
 
-class SurveyFormWithQuestions(BaseModel):
-    """Survey form with its questions for the builder (virtual form)."""
-    model_config = ConfigDict(from_attributes=True)
+class QuestionUpdateItem(BaseModel):
+    """One question row inside a group update.
 
-    form: SurveyFormVirtual
-    questions: list[SurveyQuestionLinkOutput]
-    available_questions: list[UniQuestionOutput | MinistryQuestionOutput]
-    available_titles: list[QuestionTitleOutput]
-    years: list[YearOutput]
-    organizations: list[dict[str, Any]]
+    Items with an id rewrite that existing question; items without an id are
+    inserted as new questions under the title.
+    """
 
-
-class ReorderQuestionsRequest(BaseModel):
-    """Request to reorder questions in a survey form (virtual - no table)."""
     model_config = ConfigDict(extra="forbid")
 
-    question_orders: list[dict[str, int]] = Field(description="List of {question_id, display_order}")
+    id: Optional[int] = Field(
+        default=None, ge=1, description="Question ID (uniquestion.uQId / ministryquestion.mQId); omit to insert a new question"
+    )
+    detail: str = Field(min_length=1, max_length=10000, description="Question text")
+
+    @field_validator("detail")
+    @classmethod
+    def clean_detail(cls, value: str) -> str:
+        detail = value.strip()
+        if not detail:
+            raise ValueError("Question text cannot be empty")
+        return detail
+
+
+class QuestionGroupUpdateInput(BaseModel):
+    """Rename a question title and rewrite the questions under it for one year."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=10000, description="Updated question title text")
+    questions: list[QuestionUpdateItem] = Field(min_length=1, max_length=200)
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        title = value.strip()
+        if not title:
+            raise ValueError("Question title cannot be empty")
+        return title
+
+    @field_validator("questions")
+    @classmethod
+    def unique_question_ids(cls, value: list[QuestionUpdateItem]) -> list[QuestionUpdateItem]:
+        ids = [item.id for item in value if item.id is not None]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate question ids are not allowed")
+        return value
+
+
+class QuestionGroupQuestionOutput(BaseModel):
+    """One question under a title, for the edit modal."""
+
+    id: int
+    detail: str
+
+
+class QuestionGroupOutput(BaseModel):
+    """A question title with the questions under it for one year."""
+
+    qTID: Optional[int] = None
+    qTDetail: Optional[str] = None
+    questions: list[QuestionGroupQuestionOutput]
+
+
+class YearQuestionGroupsOutput(BaseModel):
+    """All question groups (title + questions) of one year and audience."""
+
+    year_id: int
+    org_type: OrgType
+    groups: list[QuestionGroupOutput]
 
 
 class SurveyListParams(BaseModel):
@@ -207,3 +253,77 @@ class QuestionListParams(BaseModel):
     title_id: Optional[int] = None
     page: int = Field(default=1, ge=1)
     limit: int = Field(default=50, ge=1, le=100)
+
+
+class SurveyQuestionGroupInput(BaseModel):
+    """One question title and the questions that belong to it."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: str = Field(min_length=1, max_length=10000)
+    description: Optional[str] = Field(default=None, max_length=10000)
+    questions: list[str] = Field(min_length=1, max_length=200)
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        title = value.strip()
+        if not title:
+            raise ValueError("Question title cannot be empty")
+        return title
+
+    @field_validator("description")
+    @classmethod
+    def clean_description(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        description = value.strip()
+        return description or None
+
+    @field_validator("questions")
+    @classmethod
+    def clean_questions(cls, values: list[str]) -> list[str]:
+        questions = [value.strip() for value in values if value and value.strip()]
+        if not questions:
+            raise ValueError("At least one question is required")
+        return questions
+
+
+class LegacySurveyCreateInput(BaseModel):
+    """Create a native DEDC survey (year range + question title groups + questions)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    org_type: OrgType
+    start_year: int = Field(ge=1900, le=2100, description="Start year (e.g., 2024)")
+    start_month: int = Field(ge=1, le=12, description="Start month (1-12)")
+    end_year: int = Field(ge=1900, le=2100, description="End year (e.g., 2024)")
+    end_month: int = Field(ge=1, le=12, description="End month (1-12)")
+    status: YearStatus = 1
+    groups: list[SurveyQuestionGroupInput] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def validate_year_range(self):
+        start = (self.start_year, self.start_month)
+        end = (self.end_year, self.end_month)
+        if start > end:
+            raise ValueError("Start year/month must be before or equal to end year/month")
+        return self
+
+
+class CreatedSurveyQuestionGroup(BaseModel):
+    """Result of inserting one question title group."""
+
+    qTID: int
+    qTDetail: str
+    description: Optional[str] = None
+    question_ids: list[int]
+
+
+class CreatedSurveyFormOutput(BaseModel):
+    """Result of inserting a complete native survey."""
+
+    year_id: int
+    org_type: OrgType
+    groups: list[CreatedSurveyQuestionGroup]
+    question_count: int

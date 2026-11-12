@@ -9,9 +9,9 @@ router = APIRouter(
 )
 PAGES = {
     "forms": "စစ်တမ်းများ",
-    "survey-builder": "စစ်တမ်း ဖန်တီးခြင်း",
-    "departments": "ဌာနများ",
-    "reports": "အစီရင်ခံစာများနှင့် ခွဲခြမ်းစိတ်ဖြာမှု",
+    "departments": "တက္ကသိုလ်များ",
+    "ministries": "ဝန်ကြီးဌာနများ",
+    "reports": "တက္ကသိုလ် အစီရင်ခံစာများ",
     "users": "အသုံးပြုသူများနှင့် စစ်တမ်းကောက်သူများ",
     "data": "ဒေတာ စီမံခန့်ခွဲမှု",
     "settings": "ဆက်တင်များ",
@@ -57,7 +57,7 @@ def page(page: str, request: Request, admin: AdminIdentity = Depends(require_adm
         raise HTTPException(404, "Page not found.")
     return render(
         request,
-        "survey_builder" if page == "survey-builder" else "dashboard",
+        "dashboard",
         request.cookies[COOKIE_NAME],
         username=admin.username,
         active_tab="years",

@@ -35,7 +35,7 @@ from app.storage.schema import metadata as persistent_metadata
 from app.models.user import User, UserRole
 from app.portal_auth import hash_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
-from app.services import forms, reports, workbook
+from app.services import forms, reports, university_reports, workbook
 from app.services.presentation import audit_action, label
 from pydantic import BaseModel, Field, ValidationError
 
@@ -679,6 +679,26 @@ def list_submissions(
             .limit(limit)
         ],
     }
+
+
+@router.get("/reports/university")
+def university_report_summary(
+    recent_limit: int = Query(8, ge=1, le=25),
+    db: Session = Depends(get_db),
+):
+    return university_reports.university_activity(db, recent_limit)
+
+
+@router.get("/reports/university/{year_id}/universities")
+def university_report_roster(
+    year_id: int,
+    state: str = Query("answered", pattern="^(answered|pending)$"),
+    db: Session = Depends(get_db),
+):
+    roster = university_reports.university_year_roster(db, year_id, state)
+    if roster is None:
+        raise HTTPException(404, "Active university survey year not found.")
+    return roster
 
 
 @router.get("/submissions/{submission_id}")
