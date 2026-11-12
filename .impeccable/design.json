@@ -1,0 +1,319 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-12T14:39:39.313469+00:00",
+  "title": "Design System: DEDC administration",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "DEDC Blue",
+        "canonical": "#1556a6"
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Deep Blue",
+        "canonical": "#10447f"
+      },
+      "primary-soft": {
+        "role": "primary",
+        "displayName": "Pale Blue",
+        "canonical": "#eaf3ff"
+      },
+      "on-primary": {
+        "role": "neutral",
+        "displayName": "White on Blue",
+        "canonical": "#ffffff"
+      },
+      "sidebar": {
+        "role": "primary",
+        "displayName": "Navy Rail",
+        "canonical": "#102e50"
+      },
+      "sidebar-hover": {
+        "role": "primary",
+        "displayName": "Navy Hover",
+        "canonical": "#1b426d"
+      },
+      "sidebar-active": {
+        "role": "primary",
+        "displayName": "Selected Blue",
+        "canonical": "#2763a2"
+      },
+      "sidebar-text": {
+        "role": "primary",
+        "displayName": "Pale Rail Text",
+        "canonical": "#c4d5e8"
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Blue-gray Canvas",
+        "canonical": "#f4f7fb"
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "White Surface",
+        "canonical": "#ffffff"
+      },
+      "surface-hover": {
+        "role": "neutral",
+        "displayName": "Pale Blue-gray Hover",
+        "canonical": "#eef4fb"
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Quiet Blue-gray Border",
+        "canonical": "#e1e8f1"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Navy Ink",
+        "canonical": "#172b45"
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Slate Text",
+        "canonical": "#596b80"
+      },
+      "success": {
+        "role": "state",
+        "displayName": "Success Green",
+        "canonical": "#256343"
+      },
+      "success-soft": {
+        "role": "state",
+        "displayName": "Success Tint",
+        "canonical": "#edf5f0"
+      },
+      "danger": {
+        "role": "state",
+        "displayName": "Danger Red",
+        "canonical": "#a32c39"
+      },
+      "danger-soft": {
+        "role": "state",
+        "displayName": "Danger Tint",
+        "canonical": "#fbeff0"
+      },
+      "status-published": {
+        "role": "state",
+        "displayName": "Published Green",
+        "canonical": "#2c8c6b"
+      },
+      "status-draft": {
+        "role": "state",
+        "displayName": "Draft Amber",
+        "canonical": "#f59e0b"
+      },
+      "status-archived": {
+        "role": "state",
+        "displayName": "Archived Red",
+        "canonical": "#ef4444"
+      },
+      "dark-canvas": {
+        "role": "neutral",
+        "displayName": "Dark Navy Canvas",
+        "canonical": "#111b29"
+      },
+      "dark-surface": {
+        "role": "neutral",
+        "displayName": "Dark Navy Surface",
+        "canonical": "#1b293a"
+      },
+      "dark-surface-hover": {
+        "role": "neutral",
+        "displayName": "Dark Hover",
+        "canonical": "#25374c"
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "Dark Border",
+        "canonical": "#354b63"
+      },
+      "dark-ink": {
+        "role": "neutral",
+        "displayName": "Dark Ink",
+        "canonical": "#eef4fb"
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Muted",
+        "canonical": "#b1c0d0"
+      },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "Light Blue Accent",
+        "canonical": "#92c1fa"
+      },
+      "dark-primary-hover": {
+        "role": "primary",
+        "displayName": "Light Blue Hover",
+        "canonical": "#bedbff"
+      },
+      "dark-primary-soft": {
+        "role": "primary",
+        "displayName": "Dark Blue Tint",
+        "canonical": "#243951"
+      },
+      "dark-on-primary": {
+        "role": "neutral",
+        "displayName": "Dark Blue on Accent",
+        "canonical": "#102943"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Page headline",
+        "purpose": "Authenticated page title."
+      },
+      "title": {
+        "displayName": "Panel title",
+        "purpose": "Card and panel headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Myanmar-first working text."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Control, table, and status labels."
+      }
+    },
+    "shadows": [
+      {
+        "name": "account-menu",
+        "value": "0 14px 30px rgb(0 0 0 / 14%)",
+        "purpose": "Temporary account menu."
+      },
+      {
+        "name": "trend-selected",
+        "value": "0 1px 3px rgb(0 0 0 / 8%)",
+        "purpose": "Selected trend-period segment."
+      }
+    ],
+    "motion": [
+      {
+        "name": "control-state",
+        "value": "140ms",
+        "purpose": "Dashboard control state transitions; disabled for reduced motion."
+      },
+      {
+        "name": "kpi-hover",
+        "value": "160ms ease",
+        "purpose": "Overview KPI border and lift; disabled for reduced motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "overview-kpis-pair",
+        "value": "1199px"
+      },
+      {
+        "name": "sidebar-drawer",
+        "value": "1080px"
+      },
+      {
+        "name": "overview-stack",
+        "value": "800px"
+      },
+      {
+        "name": "phone",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Creates or confirms the main task.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\">စစ်တမ်း အသစ်ဖန်တီးရန်</button>",
+      "css": ".ds-btn-primary{min-height:42px;padding:9px 14px;border:1px solid #1556a6;border-radius:9px;background:#1556a6;color:#fff;font:500 12px/1.5 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif;cursor:pointer;transition:background 140ms,transform 140ms}.ds-btn-primary:hover{background:#10447f;border-color:#10447f;transform:translateY(-1px)}.ds-btn-primary:focus-visible{outline:2px solid #1556a6;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-btn-primary{transition:none}.ds-btn-primary:hover{transform:none}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Opens a supporting route or action.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">အစီရင်ခံစာ ထုတ်ယူရန်</button>",
+      "css": ".ds-btn-secondary{min-height:42px;padding:9px 14px;border:1px solid var(--border,#e1e8f1);border-radius:9px;background:var(--surface,#fff);color:var(--ink,#172b45);font:500 12px/1.5 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif;cursor:pointer;transition:background 140ms,transform 140ms}.ds-btn-secondary:hover{background:var(--surface-hover,#eef4fb);transform:translateY(-1px)}.ds-btn-secondary:focus-visible{outline:2px solid var(--primary,#1556a6);outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-btn-secondary{transition:none}.ds-btn-secondary:hover{transform:none}}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Compact data entry with a visible focus ring.",
+      "html": "<label class=\"ds-field-label\">စစ်တမ်းအမည်<input class=\"ds-field\" type=\"text\" placeholder=\"စစ်တမ်းအမည် ရိုက်ထည့်ပါ\"></label>",
+      "css": ".ds-field-label{display:grid;gap:7px;color:var(--ink,#172b45);font:500 12px/1.5 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif}.ds-field{min-height:42px;padding:10px 12px;border:1px solid var(--border,#e1e8f1);border-radius:9px;background:var(--surface,#fff);color:var(--ink,#172b45);font:400 13px/1.5 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif}.ds-field:focus-visible{outline:2px solid var(--primary,#1556a6);outline-offset:2px}.ds-field::placeholder{color:var(--muted,#596b80)}"
+    },
+    {
+      "name": "Sidebar Navigation",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Navy navigation rail with a solid blue active route.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"စီမံခန့်ခွဲမှု လမ်းညွှန်\"><a class=\"ds-nav-link\" href=\"#overview\" aria-current=\"page\">အကျဉ်းချုပ်</a><a class=\"ds-nav-link\" href=\"#forms\">စစ်တမ်းများ</a></nav>",
+      "css": ".ds-nav{display:grid;gap:3px;width:210px;padding:12px;background:#102e50}.ds-nav-link{display:flex;align-items:center;min-height:42px;padding:9px 12px;border-radius:10px;color:#c4d5e8;font:500 13px/1.5 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif;text-decoration:none}.ds-nav-link:hover{background:#1b426d;color:#fff}.ds-nav-link[aria-current=\"page\"]{background:#2763a2;color:#fff;font-weight:600}.ds-nav-link:focus-visible{outline:2px solid #92c1fa;outline-offset:2px}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Flat working surface for charts, records, and controls.",
+      "html": "<section class=\"ds-panel\"><div class=\"ds-panel-head\"><h2>လတ်တလော တင်သွင်းမှုများ</h2></div><div class=\"ds-panel-body\">တင်သွင်းမှု မရှိသေးပါ</div></section>",
+      "css": ".ds-panel{max-width:340px;border:1px solid var(--border,#e1e8f1);border-radius:14px;background:var(--surface,#fff);color:var(--ink,#172b45);font-family:\"DM Sans\",\"Noto Sans Myanmar\",sans-serif;overflow:hidden}.ds-panel-head{padding:13px 16px;border-bottom:1px solid var(--border,#e1e8f1)}.ds-panel-head h2{margin:0;font-size:15px;font-weight:600;line-height:1.5}.ds-panel-body{padding:16px;color:var(--muted,#596b80);font-size:12px;line-height:1.6}"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "Text and tint identify review state together.",
+      "html": "<span class=\"ds-badge\">စစ်ဆေးရန်</span>",
+      "css": ".ds-badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:4px;background:var(--primary-soft,#eaf3ff);color:var(--primary,#1556a6);font:500 11px/1.7 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif}"
+    },
+    {
+      "name": "Trend Period Control",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Selected period is expressed by aria-pressed and a white segment.",
+      "html": "<div class=\"ds-period\" role=\"group\" aria-label=\"အချိန်ကာလ ရွေးရန်\"><button type=\"button\" aria-pressed=\"true\">နေ့စဉ်</button><button type=\"button\" aria-pressed=\"false\">အပတ်စဉ်</button><button type=\"button\" aria-pressed=\"false\">လစဉ်</button></div>",
+      "css": ".ds-period{display:inline-flex;gap:3px;padding:3px;border:1px solid var(--border,#e1e8f1);border-radius:9px;background:var(--surface-hover,#eef4fb)}.ds-period button{min-height:32px;padding:4px 12px;border:0;border-radius:6px;background:transparent;color:var(--muted,#596b80);font:500 12px/1.5 \"DM Sans\",\"Noto Sans Myanmar\",sans-serif;cursor:pointer}.ds-period button[aria-pressed=\"true\"]{background:var(--surface,#fff);color:var(--ink,#172b45);box-shadow:0 1px 3px rgb(0 0 0 / 8%)}.ds-period button:hover{color:var(--ink,#172b45)}.ds-period button:focus-visible{outline:2px solid var(--primary,#1556a6);outline-offset:2px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Civic Survey Register",
+    "overview": "A focused government survey workspace. The Ministry logo anchors a navy navigation rail; a pale blue-gray canvas holds white working surfaces, dark navy type, DEDC blue actions, and thin borders. Myanmar is the first reading language, with Latin type for mixed content and numerical data.",
+    "keyCharacteristics": [
+      "Pending review leads in a solid blue KPI; submissions follow in pale blue, with forms and questions as quieter totals.",
+      "Real counts and statuses lead; color clarifies their state.",
+      "Rounded, mostly flat panels keep dense records readable."
+    ],
+    "rules": [
+      {
+        "name": "The Evidence Color Rule",
+        "body": "Use chart and state colors only for records and statuses returned by the application. Never use decorative data as content.",
+        "section": "colors"
+      },
+      {
+        "name": "The Myanmar First Rule",
+        "body": "Put Burmese labels and task descriptions first; preserve room for their full wording before tightening type or truncating it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Work Surface Rule",
+        "body": "Keep routine panels and navigation flat; reserve shadow for temporary layers or control state.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** use the Ministry logo and Myanmar labels in authenticated navigation.",
+      "**Do** let pending review and submissions lead overview hierarchy, with forms and questions in supporting roles.",
+      "**Do** read dashboard metrics, trend points, review states, and recent records from protected application data; show an honest empty state when none exists.",
+      "**Do** preserve visible keyboard focus, labeled chart values, and reduced-motion behavior."
+    ],
+    "donts": [
+      "**Don't** invent weather, alerts, submission counts, or activity to fill an empty dashboard.",
+      "**Don't** show a language switch unless it changes the actual interface language and announces its state truthfully.",
+      "**Don't** replace DEDC blue and the navy navigation rail with mint styling on authenticated surfaces."
+    ]
+  }
+}

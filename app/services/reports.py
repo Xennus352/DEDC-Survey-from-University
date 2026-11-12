@@ -28,8 +28,29 @@ def overview(db):
         .all()
     )
     dates = {str(day): total for day, total in trends}
+    published_forms = db.query(SurveyForm.id).filter(
+        SurveyForm.archived.is_(False),
+        SurveyForm.id.in_(
+            db.query(FormVersion.form_id).filter_by(status="published").distinct()
+        ),
+    )
+    archived_forms = db.query(SurveyForm).filter_by(archived=True).count()
+    published_form_count = published_forms.count()
+    total_forms = count(SurveyForm)
+    submission_statuses = dict(
+        db.query(Submission.status, func.count()).group_by(Submission.status).all()
+    )
+    total_submissions = sum(submission_statuses.values())
+    approved_submissions = submission_statuses.get("approved", 0)
+    rejected_submissions = submission_statuses.get("rejected", 0)
+    pending_submissions = submission_statuses.get("pending_review", 0)
     return {
-        "forms": count(SurveyForm),
+        "forms": total_forms,
+        "form_status": {
+            "published": published_form_count,
+            "draft": max(total_forms - archived_forms - published_form_count, 0),
+            "archived": archived_forms,
+        },
         "published": db.query(FormVersion).filter_by(status="published").count(),
         "questions": db.query(
             FormField.version_id,
@@ -40,7 +61,13 @@ def overview(db):
         .distinct()
         .count(),
         "answer_fields": count(FormField),
-        "submissions": count(Submission),
+        "submissions": total_submissions,
+        "pending_review": pending_submissions,
+        "collection_status": {
+            "approved": approved_submissions,
+            "pending": pending_submissions,
+            "rejected": rejected_submissions,
+        },
         "source_rows": count(WorkbookAnswer),
         "users": count(User),
         "active_users": db.query(User).filter_by(is_active=True).count(),
