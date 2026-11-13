@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 import math
-from sqlalchemy import Float, String, cast, func
+from sqlalchemy import Float, String, cast, extract, func, select
 from app.models.forms import (
     AuditLog,
     FieldAnswer,
@@ -14,12 +14,87 @@ from app.models.forms import (
     WorkbookImport,
     AnswerFile,
 )
+from app.storage import schema
+from app.storage.compact import envelope
+from app.storage.existing import metadata as existing_metadata
 from app.services.presentation import answer_text, value_text
 from app.models.user import User
 
 
+def completed_survey_answers_by_year(db):
+    """Count submitted question answers by calendar year of submission.
+
+    Native survey rows have no completion flag: each persisted row is one
+    submitted answer. Include the last four years even when a year has zero
+    answers, plus any older years present in the database.
+    """
+    current_year = datetime.now().year
+    years = set(range(current_year - 3, current_year + 1))
+    results = {}
+    for audience, survey, organization, org_key, label_column in (
+        ("university", schema.unisurvey, schema.university, "uniId", "uniType"),
+        ("ministry", schema.ministrysurvey, schema.ministry, "ministryId", "ministryName"),
+    ):
+        labels = [row[0] for row in db.native.execute(
+            select(organization.c[label_column]).distinct().order_by(organization.c[label_column])
+        )]
+        year_column = extract("year", survey.c.submittedAt)
+        answer_source = survey.join(
+            organization, survey.c[org_key] == organization.c[org_key]
+        )
+        totals = {}
+        for label, year, total in db.native.execute(
+            select(organization.c[label_column], year_column, func.count())
+            .select_from(answer_source)
+            .group_by(organization.c[label_column], year_column)
+        ):
+            if year:
+                year = int(year)
+                years.add(year)
+                key = (label, year)
+                totals[key] = totals.get(key, 0) + total
+        results[audience] = (labels, totals)
+
+    ordered_years = sorted(years)
+    return {
+        "years": ordered_years,
+        **{
+            audience: {
+                "series": [
+                    {
+                        "label": label,
+                        "values": [totals.get((label, year), 0) for year in ordered_years],
+                    }
+                    for label in labels
+                ]
+            }
+            for audience, (labels, totals) in results.items()
+        },
+    }
+
+
 def overview(db):
     count = lambda model: db.query(func.count()).select_from(model).scalar() or 0
+    native_count = lambda table: db.native.execute(
+        select(func.count()).select_from(table)
+    ).scalar() or 0
+
+    native_year = existing_metadata.tables["year"]
+
+    def native_question_count(table):
+        if db.layout:
+            return db.native.execute(
+                select(func.count())
+                .select_from(table.join(native_year, table.c.yID == native_year.c.yID))
+                .where(native_year.c.status == 1)
+            ).scalar() or 0
+        return sum(
+            (envelope(description) or {}).get("kind") != "metadata"
+            for description, in db.native.execute(select(table.c.description))
+        )
+
+    completed_by_year = completed_survey_answers_by_year(db)
+
     since = datetime.now(timezone.utc).replace(tzinfo=None, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=29)
     trends = (
         db.query(func.date(Submission.created_at), func.count())
@@ -28,6 +103,14 @@ def overview(db):
         .all()
     )
     dates = {str(day): total for day, total in trends}
+    answer_dates = {}
+    for audience, table in (("university", schema.unisurvey), ("ministry", schema.ministrysurvey)):
+        daily_counts = db.native.execute(
+            select(func.date(table.c.submittedAt), func.count())
+            .where(table.c.submittedAt >= since)
+            .group_by(func.date(table.c.submittedAt))
+        )
+        answer_dates[audience] = {str(day): total for day, total in daily_counts}
     published_forms = db.query(SurveyForm.id).filter(
         SurveyForm.archived.is_(False),
         SurveyForm.id.in_(
@@ -37,6 +120,48 @@ def overview(db):
     archived_forms = db.query(SurveyForm).filter_by(archived=True).count()
     published_form_count = published_forms.count()
     total_forms = count(SurveyForm)
+    form_status = {
+        "published": published_form_count,
+        "draft": max(total_forms - archived_forms - published_form_count, 0),
+        "archived": archived_forms,
+    }
+    if db.layout:
+        # The forms page lists each audience/year pair with questions as a survey.
+        form_status = {"published": 0, "draft": 0, "archived": 0}
+        for table_name in ("uniquestion", "ministryquestion"):
+            question_table = existing_metadata.tables[table_name]
+            states = db.native.execute(
+                select(native_year.c.status, func.count(func.distinct(question_table.c.yID)))
+                .select_from(question_table.join(native_year, question_table.c.yID == native_year.c.yID))
+                .group_by(native_year.c.status)
+            )
+            for status, total in states:
+                form_status["published" if status == 1 else "draft"] += total
+
+        # Native public surveys store one row per question. Count one submission
+        # per organization, survey year, and day; app-owned rows have a remark.
+        for survey_name, question_name, org_column, question_column in (
+            ("unisurvey", "uniquestion", "uniId", "uQId"),
+            ("ministrysurvey", "ministryquestion", "ministryId", "mQId"),
+        ):
+            survey_table = existing_metadata.tables[survey_name]
+            question_table = existing_metadata.tables[question_name]
+            native_days = db.native.execute(
+                select(
+                    func.date(survey_table.c.submittedAt),
+                    survey_table.c[org_column],
+                    question_table.c.yID,
+                )
+                .select_from(survey_table.join(
+                    question_table,
+                    survey_table.c[question_column] == question_table.c[question_column],
+                ))
+                .where(survey_table.c.submittedAt >= since, survey_table.c.remark.is_(None))
+                .distinct()
+            )
+            for day, _, _ in native_days:
+                key = str(day)
+                dates[key] = dates.get(key, 0) + 1
     submission_statuses = dict(
         db.query(Submission.status, func.count()).group_by(Submission.status).all()
     )
@@ -46,11 +171,7 @@ def overview(db):
     pending_submissions = submission_statuses.get("pending_review", 0)
     return {
         "forms": total_forms,
-        "form_status": {
-            "published": published_form_count,
-            "draft": max(total_forms - archived_forms - published_form_count, 0),
-            "archived": archived_forms,
-        },
+        "form_status": form_status,
         "published": db.query(FormVersion).filter_by(status="published").count(),
         "questions": db.query(
             FormField.version_id,
@@ -69,12 +190,35 @@ def overview(db):
             "rejected": rejected_submissions,
         },
         "source_rows": count(WorkbookAnswer),
+        "directory_stats": {
+            "university_questions": native_question_count(
+                existing_metadata.tables["uniquestion"] if db.layout else schema.uniquestion
+            ),
+            "ministry_questions": native_question_count(
+                existing_metadata.tables["ministryquestion"] if db.layout else schema.ministryquestion
+            ),
+            "universities": native_count(schema.university),
+            "ministries": native_count(schema.ministry),
+        },
+        "completed_by_year": completed_by_year,
         "users": count(User),
         "active_users": db.query(User).filter_by(is_active=True).count(),
         "trend": [
             {
                 "date": (since + timedelta(days=i)).date().isoformat(),
                 "count": dates.get((since + timedelta(days=i)).date().isoformat(), 0),
+            }
+            for i in range(30)
+        ],
+        "answer_trend": [
+            {
+                "date": (since + timedelta(days=i)).date().isoformat(),
+                "university": answer_dates["university"].get(
+                    (since + timedelta(days=i)).date().isoformat(), 0
+                ),
+                "ministry": answer_dates["ministry"].get(
+                    (since + timedelta(days=i)).date().isoformat(), 0
+                ),
             }
             for i in range(30)
         ],

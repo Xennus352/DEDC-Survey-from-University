@@ -1,6 +1,6 @@
 import { reportingYears } from "./period.js";
 import { api } from "./api.js";
-import { renderOverviewTrend } from "./trend.js?v=20261112-mint2";
+import { renderYearlyBars } from "./trend.js?v=20261113-overview18";
 const arrowIcon = '<svg class="inline-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17 17 5M8 5h9v9"/></svg>';
 const closeIcon = '<svg class="inline-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 5 19 19M19 5 5 19"/></svg>';
 import {
@@ -725,122 +725,57 @@ function renderSurveyGroupDelete(dialog, group) {
     });
 }
 
-async function showOverviewSubmission(id) {
-  const detail = await api("/submissions/" + id);
-  const sections = detail.sections.map((section) =>
-    '<section class="stack"><h3>' + e(section.title) + '</h3>' +
-    section.answers.map((answer) => {
-      const value = ["file", "image"].includes(answer.kind) && answer.value?.file_id
-        ? '<a class="table-link" href="/api/files/' + Number(answer.value.file_id) + '">' + e(answer.display_value || "ပူးတွဲဖိုင် ဒေါင်းလုဒ်လုပ်ရန်") + ' ' + arrowIcon + '</a>'
-        : e(answer.display_value ?? valueText(answer.value));
-      return '<div class="notice"><strong>' + e(answer.title) + '</strong><p class="source-text">' + value + '</p></div>';
-    }).join("") + '</section>'
-  ).join("");
-  modal("တင်သွင်းမှု #" + detail.id,
-    '<p class="editor-meta">' + e(detail.form) + ' · ဗားရှင်း ' + detail.version + ' · ' + e(detail.username) + '</p>' + sections);
-}
-
 async function overview() {
-  describe("စစ်ဆေးရန် မှတ်တမ်းများ၊ တင်သွင်းမှုများနှင့် စစ်တမ်းများ၏ လက်ရှိအခြေအနေ");
+  describe("မေးခွန်းများ၊ အဖွဲ့အစည်းများနှင့် စစ်တမ်းများ၏ လက်ရှိအခြေအနေ");
   document.querySelector(".page-heading h1").textContent = "လုပ်ငန်းအကျဉ်းချုပ်";
   document.querySelector("#page-description").append(" · " + new Intl.DateTimeFormat("my-MM", { dateStyle: "long" }).format(new Date()));
   try {
-    const [data, forms, recent, records] = await Promise.all([
-      api("/overview"), api("/forms?limit=3"), api("/audit?limit=3"), api("/reports?status=pending_review&limit=5"),
-    ]);
-    const received = data.trend.reduce((sum, day) => sum + day.count, 0);
+    const data = await api("/overview");
+    const yearly = data.completed_by_year;
+    const seriesTotal = (items) => items.reduce(
+      (sum, item) => sum + item.values.reduce((count, value) => count + value, 0), 0,
+    );
+    const universityCompleted = seriesTotal(yearly.university.series);
+    const ministryCompleted = seriesTotal(yearly.ministry.series);
+    const completedTotal = universityCompleted + ministryCompleted;
     const formStatus = data.form_status;
-    const statusTotal = formStatus.published + formStatus.draft + formStatus.archived;
-    const ringCircumference = 2 * Math.PI * 54;
-    let ringOffset = 0;
-    const ringSegments = [
-      ["published", formStatus.published],
-      ["draft", formStatus.draft],
-      ["archived", formStatus.archived],
-    ].map(([status, count]) => {
-      const length = statusTotal ? ringCircumference * count / statusTotal : 0;
-      const segment = length > 0
-        ? `<circle class="status-ring__segment status-ring__segment--${status}" cx="64" cy="64" r="54" stroke-dasharray="${length} ${ringCircumference - length}" stroke-dashoffset="${-ringOffset}"/>`
-        : "";
-      ringOffset += length;
-      return segment;
-    }).join("");
+    const statusTotal = formStatus.published + formStatus.draft;
+    const publishedShare = statusTotal ? (formStatus.published / statusTotal) * 100 : 0;
     actions(`<a class="button" href="/dashboard/reports">အစီရင်ခံစာ ထုတ်ယူရန်</a><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`);
+    const directory = data.directory_stats;
     const metricCards = [
-      ["စစ်တမ်းများ", data.forms, `${data.published} ထုတ်ဝေထားသည့် ဗားရှင်း`, "forms", "/dashboard/forms", "<rect x='5' y='3' width='14' height='18' rx='2'/><path d='M9 8h6M9 12h6M9 16h3'/>"],
-      ["မေးခွန်းများ", data.questions, `${data.answer_fields} အဖြေအကွက်များ`, "questions", "/dashboard/forms", "<path d='M4 4h16v13H9l-5 4zM9 8h6M9 12h4'/>"],
-      ["တင်သွင်းချက်များ", data.submissions, "စစ်တမ်းများမှ ရရှိသည့် တုံ့ပြန်ချက်များ", "submissions", "/dashboard/reports", "<path d='M5 3h10l4 4v14H5zM9 12l2 2 4-4'/>"],
-      ["အလုပ်စာအုပ် မှတ်တမ်းများ", data.source_rows, "တင်သွင်းထားသော စာရင်းတန်းများ", "workbooks", "/dashboard/data", "<path d='M4 5h16v14H4zM4 9h16M9 5v14M15 5v14'/>"],
-    ].map(([label,value,note,kind,href,icon]) => `<a class="stat stat--${kind}" href="${href}"><div class="stat-top"><p>${label}</p><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">${icon}</svg></span></div><strong>${value.toLocaleString()}</strong><small>${note}</small><span class="stat-cta" aria-hidden="true">${arrowIcon}</span></a>`).join("");
+      ["University မေးခွန်း", directory.university_questions, "ထုတ်ဝေထားသော စစ်တမ်း", "/dashboard/forms?org_type=university"],
+      ["Ministry မေးခွန်း", directory.ministry_questions, "ထုတ်ဝေထားသော စစ်တမ်း", "/dashboard/forms?org_type=ministry"],
+      ["University အရေအတွက်", directory.universities, "အဖွဲ့အစည်း", "/dashboard/departments"],
+      ["Ministry အရေအတွက်", directory.ministries, "အဖွဲ့အစည်း", "/dashboard/ministries"],
+    ].map(([label, value, kind, href]) => `<a class="stat" href="${href}"><span class="stat-kind">${kind}</span><span class="stat-label">${label}</span><strong>${value.toLocaleString()}</strong><span class="stat-cta" aria-hidden="true">${arrowIcon}</span></a>`).join("");
     const shortcutLinks = [
       ["စစ်တမ်းများ", "/dashboard/forms"],
       ["အလုပ်စာအုပ် တင်သွင်းရန်", "/dashboard/data"],
       ["အစီရင်ခံစာများ", "/dashboard/reports"],
       ["အသုံးပြုသူများ", "/dashboard/users"],
-    ].map(([title,url]) => `<a class="overview-shortcut" href="${url}">${title}<span aria-hidden="true">${arrowIcon}</span></a>`).join("");
+    ].map(([title, url]) => `<a class="overview-shortcut" href="${url}">${title}<span aria-hidden="true">${arrowIcon}</span></a>`).join("");
     setContent(`
-      <section class="stats" aria-label="စစ်တမ်း ကိန်းဂဏန်းများ">${metricCards}</section>
-      <section class="panel overview-records"><div class="panel-head"><div><h2>စစ်ဆေးရန် စောင့်ဆိုင်းနေသော တင်သွင်းမှုများ</h2><p><strong class="overview-queue-count">${records.total.toLocaleString()}</strong> ခု · အတည်ပြုရန် သို့မဟုတ် ပယ်ချရန် လိုအပ်သည်များ</p></div><a class="table-link" href="/dashboard/reports?status=pending_review">စစ်ဆေးရန် စာရင်းအပြည့်ကြည့်ရန် ${arrowIcon}</a></div>${records.items.length ? table(["မှတ်တမ်း", "စစ်တမ်း / တင်သွင်းသူ", "တင်သွင်းချိန်", ""], records.items.map(r => `<tr><td class="numeric">#${r.id}</td><td class="title"><strong>${e(r.form)}</strong><small>${e(r.username)}</small></td><td>${dateTime(r.created_at)}</td><td><button class="button small" type="button" data-view-submission="${r.id}">အဖြေများ ကြည့်ရန်</button></td></tr>`)) : empty("စစ်ဆေးရန် တင်သွင်းမှု မရှိပါ", "အသစ်ဝင်လာသော တင်သွင်းမှုများကို စစ်ဆေးရန် ဤနေရာတွင် ပေါ်လာပါမည်။", button("အစီရင်ခံစာများ ဖွင့်ရန်", "/dashboard/reports?status=pending_review"))}</section>
+      <section class="overview-metrics" aria-labelledby="overview-metrics-title"><div class="overview-section-head"><h2 id="overview-metrics-title">စစ်တမ်း အချက်အလက်</h2><p>ထုတ်ဝေထားသော မေးခွန်းများ · အဖွဲ့အစည်း စုစုပေါင်း</p></div><div class="stats">${metricCards}</div></section>
       <nav class="overview-shortcuts" aria-label="အမြန်သွားရန်"><strong>ဆက်လုပ်ဆောင်ရန်</strong>${shortcutLinks}</nav>
       <div class="overview-main">
-        <div class="overview-stack overview-stack--primary">
-        <section class="panel trend-panel"><div class="panel-head"><div><h2>တင်သွင်းမှု လှုပ်ရှားမှု</h2><p>လွန်ခဲ့သော ရက် ၃၀</p></div><a class="table-link" href="/dashboard/reports">အစီရင်ခံစာများ ${arrowIcon}</a></div><div class="panel-body"><div class="chart-summary"><strong>${received.toLocaleString()}</strong><span>ရက် ၃၀ အတွင်း တုံ့ပြန်ချက်များ</span></div><div class="trend-filters" role="group" aria-label="အချိန်ကာလ ရွေးရန်"><button type="button" data-trend-period="daily" aria-pressed="true">နေ့စဉ်</button><button type="button" data-trend-period="weekly" aria-pressed="false">အပတ်စဉ်</button><button type="button" data-trend-period="monthly" aria-pressed="false">လစဉ်</button></div><div id="overview-trend" class="overview-trend"></div>${received === 0 ? '<p class="editor-meta">တင်သွင်းမှုများ ရရှိသောအခါ ဤနေရာတွင် အချိန်လိုက် ပေါ်လာပါမည်။</p>' : ''}</div></section>
-        <section class="panel"><div class="panel-head"><div><h2>သင့်စစ်တမ်းများ</h2><p>နောက်ဆုံး စစ်တမ်း ၃ ခု</p></div><a class="table-link" href="/dashboard/forms">အားလုံးကြည့်ရန် ${arrowIcon}</a></div>${overviewSurveyTable(forms.items)}</section>
-        </div>
-        <div class="overview-stack overview-stack--secondary">
-        <section class="panel status-panel"><div class="panel-head"><div><h2>စစ်တမ်း အခြေအနေ</h2><p>ထုတ်ဝေထားသော၊ မူကြမ်းနှင့် သိမ်းဆည်းထားသော စစ်တမ်းများ</p></div></div><div class="panel-body"><div class="status-chart-layout"><div class="status-donut" role="img" aria-label="ထုတ်ဝေထားသော ${formStatus.published}၊ မူကြမ်း ${formStatus.draft}၊ သိမ်းဆည်းထားသော ${formStatus.archived}"><svg viewBox="0 0 128 128" aria-hidden="true"><circle class="status-ring__track" cx="64" cy="64" r="54"/>${ringSegments}</svg><div><strong>${statusTotal.toLocaleString()}</strong><span>စစ်တမ်းများ</span></div></div><ul class="status-legend"><li><span><i class="status-dot status-dot--published"></i>ထုတ်ဝေထားသော</span><strong>${formStatus.published.toLocaleString()}</strong></li><li><span><i class="status-dot status-dot--draft"></i>မူကြမ်း</span><strong>${formStatus.draft.toLocaleString()}</strong></li><li><span><i class="status-dot status-dot--archived"></i>သိမ်းဆည်းထားသော</span><strong>${formStatus.archived.toLocaleString()}</strong></li></ul></div></div></section>
-        <section class="panel"><div class="panel-head"><h2>လတ်တလော လုပ်ဆောင်ချက်များ</h2><a class="table-link" href="/dashboard/audit">အားလုံးကြည့်ရန် ${arrowIcon}</a></div>${recent.items.length ? `<ul class="activity-list">${recent.items.map(a => `<li><strong>${e(a.action_label || label(a.action))}</strong><small>${e(a.actor_name || "စနစ်")} · ${dateTime(a.created_at)}</small></li>`).join('')}</ul>` : empty('လုပ်ဆောင်ချက် မရှိသေးပါ','သင်လုပ်ဆောင်သည်နှင့်အမျှ စီမံခန့်ခွဲသူ လုပ်ဆောင်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။')}</section>
-        </div>
+        <section class="panel trend-panel"><div class="panel-head"><div><h2>တင်သွင်းမှု လှုပ်ရှားမှု</h2><p>တင်သွင်းသည့် နှစ်အလိုက် ဖြေဆိုပြီး မေးခွန်းများ</p></div><a class="table-link" href="/dashboard/reports">အစီရင်ခံစာများ ${arrowIcon}</a></div><div class="panel-body"><div class="chart-summary"><strong>${completedTotal.toLocaleString()}</strong><span>ဖြေဆိုပြီး မေးခွန်း စုစုပေါင်း</span></div><div class="answer-chart-grid"><article class="answer-chart-card"><div class="answer-chart-card__head"><h3><i class="answer-dot answer-dot--university" aria-hidden="true"></i>University</h3><strong>${universityCompleted.toLocaleString()}</strong></div><div id="overview-trend-university" class="overview-trend"></div></article><article class="answer-chart-card"><div class="answer-chart-card__head"><h3><i class="answer-dot answer-dot--ministry" aria-hidden="true"></i>Ministry</h3><strong>${ministryCompleted.toLocaleString()}</strong></div><div id="overview-trend-ministry" class="overview-trend"></div></article></div></div></section>
+        <section class="panel status-panel"><div class="panel-head"><div><h2>စစ်တမ်း အခြေအနေ</h2><p>မူကြမ်းနှင့် ထုတ်ဝေထားသော စစ်တမ်းများ</p></div><a class="table-link" href="/dashboard/forms">စစ်တမ်းများ ${arrowIcon}</a></div><div class="panel-body"><div class="status-chart-layout"><div class="status-pie ${statusTotal ? '' : 'status-pie--empty'}" style="--published-share:${publishedShare}%" role="img" aria-label="ထုတ်ဝေထားသည် ${formStatus.published} ခု၊ မူကြမ်း ${formStatus.draft} ခု"></div><div class="status-details"><div class="status-total"><strong>${statusTotal.toLocaleString()}</strong><span>လက်ရှိ စစ်တမ်းများ</span></div><ul class="status-legend"><li><span><i class="status-dot status-dot--published"></i>ထုတ်ဝေထားသည်</span><strong>${formStatus.published.toLocaleString()}</strong></li><li><span><i class="status-dot status-dot--draft"></i>မူကြမ်း</span><strong>${formStatus.draft.toLocaleString()}</strong></li></ul></div></div></div></section>
       </div>
     `);
     document.querySelector('#create-action').onclick = createForm;
-    const trendContainer = document.querySelector("#overview-trend");
-    renderOverviewTrend(trendContainer, data.trend, "daily");
-    document.querySelectorAll("[data-trend-period]").forEach((control) => {
-      control.onclick = () => {
-        document.querySelectorAll("[data-trend-period]").forEach((item) =>
-          item.setAttribute("aria-pressed", String(item === control))
-        );
-        renderOverviewTrend(trendContainer, data.trend, control.dataset.trendPeriod);
-      };
-    });
-    document.querySelectorAll(".overview-records [data-view-submission]").forEach((control) => {
-      control.onclick = () => busy(control, async () => {
-        try { await showOverviewSubmission(Number(control.dataset.viewSubmission)); }
-        catch (error) { toast(error.message); }
-      });
-    });
+    for (const audience of ["university", "ministry"]) {
+      renderYearlyBars(
+        document.querySelector(`#overview-trend-${audience}`),
+        yearly.years,
+        yearly[audience].series,
+        audience === "university" ? "University" : "Ministry",
+      );
+    }
   } catch (error) {
     setContent(`<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry">ထပ်စမ်းကြည့်ရန်</button>`);
     document.querySelector('#retry').onclick = overview;
   }
-}
-
-function overviewSurveyTable(items) {
-  return items.length
-    ? table(
-        ["စစ်တမ်း", "ဖြေဆိုသူအုပ်စု", "အခြေအနေ", "ထုတ်ဝေမှု", ""],
-        items.map((form) => {
-          const latestVersion = (form.versions || []).reduce(
-            (latest, version) => !latest || version.id > latest.id ? version : latest,
-            null,
-          );
-          const published = latestVersion?.status === "published" && !form.archived;
-          const status = form.archived ? "archived" : published ? "published" : "draft";
-          const toggle = latestVersion && !form.archived
-            ? `<button type="button" class="form-toggle form-status-toggle" role="switch" aria-checked="${published}" aria-label="${e(form.title)} (v${latestVersion.number}) — ${published ? "မူကြမ်း အဖြစ် ပြောင်းလဲရန်" : "ထုတ်ဝေရန်"}" data-form-toggle="status" data-form-id="${form.id}" data-version-id="${latestVersion.id}"><span class="toggle-track" aria-hidden="true"></span><span class="toggle-label">${published ? "ထုတ်ဝေထားသည်" : "မူကြမ်း"}</span></button>`
-            : "—";
-          const versionSummary = latestVersion
-            ? `ဗားရှင်း ${e(latestVersion.number)} · ${e(reportingYears(latestVersion))}`
-            : "ဗားရှင်း မရှိသေးပါ";
-          return `<tr><td class="title"><a class="table-link" href="/dashboard/forms/${form.id}">${e(form.title)}</a><small>${versionSummary}</small></td><td>${e(label(form.audience))}</td><td>${badge(status)}</td><td>${toggle}</td><td><a class="button small" href="/dashboard/forms/${form.id}">တည်ဆောက်ရန်</a></td></tr>`;
-        }),
-      )
-    : empty(
-        "နောက်စစ်တမ်းကို ဤနေရာမှ စတင်ပါ",
-        "အစမှ စစ်တမ်း ဖန်တီးပါ သို့မဟုတ် သင့်လက်ရှိ DEDC အလုပ်စာအုပ်ကို တင်သွင်းပါ။",
-        button("အလုပ်စာအုပ် တင်သွင်းရန်", "/dashboard/data"),
-      );
 }
 
 function formTable(items, search = "") {

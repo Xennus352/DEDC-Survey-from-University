@@ -6,85 +6,123 @@ function svgNode(tag, attributes = {}) {
   return node;
 }
 
-function buckets(trend, period) {
-  if (period === "daily") return trend.map((item) => ({ label: item.date, count: item.count }));
-  const groups = new Map();
-  trend.forEach((item, index) => {
-    const key = period === "weekly" ? String(Math.floor(index / 7)) : item.date.slice(0, 7);
-    const group = groups.get(key) || { label: item.date, end: item.date, count: 0 };
-    group.count += item.count;
-    group.end = item.date;
-    groups.set(key, group);
-  });
-  return [...groups.values()].map((group) => ({
-    label: period === "weekly" ? group.label + " – " + group.end : group.label.slice(0, 7),
-    count: group.count,
-  }));
+function textElement(tag, className, value) {
+  const element = document.createElement(tag);
+  element.className = className;
+  element.textContent = value;
+  return element;
 }
 
-export function renderOverviewTrend(container, trend, period) {
-  const points = buckets(trend, period);
-  const maximum = Math.max(1, ...points.map((point) => point.count));
-  const x = (index) => points.length === 1 ? 300 : 24 + index * 552 / (points.length - 1);
-  const y = (count) => 156 - count / maximum * 126;
-  const svg = svgNode("svg", {
-    viewBox: "0 0 600 184",
-    preserveAspectRatio: "none",
-    role: "group",
-    "aria-label": "တင်သွင်းမှု အချိန်လိုက် ပြောင်းလဲမှု",
+export function renderYearlyBars(container, years, series, audience) {
+  const requestedTypes = audience === "University" ? ["CU", "PU", "TU"] : [];
+  const ranked = [...series].sort((a, b) => {
+    const aTotal = a.values.reduce((sum, count) => sum + count, 0);
+    const bTotal = b.values.reduce((sum, count) => sum + count, 0);
+    const aPriority = requestedTypes.indexOf(a.label);
+    const bPriority = requestedTypes.indexOf(b.label);
+    return bTotal - aTotal ||
+      (aPriority < 0 ? requestedTypes.length : aPriority) -
+      (bPriority < 0 ? requestedTypes.length : bPriority) ||
+      a.label.localeCompare(b.label);
   });
-  for (let index = 0; index < 4; index += 1) {
-    svg.append(svgNode("line", { class: "overview-trend__grid", x1: 24, x2: 576, y1: 30 + index * 42, y2: 30 + index * 42 }));
-  }
-  const readout = document.createElement("p");
-  readout.className = "overview-trend__readout";
-  readout.setAttribute("aria-live", "polite");
-  readout.textContent = "တင်သွင်းမှုရှိသော အချက်တစ်ခုကို ရွေးပါ";
-  const selectable = [];
-  const selectPoint = (circle, point) => {
-    selectable.forEach((item) => {
-      item.classList.toggle("is-selected", item === circle);
-      item.setAttribute("aria-pressed", String(item === circle));
+  const active = ranked.filter((item) => item.values.some((count) => count > 0));
+  const maximum = Math.max(1, ...active.flatMap((item) => item.values));
+  const axisLabel = textElement("p", "year-chart-axis-label", "Y · ဖြေဆိုပြီး မေးခွန်းအရေအတွက်");
+  const viewport = document.createElement("div");
+  viewport.className = "year-chart-viewport";
+  const groupWidth = Math.max(62, active.length * 20 + 2);
+  const width = Math.max(280, 36 + years.length * groupWidth + 8);
+  const groupStart = 36 + (width - 44 - years.length * groupWidth) / 2;
+  const svg = svgNode("svg", {
+    viewBox: "0 0 " + width + " 205",
+    width,
+    height: 205,
+    role: "img",
+    "aria-label": audience + " အဖွဲ့အစည်းများ၏ တင်သွင်းသည့် နှစ်အလိုက် ဖြေဆိုပြီး မေးခွန်းအရေအတွက်",
+  });
+  const title = svgNode("title");
+  title.textContent = audience + " တင်သွင်းသည့် နှစ်အလိုက် ဖြေဆိုပြီး မေးခွန်းများ";
+  svg.append(title);
+  const ticks = maximum > 1 ? [0, Math.ceil(maximum / 2), maximum] : [0, maximum];
+  for (const count of [...new Set(ticks)]) {
+    const y = 164 - count / maximum * 132;
+    svg.append(svgNode("line", {
+      class: "year-chart-grid", x1: 32, x2: width - 8, y1: y, y2: y,
+    }));
+    const tick = svgNode("text", {
+      class: "year-chart-tick", x: 26, y: y + 4, "text-anchor": "end",
     });
-    readout.textContent = point.label + " · " + point.count.toLocaleString() + " တင်သွင်းမှု";
-  };
-  if (points.some((point) => point.count > 0)) {
-    const path = points.map((point, index) => (index ? "L" : "M") + x(index) + " " + y(point.count)).join(" ");
-    svg.append(svgNode("path", { class: "overview-trend__area", d: path + " L" + x(points.length - 1) + " 156 L" + x(0) + " 156 Z" }));
-    svg.append(svgNode("path", { class: "overview-trend__line", d: path }));
-    points.forEach((point, index) => {
-      if (point.count === 0) return;
-      const circle = svgNode("circle", {
-        class: "overview-trend__point",
-        cx: x(index), cy: y(point.count), r: 5, tabindex: 0,
-        role: "button", "aria-pressed": "false",
-        "aria-label": point.label + ": " + point.count + " တင်သွင်းမှု",
-      });
-      const title = svgNode("title");
-      title.textContent = point.label + ": " + point.count + " တင်သွင်းမှု";
-      circle.append(title);
-      circle.addEventListener("click", () => selectPoint(circle, point));
-      circle.addEventListener("focus", () => selectPoint(circle, point));
-      circle.addEventListener("keydown", (event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          selectPoint(circle, point);
-        }
-      });
-      selectable.push(circle);
-      svg.append(circle);
-    });
-    const lastIndex = points.findLastIndex((point) => point.count > 0);
-    selectPoint(selectable.at(-1), points[lastIndex]);
-  } else {
-    readout.textContent = "တင်သွင်းမှု မရှိသေးပါ";
+    tick.textContent = count.toLocaleString();
+    svg.append(tick);
   }
-  const axis = document.createElement("div");
-  axis.className = "chart-axis";
-  const first = document.createElement("span");
-  const last = document.createElement("span");
-  first.textContent = points[0]?.label || "—";
-  last.textContent = points.at(-1)?.label || "—";
-  axis.append(first, last);
-  container.replaceChildren(svg, axis, readout);
+  years.forEach((year, yearIndex) => {
+    const center = groupStart + (yearIndex + .5) * groupWidth;
+    const barWidth = 18;
+    const gap = 2;
+    const barsWidth = active.length * (barWidth + gap) - gap;
+    active.forEach((item, seriesIndex) => {
+      const count = item.values[yearIndex] || 0;
+      const x = center - barsWidth / 2 + seriesIndex * (barWidth + gap);
+      const height = count / maximum * 128;
+      if (count > 0) {
+        svg.append(svgNode("rect", {
+          x, y: 164 - height, width: barWidth, height, rx: 2,
+          class: "year-chart-bar year-chart-tone--" + seriesIndex % 8,
+        }));
+      }
+      if (count > 0) {
+        const value = svgNode("text", {
+          class: "year-chart-value", x: x + barWidth / 2,
+          y: Math.max(16, 158 - height), "text-anchor": "middle",
+        });
+        value.textContent = count.toLocaleString();
+        svg.append(value);
+      }
+    });
+    if (active.length && !active.some((item) => item.values[yearIndex])) {
+      const zero = svgNode("text", {
+        class: "year-chart-value", x: center, y: 157, "text-anchor": "middle",
+      });
+      zero.textContent = "0";
+      svg.append(zero);
+    }
+    const yearLabel = svgNode("text", {
+      class: "year-chart-year", x: center, y: 190, "text-anchor": "middle",
+    });
+    yearLabel.textContent = String(year);
+    svg.append(yearLabel);
+  });
+  if (!active.length) {
+    const empty = svgNode("text", {
+      class: "year-chart-empty", x: width / 2, y: 91, "text-anchor": "middle",
+    });
+    empty.textContent = "ဖြေဆိုပြီး မေးခွန်း မရှိသေးပါ";
+    svg.append(empty);
+  }
+  viewport.append(svg);
+
+  const xLabel = textElement("p", "year-chart-x-label", "X · တင်သွင်းသည့် နှစ်");
+  const legend = document.createElement("div");
+  legend.className = "year-chart-legend";
+  legend.setAttribute("aria-label", audience + " အဖွဲ့အစည်းများနှင့် ဖြေဆိုမှု စုစုပေါင်း");
+  const legendTitle = textElement(
+    "strong", "year-chart-legend__title",
+    audience === "University" ? "တက္ကသိုလ် အမျိုးအစားများ" : "ဝန်ကြီးဌာနများ",
+  );
+  const legendList = document.createElement("ul");
+  for (const item of ranked) {
+    const total = item.values.reduce((sum, count) => sum + count, 0);
+    const row = document.createElement("li");
+    const swatch = document.createElement("i");
+    swatch.className = "year-chart-swatch " + (total
+      ? "year-chart-tone--" + active.indexOf(item) % 8
+      : "year-chart-swatch--empty");
+    swatch.setAttribute("aria-hidden", "true");
+    const name = textElement("span", "year-chart-legend__name", item.label);
+    name.title = item.label;
+    row.append(swatch, name, textElement("strong", "year-chart-legend__value", total.toLocaleString()));
+    legendList.append(row);
+  }
+  legend.append(legendTitle, legendList);
+  container.replaceChildren(axisLabel, viewport, xLabel, legend);
 }

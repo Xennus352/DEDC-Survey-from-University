@@ -83,6 +83,14 @@ class FormTests(unittest.TestCase):
         )
         return form, version
 
+    def test_overview_legacy_question_count_excludes_storage_metadata(self):
+        self.draft()
+        self.db.commit()
+
+        stats = reports.overview(self.db)["directory_stats"]
+        self.assertEqual(stats["university_questions"], 3)
+        self.assertEqual(stats["ministry_questions"], 0)
+
     def test_published_version_cannot_change_and_new_version_preserves_submission(self):
         form, version = self.draft()
         forms.publish(self.db, form.id, version.id, version.revision, self.actor)

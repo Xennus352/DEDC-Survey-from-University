@@ -1,5 +1,5 @@
 """Regression coverage for dashboard requests and native builder persistence."""
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 import json
 from sqlalchemy import func, select
 
@@ -25,7 +25,7 @@ class DashboardRecoveryTests(PortalFixture):
     async def test_dashboard_data_endpoints_return_the_workspace_contract(self):
         await self.login()
         for path, keys in (
-            ('/overview', ('forms', 'submissions', 'trend')),
+            ('/overview', ('forms', 'submissions', 'trend', 'answer_trend', 'completed_by_year')),
             ('/forms?limit=100', ('items', 'total')),
             ('/reports', ('items', 'total', 'statuses')),
             ('/reports/university', ('totals', 'active_years', 'recent_reports')),
@@ -36,6 +36,144 @@ class DashboardRecoveryTests(PortalFixture):
             self.assertEqual(status, 200, (path, data))
             for key in keys:
                 self.assertIn(key, data, path)
+
+    async def test_overview_counts_published_questions_and_native_activity(self):
+        await self.login()
+        with self.sessions() as db:
+            published_year = db.native.execute(
+                metadata.tables['year'].insert().values(
+                    yearFrom=date(2026, 1, 1), yearTo=date(2026, 12, 31), status=1,
+                )
+            ).inserted_primary_key[0]
+            draft_year = db.native.execute(
+                metadata.tables['year'].insert().values(
+                    yearFrom=date(2027, 1, 1), yearTo=date(2027, 12, 31), status=0,
+                )
+            ).inserted_primary_key[0]
+            university_id = db.native.execute(metadata.tables['university'].insert().values(
+                uniType='CU', uniName='Test University',
+            )).inserted_primary_key[0]
+            ministry_id = db.native.execute(metadata.tables['ministry'].insert().values(
+                ministryName='Test Ministry',
+            )).inserted_primary_key[0]
+            second_university_id = db.native.execute(metadata.tables['university'].insert().values(
+                uniType='TU', uniName='Second University',
+            )).inserted_primary_key[0]
+            university_questions = [
+                db.native.execute(metadata.tables['uniquestion'].insert().values(
+                    yID=published_year, uQDetail=f'University question {number}',
+                )).inserted_primary_key[0]
+                for number in (1, 2)
+            ]
+            db.native.execute(metadata.tables['uniquestion'].insert().values(
+                yID=draft_year, uQDetail='Draft question',
+            ))
+            ministry_question = db.native.execute(
+                metadata.tables['ministryquestion'].insert().values(
+                    yID=published_year, mQDetail='Ministry question',
+                )
+            ).inserted_primary_key[0]
+            submitted_at = datetime.now(timezone.utc).replace(
+                tzinfo=None, hour=12, minute=0, second=0, microsecond=0,
+            ) - timedelta(days=1)
+            for question_id in university_questions:
+                db.native.execute(metadata.tables['unisurvey'].insert().values(
+                    uniId=university_id, uQId=question_id,
+                    hasItem=False, submittedAt=submitted_at,
+                ))
+            db.native.execute(metadata.tables['ministrysurvey'].insert().values(
+                ministryId=ministry_id, mQId=ministry_question,
+                hasItem=False, submittedAt=submitted_at,
+            ))
+            db.commit()
+
+        status, _, data = await self.admin_request('/overview')
+        self.assertEqual(status, 200)
+        self.assertEqual(data['directory_stats'], {
+            'university_questions': 2,
+            'ministry_questions': 1,
+            'universities': 2,
+            'ministries': 1,
+        })
+        chart_years = list(range(datetime.now().year - 3, datetime.now().year + 1))
+        self.assertEqual(data['completed_by_year'], {
+            'years': chart_years,
+            'university': {'series': [
+                {'label': 'CU', 'values': [2 if year == submitted_at.year else 0 for year in chart_years]},
+                {'label': 'TU', 'values': [0 for _ in chart_years]},
+            ]},
+            'ministry': {'series': [
+                {'label': 'Test Ministry', 'values': [1 if year == submitted_at.year else 0 for year in chart_years]},
+            ]},
+        })
+        self.assertEqual(data['form_status'], {
+            'published': 2, 'draft': 1, 'archived': 0,
+        })
+        self.assertEqual(sum(day['count'] for day in data['trend']), 2)
+        self.assertEqual(
+            next(day['count'] for day in data['trend'] if day['date'] == submitted_at.date().isoformat()),
+            2,
+        )
+        self.assertEqual(len(data['answer_trend']), 30)
+        self.assertEqual(
+            next(day for day in data['answer_trend'] if day['date'] == submitted_at.date().isoformat()),
+            {'date': submitted_at.date().isoformat(), 'university': 2, 'ministry': 1},
+        )
+
+    async def test_completed_answers_group_by_submission_year_and_organization(self):
+        await self.login()
+        with self.sessions() as db:
+            years = [db.native.execute(metadata.tables['year'].insert().values(
+                yearFrom=date(year, 1, 1), yearTo=date(year, 12, 31), status=1,
+            )).inserted_primary_key[0] for year in (2025, 2026)]
+            universities = [db.native.execute(metadata.tables['university'].insert().values(
+                uniType=kind, uniName=name,
+            )).inserted_primary_key[0] for kind, name in (
+                ('CU', 'Computer A'), ('CU', 'Computer B'), ('TU', 'Technical A'),
+            )]
+            ministries = [db.native.execute(metadata.tables['ministry'].insert().values(
+                ministryName=name,
+            )).inserted_primary_key[0] for name in ('Ministry A', 'Ministry B')]
+            university_questions = [db.native.execute(
+                metadata.tables['uniquestion'].insert().values(yID=year_id, uQDetail='Question')
+            ).inserted_primary_key[0] for year_id in years]
+            ministry_questions = [db.native.execute(
+                metadata.tables['ministryquestion'].insert().values(yID=year_id, mQDetail='Question')
+            ).inserted_primary_key[0] for year_id in years]
+            for uni_id, question_id, submitted_year in (
+                (universities[0], university_questions[0], 2025),
+                (universities[1], university_questions[0], 2026),
+                (universities[2], university_questions[1], 2026),
+            ):
+                db.native.execute(metadata.tables['unisurvey'].insert().values(
+                    uniId=uni_id, uQId=question_id, hasItem=False,
+                    submittedAt=datetime(submitted_year, 11, 13, 12, 0),
+                ))
+            for ministry_id, question_id, submitted_year in (
+                (ministries[0], ministry_questions[0], 2025),
+                (ministries[1], ministry_questions[1], 2026),
+            ):
+                db.native.execute(metadata.tables['ministrysurvey'].insert().values(
+                    ministryId=ministry_id, mQId=question_id, hasItem=False,
+                    submittedAt=datetime(submitted_year, 11, 13, 12, 0),
+                ))
+            db.commit()
+
+        status, _, data = await self.admin_request('/overview')
+        self.assertEqual(status, 200)
+        chart_years = data['completed_by_year']['years']
+        self.assertTrue({2025, 2026}.issubset(chart_years))
+        self.assertEqual(data['completed_by_year'], {
+            'years': chart_years,
+            'university': {'series': [
+                {'label': 'CU', 'values': [1 if year in (2025, 2026) else 0 for year in chart_years]},
+                {'label': 'TU', 'values': [1 if year == 2026 else 0 for year in chart_years]},
+            ]},
+            'ministry': {'series': [
+                {'label': 'Ministry A', 'values': [1 if year == 2025 else 0 for year in chart_years]},
+                {'label': 'Ministry B', 'values': [1 if year == 2026 else 0 for year in chart_years]},
+            ]},
+        })
 
     async def test_university_report_summary_tracks_active_year_progress(self):
         await self.login()

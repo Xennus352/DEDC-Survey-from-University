@@ -22,12 +22,12 @@
     </script>
     <link
       rel="stylesheet"
-      href="/static/css/admin/dashboard.css?v=20261112-overview4"
+      href="/static/css/admin/dashboard.css?v=20261113-overview17"
     />
     <script defer src="/static/js/admin-session.js"></script>
     <script
       type="module"
-      src="/static/js/admin/workspace.js?v=20261112-overview5"
+      src="/static/js/admin/workspace.js?v=20261113-overview18"
     ></script>
   </head>
   <body
@@ -118,18 +118,7 @@
         %}
           <a
             href="/dashboard{{ '' if key=='overview' else '/'+key }}"
-            {%
-              if
-              page=""
-              ="key"
-              or
-              (key=""
-              ="forms"
-              and
-              page
-              in
-              ['editor', 'preview'])
-            %}
+            {% if page == key or (key == 'forms' and page in ['editor', 'preview']) %}
               aria-current="page"
             {% endif %}
             title="{{ label }}"
@@ -141,21 +130,13 @@
         <nav>
           <a
             href="/dashboard/audit"
-            {%
-              if
-              page=""
-              ="audit"
-            %}
+            {% if page == 'audit' %}
               aria-current="page"
             {% endif %}
             >{{ symbol('audit') }}<span>လုပ်ဆောင်ချက် မှတ်တမ်း</span></a
           ><a
             href="/dashboard/settings"
-            {%
-              if
-              page=""
-              ="settings"
-            %}
+            {% if page == 'settings' %}
               aria-current="page"
             {% endif %}
             >{{ symbol('settings') }}<span>ဆက်တင်များ</span></a
@@ -295,8 +276,8 @@
         <footer class="workspace-footer">
           <span>DEDC · စစ်တမ်း စီမံခန့်ခွဲမှု</span
           ><span
-            >&emsp; · &emsp; Developed By University of Computer Studies Taungoo
-            &emsp; · &emsp;</span
+            > Developed By University of Computer Studies Taungoo
+            </span
           >
           <span>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</span>
         </footer>
