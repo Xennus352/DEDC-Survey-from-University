@@ -1,2 +1,157 @@
-<!doctype html><html lang="my"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>စီမံခန့်ခွဲသူ အကောင့်ဝင်ရန် · DEDC</title><link rel="icon" href="/static/img/logo.png" type="image/png"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="/static/css/admin/workspace.css"><script defer src="/static/js/portal.js"></script></head>
-<body class="survey-public"><a class="skip" href="#main-content">အကြောင်းအရာသို့ ကျော်သွားရန်</a><div class="signin-shell"><section class="signin-intro"><a class="brand" href="/"><img class="brand-logo" src="/static/img/logo.png" width="40" height="40" alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်"><span class="brand-name">DEDC<span>စစ်တမ်း စီမံခန့်ခွဲမှု</span></span></a><div><h1>ပိုကောင်းသော စစ်တမ်းများ။<br>ပိုရှင်းလင်းသော ဆုံးဖြတ်ချက်များ။</h1><p>သင့်စစ်တမ်းများ၊ ကွင်းဆင်းတုံ့ပြန်ချက်များနှင့် အဖွဲ့အစည်းအစီရင်ခံစာများကို တစ်နေရာတည်းတွင် စီမံနိုင်သည့် နေရာ။</p></div><footer>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</footer></section><main class="signin-panel" id="main-content" tabindex="-1"><img class="brand-logo" src="/static/img/logo.png" alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်" width="52" height="52"><div><h2>ပြန်လည်ကြိုဆိုပါတယ်။</h2><p class="editor-meta">သင့် DEDC စီမံခန့်ခွဲမှု စနစ်ထဲသို့ ဝင်ရောက်ပါ။</p></div>{% if error %}<p class="notice error" role="alert">{{ error }}</p>{% endif %}<form action="{{ url_for('portal_login') }}" method="post" class="field-stack"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><label for="portal-username">အသုံးပြုသူအမည်<input id="portal-username" name="username" required maxlength="100" autocomplete="username" value="{{ username | default('') }}" placeholder="အသုံးပြုသူအမည် ရိုက်ထည့်ပါ"></label><div class="field-stack" style="gap:6px"><label for="portal-password">စကားဝှက်</label><div class="password-wrap"><input id="portal-password" name="password" type="password" required maxlength="1024" autocomplete="current-password" placeholder="စကားဝှက် ရိုက်ထည့်ပါ"><button class="password-toggle" type="button" aria-controls="portal-password" aria-pressed="false" data-password-toggle hidden>ပြပါ</button></div></div><button class="button primary" type="submit">စနစ်ထဲသို့ ဝင်ရောက်ရန်</button></form><p class="editor-meta">စစ်တမ်းဖြေဆိုသူလား။ <a class="table-link" href="/survey/login">စစ်တမ်းများသို့ ဝင်ရောက်ရန် ↗</a></p><a class="editor-meta" href="/">← ပင်မစာမျက်နှာသို့ ပြန်သွားရန်</a></main></div></body></html>
+<!doctype html>
+<html lang="my">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>စီမံခန့်ခွဲသူ အကောင့်ဝင်ရန် · DEDC</title>
+    <link rel="icon" href="/static/img/logo.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+Myanmar:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/css/admin/workspace.css" />
+    <link rel="stylesheet" href="/static/css/admin/login.css" />
+    <script defer src="/static/js/portal.js"></script>
+  </head>
+  <body class="survey-public">
+    <a class="skip" href="#main-content">အကြောင်းအရာသို့ ကျော်သွားရန်</a>
+    <div class="signin-shell">
+      <section class="signin-left" aria-label="DEDC စစ်တမ်း စီမံခန့်ခွဲမှု">
+        <a class="brand" href="/">
+          <span class="brand-logo"
+            ><img
+              src="/static/img/logo.png"
+              width="40"
+              height="40"
+              alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်"
+          /></span>
+          <span class="brand-name"
+            >DEDC<span>စစ်တမ်း စီမံခန့်ခွဲမှု</span></span
+          >
+        </a>
+        <div>
+          <h1>ပိုကောင်းသော စစ်တမ်းများ။</h1>
+          <p>ပိုရှင်းလင်းသော ဆုံးဖြတ်ချက်များ။</p>
+        </div>
+        <footer>သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</footer>
+      </section>
+
+      <main class="signin-right" id="main-content" tabindex="-1">
+        <div class="right-card">
+          <span class="brand-logo"
+            ><img
+              src="/static/img/logo.png"
+              width="52"
+              height="52"
+              alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်"
+          /></span>
+          <h2>ပြန်လည်ကြိုဆိုပါတယ်။</h2>
+          <p class="editor-meta">
+            သင့် DEDC စီမံခန့်ခွဲမှု စနစ်ထဲသို့ ဝင်ရောက်ပါ။
+          </p>
+
+          {% if error %}
+          <p class="notice error" role="alert">{{ error }}</p>
+          {% endif %}
+
+          <form
+            action="{{ url_for('portal_login') }}"
+            method="post"
+            class="field-stack"
+          >
+            <input
+              type="hidden"
+              name="csrf_token"
+              value="{{ csrf_token }}"
+            />
+            <label for="portal-username"
+              ><span>အသုံးပြုသူအမည်</span>
+              <input
+                id="portal-username"
+                name="username"
+                required
+                maxlength="100"
+                autocomplete="username"
+                value="{{ username | default('') }}"
+                placeholder="အသုံးပြုသူအမည် ရိုက်ထည့်ပါ"
+              />
+            </label>
+            <div class="field-stack" style="gap: 6px">
+              <label for="portal-password"><span>စကားဝှက်</span></label>
+              <div class="password-wrap">
+                <input
+                  id="portal-password"
+                  name="password"
+                  type="password"
+                  required
+                  maxlength="1024"
+                  autocomplete="current-password"
+                  placeholder="စကားဝှက် ရိုက်ထည့်ပါ"
+                />
+                <button
+                  class="toggle-password"
+                  type="button"
+                  aria-controls="portal-password"
+                  aria-pressed="false"
+                  aria-label="စကားဝှက် ပြရန်"
+                  data-password-toggle
+                  hidden
+                >
+                  <svg
+                    class="eye-open"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  <svg
+                    class="eye-closed"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="m3 3 18 18" />
+                    <path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" />
+                    <path
+                      d="M9.4 5.3A10.9 10.9 0 0 1 12 5c6.5 0 10 7 10 7a17.3 17.3 0 0 1-3.3 4.2"
+                    />
+                    <path
+                      d="M6.1 6.1A17.4 17.4 0 0 0 2 12s3.5 7 10 7a10.8 10.8 0 0 0 4.4-.9"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <button class="button primary" type="submit">
+              စနစ်ထဲသို့ ဝင်ရောက်ရန်
+            </button>
+          </form>
+
+          <p class="editor-meta">
+            စစ်တမ်းဖြေဆိုသူလား။
+            <a class="table-link" href="/survey/login"
+              >စစ်တမ်းများသို့ ဝင်ရောက်ရန် ↗</a
+            >
+          </p>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

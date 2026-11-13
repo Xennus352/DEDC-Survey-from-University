@@ -742,9 +742,15 @@ async function overview() {
     ].map(([label, value, kind, href, icon]) => `<a class="sf-kpi overview-metric" href="${href}"><span class="sf-kpi__icon" aria-hidden="true">${icon}</span><span class="sf-kpi__body"><strong>${value.toLocaleString()}</strong><span class="sf-kpi__label">${label}</span><small class="sf-kpi__hint">${kind}</small></span></a>`).join("");
     const shortcutLinks = [
       ["စစ်တမ်းများ", "/dashboard/forms"],
+<<<<<<< HEAD
       ["အစီရင်ခံစာများ", "/dashboard/reports"],
       ["တက္ကသိုလ်များ", "/dashboard/departments"],
       ["ဝန်ကြီးဌာနများ", "/dashboard/ministries"],
+=======
+      ["ဝန်ကြီးဌာန အစီရင်ခံစာများ", "/dashboard/reports/ministry"],
+      ["တက္ကသိုလ် အစီရင်ခံစာများ", "/dashboard/reports"],
+      ["အဖွဲ့အစည်းများ", "/dashboard/ministries"],
+>>>>>>> 96b634f (updating admin site)
     ].map(([title, url]) => `<a class="overview-shortcut" href="${url}">${title}<span aria-hidden="true">${arrowIcon}</span></a>`).join("");
     setContent(`
       <section class="overview-metrics" aria-labelledby="overview-metrics-title"><div class="overview-section-head"><h2 id="overview-metrics-title">စစ်တမ်း အချက်အလက်</h2><p>ထုတ်ဝေထားသော မေးခွန်းများ · အဖွဲ့အစည်း စုစုပေါင်း</p></div><div class="stats">${metricCards}</div></section>
@@ -821,8 +827,13 @@ function formTable(items, search = "") {
       )
     : search ? empty("ကိုက်ညီသော စစ်တမ်း မရှိပါ", "အခြားအမည်တစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် ရှာဖွေမှုကို ရှင်းလင်းပြီး စစ်တမ်းအားလုံးကို ကြည့်ပါ။", button("ရှာဖွေမှု ရှင်းလင်းရန်", "/dashboard/forms")) : empty(
         "နောက်စစ်တမ်းကို ဤနေရာမှ စတင်ပါ",
+<<<<<<< HEAD
         "စစ်တမ်းအသစ် ဖန်တီးရန် စတင်ပါ။",
         button("စစ်တမ်း အသစ်ဖန်တီးရန်", "/dashboard/forms"),
+=======
+        "အစမှ စစ်တမ်း ဖန်တီးပါ သို့မဟုတ် တက္ကသိုလ် အစီရင်ခံစာများကို ကြည့်ပါ။",
+        button("အစီရင်ခံစာများ ကြည့်ရန်", "/dashboard/reports"),
+>>>>>>> 96b634f (updating admin site)
       );
 }
 // ============================================================
@@ -857,7 +868,10 @@ const REPORT_ICONS = {
   years: SURVEY_ICONS.period,
   universities: SURVEY_ICONS.building,
   ministries: SURVEY_ICONS.landmark,
+<<<<<<< HEAD
   forms: SURVEY_ICONS.forms,
+=======
+>>>>>>> 96b634f (updating admin site)
   reports: SURVEY_ICONS.forms,
   completion:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>',
@@ -1108,8 +1122,13 @@ function surveyBoard(surveys, orgFilter, search) {
             search || orgFilter ? "ကိုက်ညီသော စစ်တမ်း မရှိပါ" : "နောက်စစ်တမ်းကို ဤနေရာမှ စတင်ပါ",
             search || orgFilter
               ? "အခြားကာလတစ်ခု စမ်းကြည့်ပါ သို့မဟုတ် စစ်ထုတ်မှုများကို ရှင်းလင်းပြီး စစ်တမ်းအားလုံးကို ကြည့်ပါ။"
+<<<<<<< HEAD
               : "စစ်တမ်းအသစ် ဖန်တီးရန် စတင်ပါ။",
             search || orgFilter ? button("စစ်ထုတ်မှု ရှင်းလင်းရန်", "/dashboard/forms") : button("စစ်တမ်း အသစ်ဖန်တီးရန်", "/dashboard/forms"),
+=======
+              : "အစမှ စစ်တမ်း ဖန်တီးပါ သို့မဟုတ် တက္ကသိုလ် အစီရင်ခံစာများကို ကြည့်ပါ။",
+            search || orgFilter ? button("စစ်ထုတ်မှု ရှင်းလင်းရန်", "/dashboard/forms") : button("အစီရင်ခံစာများ ကြည့်ရန်", "/dashboard/reports"),
+>>>>>>> 96b634f (updating admin site)
           )}</div>`}
     </section>
   </section>`;
@@ -1205,7 +1224,11 @@ async function formsPage() {
   }
   surveyBoardData = surveys;
   actions(
+<<<<<<< HEAD
     `<button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`,
+=======
+    `<a class="button" href="/dashboard/reports">အစီရင်ခံစာများ ကြည့်ရန်</a><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`,
+>>>>>>> 96b634f (updating admin site)
   );
   setContent(surveyBoard(surveys, orgFilter, search));
   document.querySelector("#create-action").onclick = createForm;
@@ -1229,7 +1252,6 @@ async function formsPage() {
   document.querySelectorAll("[data-toggle-status]").forEach((control) => {
     control.addEventListener("change", async () => {
       const yearId = control.dataset.yearId;
-      const form = findSurvey(yearId, control.dataset.orgType);
       const published = control.checked;
       try {
         await api(`/survey/years/${yearId}/status`, {
@@ -1273,7 +1295,6 @@ async function formsPage() {
         )),
   );
 }
-
 
 async function departments() {
   describe("စနစ်တွင် သတ်မှတ်ထားသော တက္ကသိုလ်များကို စီမံခန့်ခွဲပါ။");
@@ -1514,25 +1535,6 @@ function deleteMinistry(id, btn) {
       await load();
     },
   );
-}
-
-function reportFilters(p, formData, users) {
-  const advanced = ["version_id", "user_id", "start", "end", "question", "operator"].some((key) => p.get(key));
-  return `<form class="filters report-filters" data-filter-form>
-    <input type="search" aria-label="တင်သွင်းချက်များ ရှာဖွေရန်" name="search" placeholder="စစ်တမ်း သို့မဟုတ် အသုံးပြုသူ ရှာဖွေရန်…" value="${e(p.get("search") || "")}">
-    <label>စစ်တမ်း<select name="form_id"><option value="">စစ်တမ်းအားလုံး</option>${formData.items.map((form) => `<option value="${form.id}" ${p.get("form_id") == form.id ? "selected" : ""}>${e(form.title)}</option>`).join("")}</select></label>
-    <label>အခြေအနေ<select name="status"><option value="">အခြေအနေအားလုံး</option>${["completed", "pending_review", "approved", "rejected"].map((status) => `<option value="${status}" ${p.get("status") === status ? "selected" : ""}>${label(status)}</option>`).join("")}</select></label>
-    <button class="button" type="submit">စစ်ထုတ်ရန်</button>
-    ${location.search ? '<a class="button" href="/dashboard/reports">စစ်ထုတ်မှု ရှင်းလင်းရန်</a>' : ""}
-    <details class="report-more-filters" ${advanced ? "open" : ""}><summary>နောက်ထပ် စစ်ထုတ်မှုများ</summary><div class="advanced-filters">
-      <label>ဗားရှင်း<select name="version_id"><option value="">ဗားရှင်းအားလုံး</option>${formData.items.flatMap((form) => form.versions.map((version) => `<option value="${version.id}" ${p.get("version_id") == version.id ? "selected" : ""}>${e(form.title)} · v${version.number}</option>`)).join("")}</select></label>
-      <label>အသုံးပြုသူ<select name="user_id"><option value="">အသုံးပြုသူအားလုံး</option>${users.items.map((user) => `<option value="${user.id}" ${p.get("user_id") == user.id ? "selected" : ""}>${e(user.username)}</option>`).join("")}</select></label>
-      <label>မှ<input type="date" name="start" value="${e(p.get("start") || "")}"></label>
-      <label>ထိ<input type="date" name="end" value="${e(p.get("end") || "")}"></label>
-      <label>မေးခွန်း ကုဒ်<input name="question" placeholder="ဥပမာ q1_present" value="${e(p.get("question") || "")}"></label>
-      <label>ကိုက်ညီပုံ<select name="operator"><option value="">ပုံသေ (တူညီသည်)</option>${["equals", "contains", "greater_than", "less_than"].map((operator) => `<option value="${operator}" ${p.get("operator") === operator ? "selected" : ""}>${label(operator)}</option>`).join("")}</select></label>
-    </div></details>
-  </form>`;
 }
 
 const REPORT_STATUS = {
@@ -2501,6 +2503,7 @@ async function universityReportsPage() {
 
 async function ministryReportsPage() {
   await reportsPage(MINISTRY_REPORT_CONFIG);
+<<<<<<< HEAD
 }
 
 function themeOption(value, name, description) {
@@ -2512,6 +2515,8 @@ function themeOption(value, name, description) {
     </span>
     <span class="settings-theme-option__copy"><span><strong>${name}</strong><small>${description}</small></span><span class="settings-theme-option__check" aria-hidden="true"></span></span>
   </label>`;
+=======
+>>>>>>> 96b634f (updating admin site)
 }
 
 async function settings() {
@@ -2538,11 +2543,15 @@ async function settings() {
       `<li class="settings-mobile-item"><div class="settings-mobile-item__top"><div class="user-identity"><span class="avatar" aria-hidden="true">${e(account.username.slice(0, 1).toUpperCase())}</span><div><strong>${e(account.username)}</strong><small>#${account.id}${account.id === user.id ? " · သင်" : ""}</small></div></div>${badge(account.is_active ? "active" : "disabled")}</div><div class="settings-mobile-item__foot"><span>${date(account.created_at)}</span><div class="row-actions"><button class="button small" type="button" data-edit-admin="${account.id}">ပြင်ဆင်ရန်</button>${account.id === user.id ? "" : `<button class="button small danger" type="button" data-delete-admin="${account.id}">ဖျက်ရန်</button>`}</div></div></li>`,
     );
     setContent(
+<<<<<<< HEAD
       `<div class="settings-layout"><div class="settings-index" role="tablist" aria-label="ဆက်တင် ကဏ္ဍများ"><button id="settings-tab-account" type="button" role="tab" aria-controls="account" data-settings-tab="account">သင့်အကောင့်</button><button id="settings-tab-administrators" type="button" role="tab" aria-controls="administrators" data-settings-tab="administrators">စီမံခန့်ခွဲသူများ</button><button id="settings-tab-appearance" type="button" role="tab" aria-controls="appearance" data-settings-tab="appearance">အသွင်အပြင်</button></div><div class="settings-sections">
         <section class="settings-row" id="account" role="tabpanel" aria-labelledby="settings-tab-account" tabindex="-1"><div class="settings-copy"><h2 id="account-title">သင့်အကောင့်</h2><p>သင့်စကားဝှက်ကို အချိန်မရွေး ပြောင်းလဲနိုင်ပါသည်။</p></div><div class="settings-control"><div class="account-summary"><span class="avatar" aria-hidden="true">${e(user.username.slice(0, 1).toUpperCase())}</span><div><h3>${e(user.username)}</h3><p class="field-hint">စီမံခန့်ခွဲသူ · #${user.id}</p></div></div><form id="password-form" class="settings-form"><label>လက်ရှိ စကားဝှက်<input name="current_password" type="password" required autocomplete="current-password"></label><label>စကားဝှက်အသစ်<input name="new_password" type="password" required minlength="8" maxlength="1024" autocomplete="new-password"><small>အနည်းဆုံး ၈ လုံး အသုံးပြုပါ။</small></label><label>စကားဝှက်အသစ် ထပ်ရိုက်ပါ<input name="confirm_password" type="password" required minlength="8" maxlength="1024" autocomplete="new-password"></label><p class="settings-feedback" id="password-feedback" role="status" aria-live="polite"></p><button class="button primary" type="submit">စကားဝှက် ပြောင်းရန်</button></form></div></section>
         <section class="settings-row settings-row--wide" id="administrators" role="tabpanel" aria-labelledby="settings-tab-administrators" tabindex="-1"><div class="settings-copy settings-copy--action"><div><h2 id="admins-title">စီမံခန့်ခွဲသူများ</h2><p>အကောင့်အသစ် ထည့်ရန်၊ ပြင်ဆင်ရန်၊ အသုံးပြုခွင့် ပိတ်ရန် သို့မဟုတ် ဖျက်ရန်။</p></div><button class="button primary" id="add-administrator" type="button">စီမံခန့်ခွဲသူ ထည့်ရန်</button></div><form class="filters settings-search" data-filter-form><label class="sr-only" for="admin-search">စီမံခန့်ခွဲသူ ရှာဖွေရန်</label><input id="admin-search" type="search" name="search" placeholder="အမည်ဖြင့် ရှာဖွေရန်…" value="${e(params.get("search") || "")}"><button class="button" type="submit">ရှာဖွေရန်</button><span class="settings-count">${directory.total} ယောက်</span></form>${rows.length ? table(["အကောင့်", "အခြေအနေ", "ဖန်တီးချိန်", ""], rows) + `<ul class="settings-mobile-list">${mobileRows.join("")}</ul>` : empty("စီမံခန့်ခွဲသူ မတွေ့ပါ", params.get("search") ? "ရှာဖွေမှုကို ရှင်းလင်းပြီး ထပ်စမ်းကြည့်ပါ။" : "စီမံခန့်ခွဲသူအသစ် ထည့်နိုင်ပါသည်။", params.get("search") ? button("ရှာဖွေမှု ရှင်းရန်", "/dashboard/settings#administrators") : "")}${pagination(directory.total, pageSize)}</section>
         <section class="settings-row settings-row--appearance" id="appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" tabindex="-1"><div class="settings-appearance-head"><div><h2 id="appearance-title">အသွင်အပြင်</h2><p>အလုပ်ခွင်အတွက် သင့်မျက်စိနှင့် သင့်တော်သော အရောင်ကို ရွေးပါ။</p></div><p class="settings-appearance-current">လက်ရှိရွေးချယ်မှု <strong id="theme-current-label"></strong></p></div><fieldset class="settings-theme-fieldset"><legend class="sr-only">အလုပ်ခွင် အပြင်အဆင်</legend><div class="settings-theme-choice-group"><p>အလုပ်ခွင် အပြင်အဆင်</p><div class="settings-theme-options">${themeOption("light", "အလင်း", "နေ့ခင်းဘက် အသုံးပြုရန်")}${themeOption("dark", "အမှောင်", "အလင်းနည်းသော နေရာတွင် အသုံးပြုရန်")}</div></div></fieldset><p class="settings-appearance-status" id="theme-status" role="status" aria-live="polite"></p></section>
       </div></div>`,
+=======
+      `<div class="settings-layout"><nav class="settings-index" aria-label="ဆက်တင် ကဏ္ဍများ"><a href="#appearance">အသွင်အပြင်</a><a href="#account">သင့်အကောင့်</a></nav><div class="settings-sections"><section class="settings-row" id="appearance"><div class="settings-copy"><h2>အသွင်အပြင်</h2><p>ဤစက်ပစ္စည်းပေါ်တွင် အလုပ်ခွင် မည်သို့ပေါ်မည်ကို ရွေးပါ။</p></div><div class="settings-control"><label><span id="theme-setting-label">အလုပ်ခွင် အပြင်အဆင်</span><select id="theme-setting" aria-labelledby="theme-setting-label"><option value="light">အလင်း</option><option value="dark">အမှောင်</option></select></label><p class="field-hint">ရွေးချယ်မှုကို ဤဘရောက်ဇာတွင် သိမ်းဆည်းထားပါသည်။</p></div></section><section class="settings-row" id="account"><div class="settings-copy"><h2>သင့်အကောင့်</h2><p>သင့် စီမံခန့်ခွဲသူ ပရိုဖိုင်နှင့် အသုံးပြုခွင့်။</p></div><div class="settings-control"><div class="account-summary"><span class="avatar" aria-hidden="true">${e(user.username.slice(0,1).toUpperCase())}</span><div><h3>${e(user.username)}</h3><p class="field-hint">စီမံခန့်ခွဲသူ · အသုံးပြုသူ #${user.id}</p></div></div></div></section></div></div>`,
+>>>>>>> 96b634f (updating admin site)
     );
   } catch (error) {
     setContent(
@@ -2683,6 +2692,7 @@ async function load() {
     forms: () => safeLoad(formsPage, "စစ်တမ်းများ"),
     departments: () => safeLoad(departments, "တက္ကသိုလ်များ"),
     ministries: () => safeLoad(ministries, "ဝန်ကြီးဌာနများ"),
+<<<<<<< HEAD
     submissions: () => safeLoad(universityReportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
     reports: () => safeLoad(universityReportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
     ministry_reports: () => safeLoad(ministryReportsPage, "ဝန်ကြီးဌာန အစီရင်ခံစာများ"),
@@ -2690,6 +2700,29 @@ async function load() {
     ministry_answers: () => safeLoad(ministryAnswersPage, "ဝန်ကြီးဌာန အဖြေများ"),
     question_answer_rates: () => safeLoad(questionAnswerRatesPage, "မေးခွန်း ဖြေဆိုနှုန်းများ"),
     ministry_question_answer_rates: () => safeLoad(ministryQuestionAnswerRatesPage, "ဝန်ကြီးဌာန မေးခွန်း ဖြေဆိုနှုန်းများ"),
+=======
+    submissions: () =>
+      safeLoad(universityReportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
+    reports: () =>
+      safeLoad(universityReportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
+    ministry_reports: () =>
+      safeLoad(ministryReportsPage, "ဝန်ကြီးဌာန အစီရင်ခံစာများ"),
+    university_answers: () =>
+      safeLoad(universityAnswersPage, "တက္ကသိုလ် အဖြေများ"),
+    ministry_answers: () =>
+      safeLoad(ministryAnswersPage, "ဝန်ကြီးဌာန အဖြေများ"),
+    question_answer_rates: () =>
+      safeLoad(questionAnswerRatesPage, "မေးခွန်း ဖြေဆိုနှုန်းများ"),
+    ministry_question_answer_rates: () =>
+      safeLoad(
+        ministryQuestionAnswerRatesPage,
+        "ဝန်ကြီးဌာန မေးခွန်း ဖြေဆိုနှုန်းများ",
+      ),
+
+    users: () => safeLoad(usersPage, "အသုံးပြုသူများ"),
+    audit: () => safeLoad(audit, "လုပ်ဆောင်ချက် မှတ်တမ်း"),
+
+>>>>>>> 96b634f (updating admin site)
     settings: () => safeLoad(settings, "ဆက်တင်များ"),
     editor: () =>
       safeLoad(
@@ -2745,9 +2778,26 @@ async function renderWorkspacePage() {
   document.querySelector(".breadcrumb strong").textContent = target[1];
   document.querySelectorAll(".sidebar nav a").forEach((link) => {
     const linkPath = new URL(link.href).pathname;
+<<<<<<< HEAD
     const active = linkPath === location.pathname ||
       (linkPath === "/dashboard/reports" && ["/dashboard/reports/university-answers", "/dashboard/reports/question-answer-rates"].includes(location.pathname)) ||
       (linkPath === "/dashboard/reports/ministry" && ["/dashboard/reports/ministry-answers", "/dashboard/reports/ministry-question-answer-rates"].includes(location.pathname));
+=======
+    const active =
+      linkPath === location.pathname ||
+      (linkPath === "/dashboard/reports" &&
+        [
+          "/dashboard/reports",
+          "/dashboard/reports/university-answers",
+          "/dashboard/reports/question-answer-rates",
+        ].includes(location.pathname)) ||
+      (linkPath === "/dashboard/reports/ministry" &&
+        [
+          "/dashboard/reports/ministry",
+          "/dashboard/reports/ministry-answers",
+          "/dashboard/reports/ministry-question-answer-rates",
+        ].includes(location.pathname));
+>>>>>>> 96b634f (updating admin site)
     if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });

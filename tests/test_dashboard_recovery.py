@@ -31,13 +31,70 @@ class DashboardRecoveryTests(PortalFixture):
             ('/forms?limit=100', ('items', 'total')),
             ('/reports', ('items', 'total', 'statuses')),
             ('/reports/university', ('totals', 'active_years', 'recent_reports')),
-            ('/users?limit=100', ('items', 'roles', 'total')),
-            ('/audit', ('items', 'total')),
+            ('/reports/ministry', ('totals', 'active_years', 'recent_reports')),
         ):
             status, _, data = await self.admin_request(path)
             self.assertEqual(status, 200, (path, data))
             for key in keys:
                 self.assertIn(key, data, path)
+
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'ministry',
+            'start_year': 2043,
+            'start_month': 11,
+            'end_year': 2044,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {'title': 'Connectivity', 'questions': ['Fiber connection', 'Network access']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+        question_ids = created['groups'][0]['question_ids']
+
+        with self.sessions() as db:
+            ministry_id = db.native.execute(
+                metadata.tables['ministry'].insert().values(
+                    ministryName='Contract Ministry'
+                )
+            ).inserted_primary_key[0]
+            for question_id in question_ids:
+                db.native.execute(
+                    metadata.tables['ministrysurvey'].insert().values(
+                        ministryId=ministry_id,
+                        mQId=question_id,
+                        hasItem=True,
+                        itemCount=3,
+                        submittedAt=datetime(2043, 11, 9, 9, 0),
+                    )
+                )
+            db.commit()
+
+        status, _, roster = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries?state=answered'
+        )
+        self.assertEqual(status, 200, roster)
+        self.assertIn('ministries', roster)
+        self.assertEqual(roster['ministries'][0]['ministry'], 'Contract Ministry')
+
+        status, _, detail = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries/{ministry_id}/answers'
+        )
+        self.assertEqual(status, 200, detail)
+        self.assertIn('groups', detail)
+
+        status, _, rates = await self.admin_request(
+            f'/reports/ministry/{year_id}/question-answer-rates'
+        )
+        self.assertEqual(status, 200, rates)
+        for key in (
+            'question_count',
+            'total_ministries',
+            'answered_ministries',
+            'not_answered_ministries',
+        ):
+            self.assertIn(key, rates)
 
     async def test_overview_counts_published_questions_and_native_activity(self):
         await self.login()
@@ -181,10 +238,10 @@ class DashboardRecoveryTests(PortalFixture):
         await self.login()
         status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
             'org_type': 'university',
-            'start_year': 2027,
-            'start_month': 2,
+            'start_year': 2026,
+            'start_month': 11,
             'end_year': 2027,
-            'end_month': 2,
+            'end_month': 11,
             'status': 1,
             'groups': [
                 {'title': 'Infrastructure', 'questions': ['Fiber connection', 'Computer lab']},
@@ -270,7 +327,10 @@ class DashboardRecoveryTests(PortalFixture):
         self.assertEqual(len(summary['active_years']), 1)
         year = summary['active_years'][0]
         self.assertEqual(year['year_id'], active_year_id)
-        self.assertEqual(year['label'], 'February 2027')
+        self.assertEqual(
+            year['label'],
+            '၂၀၂၆ နိုဝင်ဘာလမှ ၂၀၂၇ နိုဝင်ဘာလအထိ',
+        )
         self.assertEqual(year['question_count'], 2)
         self.assertEqual(year['submitted_universities'], 2)
         self.assertEqual(year['pending_universities'], 1)
@@ -329,6 +389,646 @@ class DashboardRecoveryTests(PortalFixture):
         )
         self.assertEqual(status, 422)
 
+    async def test_university_answer_detail_returns_questions_and_answers(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'university',
+            'start_year': 2031,
+            'start_month': 11,
+            'end_year': 2032,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {
+                    'title': 'Infrastructure',
+                    'description': 'Core campus facilities',
+                    'questions': ['Fiber connection', 'Computer lab'],
+                },
+                {'title': 'Skills', 'questions': ['Staff training']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+        question_ids = [
+            question_id
+            for group in created['groups']
+            for question_id in group['question_ids']
+        ]
+
+        with self.sessions() as db:
+            university_table = metadata.tables['university']
+            survey_table = metadata.tables['unisurvey']
+            university_id = db.native.execute(
+                university_table.insert().values(
+                    uniType='Public university',
+                    uniName='Answer University',
+                )
+            ).inserted_primary_key[0]
+            db.native.execute(
+                survey_table.insert().values(
+                    uniId=university_id,
+                    uQId=question_ids[0],
+                    hasItem=True,
+                    itemCount=12,
+                    surveyDescription='Main campus fiber connection',
+                    submittedAt=datetime(2026, 11, 12, 10, 30),
+                )
+            )
+            db.native.execute(
+                survey_table.insert().values(
+                    uniId=university_id,
+                    uQId=question_ids[1],
+                    hasItem=False,
+                    itemCount=None,
+                    submittedAt=datetime(2026, 11, 12, 10, 45),
+                )
+            )
+            db.commit()
+
+        status, _, detail = await self.admin_request(
+            f'/reports/university/{year_id}/universities/{university_id}/answers'
+        )
+        self.assertEqual(status, 200, detail)
+        self.assertEqual(detail['year_label'], '၂၀၃၁ နိုဝင်ဘာလမှ ၂၀၃၂ နိုဝင်ဘာလအထိ')
+        self.assertEqual(detail['university']['university'], 'Answer University')
+        self.assertEqual(detail['university']['university_type'], 'Public university')
+        self.assertEqual(detail['question_count'], 3)
+        self.assertEqual(detail['answered_questions'], 2)
+        self.assertEqual(detail['has_item_questions'], 1)
+        self.assertEqual(detail['no_item_questions'], 1)
+        self.assertEqual(detail['unanswered_questions'], 1)
+        self.assertEqual(detail['has_item_percent'], 33.3)
+        self.assertEqual(detail['no_item_percent'], 33.3)
+        self.assertEqual(detail['unanswered_percent'], 33.3)
+        self.assertEqual(detail['completion_percent'], 66.7)
+        self.assertEqual(detail['status'], 'in_progress')
+        self.assertEqual(detail['last_submitted_at'], '2026-11-12T10:45:00')
+
+        status, headers, content = await self.request(
+            f'/api/admin/reports/university/{year_id}/universities/'
+            f'{university_id}/answers/export',
+            decode=False,
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(
+            headers[b'content-type'],
+            b'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        self.assertIn(
+            b'dedc-university-answers-', headers[b'content-disposition'],
+        )
+
+        workbook = load_workbook(BytesIO(content))
+        sheet = workbook.active
+        self.assertEqual(workbook.sheetnames, ['University (2031-2032)'])
+        self.assertEqual(
+            sheet['A1'].value,
+            'ဆန်းသစ်တီထွင်မှုနှင့် ဒီဂျစ်တယ်အတတ်ပညာမြှင့်တင်ရေးဆပ်ကော်မတီ',
+        )
+        self.assertEqual(
+            sheet['A2'].value,
+            'Answer Universityတွင် ဆောင်ရွက်လျက်ရှိသည့် '
+            'ဒီဂျစ်တယ်စီးပွားရေးဖွံ့ဖြိုးတိုးတက်မှုဆိုင်ရာ စစ်တမ်း',
+        )
+        self.assertTrue(
+            sheet['A3'].value.startswith(
+                '(၂၀၃၁ ခုနှစ် မှ ၂၀၃၂ ခုနှစ်၊ နိုဝင်ဘာလအထိ)'
+            )
+        )
+        self.assertIn(' | ', sheet['A3'].value)
+        self.assertIn('၁၂ နိုဝင်ဘာ ၂၀၂၆', sheet['A3'].value)
+        self.assertEqual(
+            [sheet.cell(row=4, column=index).value for index in range(1, 7)],
+            ['စဉ်', 'လုပ်ငန်းစဉ်', 'ရှိ', 'မရှိ', 'အရေအတွက်', 'အကြောင်းအရာ'],
+        )
+
+        self.assertEqual(sheet['A5'].value, 'Infrastructure')
+        self.assertIn('A5:F5', {str(cell) for cell in sheet.merged_cells.ranges})
+        self.assertEqual(sheet['A6'].value, 1)
+        self.assertEqual(sheet['B6'].value, 'Fiber connection')
+        self.assertEqual(sheet['C6'].value, 'ရှိ')
+        self.assertIsNone(sheet['D6'].value)
+        self.assertEqual(sheet['E6'].value, 12)
+        self.assertEqual(sheet['F6'].value, 'Main campus fiber connection')
+        self.assertEqual(sheet['A7'].value, 2)
+        self.assertEqual(sheet['B7'].value, 'Computer lab')
+        self.assertIsNone(sheet['C7'].value)
+        self.assertEqual(sheet['D7'].value, 'မရှိ')
+        self.assertIsNone(sheet['E7'].value)
+        self.assertIsNone(sheet['F7'].value)
+        self.assertEqual(sheet['A8'].value, 'Skills')
+        self.assertIn('A8:F8', {str(cell) for cell in sheet.merged_cells.ranges})
+        self.assertEqual(sheet['A9'].value, 3)
+        self.assertEqual(sheet['B9'].value, 'Staff training')
+        self.assertIsNone(sheet['C9'].value)
+        self.assertIsNone(sheet['D9'].value)
+        self.assertIsNone(sheet['E9'].value)
+        self.assertIsNone(sheet['F9'].value)
+
+        self.assertEqual(sheet.sheet_view.zoomScale, 77)
+        self.assertFalse(sheet.print_options.gridLines)
+        self.assertEqual(sheet.page_setup.orientation, 'landscape')
+        self.assertEqual(sheet.print_title_rows, '$4:$4')
+        self.assertFalse(sheet.print_area)
+        self.assertEqual(sheet.column_dimensions['B'].width, 70.33203125)
+        self.assertEqual(sheet['A4'].font.name, 'Pyidaungsu')
+        self.assertTrue(sheet['A4'].font.bold)
+        self.assertEqual(sheet['A4'].border.left.style, 'thin')
+        self.assertEqual(sheet['A6'].font.name, 'Pyidaungsu')
+        self.assertEqual(sheet['A6'].border.left.style, 'thin')
+
+        infrastructure, skills = detail['groups']
+        self.assertEqual(infrastructure['title'], 'Infrastructure')
+        self.assertEqual(
+            infrastructure['description'], 'Core campus facilities',
+        )
+        self.assertEqual(infrastructure['question_count'], 2)
+        self.assertEqual(infrastructure['answered_questions'], 2)
+        self.assertEqual(
+            [row['question'] for row in infrastructure['questions']],
+            ['Fiber connection', 'Computer lab'],
+        )
+        fiber, lab = infrastructure['questions']
+        self.assertTrue(fiber['answered'])
+        self.assertEqual(fiber['answer']['has_item'], True)
+        self.assertEqual(fiber['answer']['item_count'], 12)
+        self.assertEqual(
+            fiber['answer']['description'], 'Main campus fiber connection',
+        )
+        self.assertEqual(
+            fiber['answer']['submitted_at'], '2026-11-12T10:30:00',
+        )
+        self.assertTrue(lab['answered'])
+        self.assertEqual(lab['answer']['has_item'], False)
+        self.assertIsNone(lab['answer']['item_count'])
+
+        self.assertEqual(skills['title'], 'Skills')
+        self.assertEqual(skills['question_count'], 1)
+        self.assertEqual(skills['answered_questions'], 0)
+        unanswered = skills['questions'][0]
+        self.assertEqual(unanswered['question'], 'Staff training')
+        self.assertFalse(unanswered['answered'])
+        self.assertIsNone(unanswered['answer'])
+
+        status, _, _ = await self.admin_request(
+            f'/reports/university/{year_id}/universities/999999/answers'
+        )
+        self.assertEqual(status, 404)
+
+    async def test_question_answer_rates_group_questions_and_has_not_counts(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'university',
+            'start_year': 2033,
+            'start_month': 11,
+            'end_year': 2034,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {
+                    'title': 'Infrastructure',
+                    'description': 'Core campus facilities',
+                    'questions': ['Fiber connection', 'Computer lab'],
+                },
+                {'title': 'Skills', 'questions': ['Staff training']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+        question_ids = [
+            question_id
+            for group in created['groups']
+            for question_id in group['question_ids']
+        ]
+
+        with self.sessions() as db:
+            university_table = metadata.tables['university']
+            survey_table = metadata.tables['unisurvey']
+            university_ids = []
+            university_types = (
+                'Public university',
+                'Public university',
+                'Technical university',
+                'Technical university',
+            )
+            for index, university_type in enumerate(university_types):
+                university_ids.append(
+                    db.native.execute(
+                        university_table.insert().values(
+                            uniType=university_type,
+                            uniName=f'Rate University {index + 1}',
+                        )
+                    ).inserted_primary_key[0]
+                )
+            first, second, third, _ = university_ids
+            answers = [
+                (first, question_ids[0], True),
+                (first, question_ids[1], False),
+                (first, question_ids[2], True),
+                (second, question_ids[0], True),
+                (second, question_ids[1], True),
+                (third, question_ids[0], False),
+            ]
+            for university_id, question_id, has_item in answers:
+                db.native.execute(
+                    survey_table.insert().values(
+                        uniId=university_id,
+                        uQId=question_id,
+                        hasItem=has_item,
+                        itemCount=2 if has_item else None,
+                        surveyDescription='Answer' if has_item else None,
+                        submittedAt=datetime(2026, 11, 12, 10, 30),
+                    )
+                )
+            db.commit()
+
+        status, _, detail = await self.admin_request(
+            f'/reports/university/{year_id}/question-answer-rates'
+        )
+        self.assertEqual(status, 200, detail)
+        self.assertEqual(detail['year_label'], '၂၀၃၃ နိုဝင်ဘာလမှ ၂၀၃၄ နိုဝင်ဘာလအထိ')
+        self.assertEqual(detail['question_count'], 3)
+        self.assertEqual(detail['total_universities'], 4)
+        self.assertEqual(detail['answered_universities'], 3)
+        self.assertEqual(detail['not_answered_universities'], 1)
+        self.assertEqual(detail['answered_percent'], 75.0)
+        self.assertEqual(detail['not_answered_percent'], 25.0)
+
+        type_rows = {
+            row['university_type']: row
+            for row in detail['university_types']
+        }
+        self.assertEqual(set(type_rows), {
+            'Public university', 'Technical university',
+        })
+        self.assertEqual(type_rows['Public university']['total_universities'], 2)
+        self.assertEqual(
+            type_rows['Public university']['answered_universities'], 2,
+        )
+        self.assertEqual(
+            type_rows['Public university']['not_answered_universities'], 0,
+        )
+        self.assertEqual(type_rows['Public university']['answered_percent'], 100.0)
+        self.assertEqual(
+            type_rows['Technical university']['total_universities'], 2,
+        )
+        self.assertEqual(
+            type_rows['Technical university']['answered_universities'], 1,
+        )
+        self.assertEqual(
+            type_rows['Technical university']['not_answered_universities'], 1,
+        )
+        self.assertEqual(
+            type_rows['Technical university']['answered_percent'], 50.0,
+        )
+        self.assertEqual(
+            detail['university_types'][0]['university_type'],
+            'Public university',
+        )
+
+        infrastructure, skills = detail['groups']
+        self.assertEqual(infrastructure['title'], 'Infrastructure')
+        self.assertEqual(
+            infrastructure['description'], 'Core campus facilities',
+        )
+        self.assertEqual(infrastructure['question_count'], 2)
+        fiber, lab = infrastructure['questions']
+        self.assertEqual(fiber['question'], 'Fiber connection')
+        self.assertEqual(fiber['answered_universities'], 3)
+        self.assertEqual(fiber['unanswered_universities'], 1)
+        self.assertEqual(fiber['has_item_count'], 2)
+        self.assertEqual(fiber['no_item_count'], 1)
+        self.assertEqual(fiber['has_item_percent'], 66.7)
+        self.assertEqual(fiber['no_item_percent'], 33.3)
+        self.assertEqual(fiber['answered_percent'], 75.0)
+
+        self.assertEqual(lab['answered_universities'], 2)
+        self.assertEqual(lab['unanswered_universities'], 2)
+        self.assertEqual(lab['has_item_count'], 1)
+        self.assertEqual(lab['no_item_count'], 1)
+        self.assertEqual(lab['has_item_percent'], 50.0)
+        self.assertEqual(lab['no_item_percent'], 50.0)
+
+        self.assertEqual(skills['title'], 'Skills')
+        self.assertEqual(skills['question_count'], 1)
+        training = skills['questions'][0]
+        self.assertEqual(training['answered_universities'], 1)
+        self.assertEqual(training['unanswered_universities'], 3)
+        self.assertEqual(training['has_item_count'], 1)
+        self.assertEqual(training['no_item_count'], 0)
+        self.assertEqual(training['has_item_percent'], 100.0)
+        self.assertEqual(training['no_item_percent'], 0.0)
+
+        status, _, _ = await self.admin_request(
+            '/reports/university/999999/question-answer-rates'
+        )
+        self.assertEqual(status, 404)
+
+    async def test_question_answer_rates_page_is_reachable(self):
+        await self.login()
+        status, _, body = await self.request(
+            '/dashboard/reports/question-answer-rates'
+        )
+        self.assertEqual(status, 200)
+        self.assertIn('မေးခွန်း ဖြေဆိုနှုန်းများ', body)
+        self.assertIn('data-page="question_answer_rates"', body)
+
+    async def test_university_answers_page_is_reachable(self):
+        await self.login()
+        status, _, body = await self.request('/dashboard/reports/university-answers')
+        self.assertEqual(status, 200)
+        self.assertIn('တက္ကသိုလ် အဖြေများ', body)
+        self.assertIn('data-page="university_answers"', body)
+
+    async def test_ministry_report_summary_tracks_active_year_progress(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'ministry',
+            'start_year': 2041,
+            'start_month': 11,
+            'end_year': 2042,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {'title': 'Connectivity', 'questions': ['Fiber connection', 'Network access']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+        question_ids = created['groups'][0]['question_ids']
+
+        with self.sessions() as db:
+            ministry_table = metadata.tables['ministry']
+            survey_table = metadata.tables['ministrysurvey']
+            ministry_ids = {}
+            for name in ('Alpha Ministry', 'Beta Ministry', 'Gamma Ministry'):
+                ministry_ids[name] = db.native.execute(
+                    ministry_table.insert().values(ministryName=name)
+                ).inserted_primary_key[0]
+
+            for name, submitted_at, answered_ids in (
+                ('Alpha Ministry', datetime(2041, 11, 9, 9, 0), question_ids),
+                ('Beta Ministry', datetime(2041, 11, 10, 9, 0), question_ids[:1]),
+            ):
+                for question_id in answered_ids:
+                    db.native.execute(
+                        survey_table.insert().values(
+                            ministryId=ministry_ids[name],
+                            mQId=question_id,
+                            hasItem=True,
+                            itemCount=4,
+                            submittedAt=submitted_at,
+                        )
+                    )
+            db.commit()
+
+        status, _, summary = await self.admin_request('/reports/ministry')
+        self.assertEqual(status, 200, summary)
+        totals = summary['totals']
+        self.assertEqual(totals['ministries'], 3)
+        self.assertEqual(totals['active_years'], 1)
+        self.assertEqual(totals['questions'], 2)
+        self.assertEqual(totals['reports_expected'], 3)
+        self.assertEqual(totals['reports_submitted'], 2)
+        self.assertEqual(totals['reports_pending'], 1)
+        self.assertEqual(totals['participating_ministries'], 2)
+        self.assertEqual(totals['answers'], 3)
+        self.assertEqual(totals['completion_percent'], 66.7)
+        self.assertEqual(totals['answer_coverage_percent'], 50.0)
+        self.assertEqual(totals['last_submitted_at'], '2041-11-10T09:00:00')
+        self.assertNotIn('participating_universities', totals)
+
+        year = summary['active_years'][0]
+        self.assertEqual(year['year_id'], year_id)
+        self.assertEqual(
+            year['label'],
+            '၂၀၄၁ နိုဝင်ဘာလမှ ၂၀၄၂ နိုဝင်ဘာလအထိ',
+        )
+        self.assertEqual(year['submitted_ministries'], 2)
+        self.assertEqual(year['pending_ministries'], 1)
+        self.assertEqual(year['answer_rows'], 3)
+        self.assertEqual(year['answer_coverage_percent'], 50.0)
+
+        recent = summary['recent_reports']
+        self.assertEqual([row['ministry'] for row in recent], [
+            'Beta Ministry', 'Alpha Ministry',
+        ])
+        self.assertNotIn('ministry_type', recent[0])
+
+        status, _, answered = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries?state=answered'
+        )
+        self.assertEqual(status, 200, answered)
+        self.assertEqual(
+            [row['ministry'] for row in answered['ministries']],
+            ['Alpha Ministry', 'Beta Ministry'],
+        )
+        self.assertEqual(answered['ministries'][0]['status'], 'completed')
+        self.assertEqual(answered['ministries'][1]['completion_percent'], 50.0)
+        self.assertNotIn('university_type', answered['ministries'][0])
+
+        status, _, pending = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries?state=pending'
+        )
+        self.assertEqual(status, 200, pending)
+        self.assertEqual(
+            [row['ministry'] for row in pending['ministries']],
+            ['Gamma Ministry'],
+        )
+        self.assertEqual(pending['ministries'][0]['status'], 'not_started')
+
+        status, _, _ = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries?state=unknown'
+        )
+        self.assertEqual(status, 422)
+
+    async def test_ministry_answer_detail_and_export(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'ministry',
+            'start_year': 2043,
+            'start_month': 11,
+            'end_year': 2044,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {
+                    'title': 'Connectivity',
+                    'description': 'Ministry network facilities',
+                    'questions': ['Fiber connection', 'Network access'],
+                },
+                {'title': 'Skills', 'questions': ['Staff training']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+        question_ids = [
+            question_id
+            for group in created['groups']
+            for question_id in group['question_ids']
+        ]
+
+        with self.sessions() as db:
+            ministry_table = metadata.tables['ministry']
+            survey_table = metadata.tables['ministrysurvey']
+            ministry_id = db.native.execute(
+                ministry_table.insert().values(ministryName='Answer Ministry')
+            ).inserted_primary_key[0]
+            db.native.execute(
+                survey_table.insert().values(
+                    ministryId=ministry_id,
+                    mQId=question_ids[0],
+                    hasItem=True,
+                    itemCount=7,
+                    surveyDescription='Ministry fiber connection',
+                    submittedAt=datetime(2041, 11, 12, 10, 30),
+                )
+            )
+            db.native.execute(
+                survey_table.insert().values(
+                    ministryId=ministry_id,
+                    mQId=question_ids[1],
+                    hasItem=False,
+                    submittedAt=datetime(2041, 11, 12, 10, 45),
+                )
+            )
+            db.commit()
+
+        status, _, detail = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries/{ministry_id}/answers'
+        )
+        self.assertEqual(status, 200, detail)
+        self.assertEqual(detail['ministry']['ministry'], 'Answer Ministry')
+        self.assertNotIn('ministry_type', detail['ministry'])
+        self.assertNotIn('university', detail)
+        self.assertEqual(detail['question_count'], 3)
+        self.assertEqual(detail['answered_questions'], 2)
+        self.assertEqual(detail['has_item_questions'], 1)
+        self.assertEqual(detail['no_item_questions'], 1)
+        self.assertEqual(detail['unanswered_questions'], 1)
+        self.assertEqual(detail['completion_percent'], 66.7)
+        self.assertEqual(detail['last_submitted_at'], '2041-11-12T10:45:00')
+        self.assertEqual([group['title'] for group in detail['groups']], [
+            'Connectivity', 'Skills',
+        ])
+
+        status, headers, content = await self.request(
+            f'/api/admin/reports/ministry/{year_id}/ministries/'
+            f'{ministry_id}/answers/export',
+            decode=False,
+        )
+        self.assertEqual(status, 200)
+        self.assertIn(
+            b'dedc-ministry-answers-', headers[b'content-disposition'],
+        )
+        workbook = load_workbook(BytesIO(content))
+        sheet = workbook.active
+        self.assertEqual(workbook.sheetnames, ['Ministry (2043-2044)'])
+        self.assertEqual(
+            sheet['A2'].value,
+            'Answer Ministryတွင် ဆောင်ရွက်လျက်ရှိသည့် '
+            'ဒီဂျစ်တယ်စီးပွားရေးဖွံ့ဖြိုးတိုးတက်မှုဆိုင်ရာ စစ်တမ်း',
+        )
+        self.assertIn('၁၂ နိုဝင်ဘာ ၂၀၄၁', sheet['A3'].value)
+
+        status, _, _ = await self.admin_request(
+            f'/reports/ministry/{year_id}/ministries/999999/answers'
+        )
+        self.assertEqual(status, 404)
+
+    async def test_ministry_question_answer_rates_omit_type_dimension(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'ministry',
+            'start_year': 2045,
+            'start_month': 11,
+            'end_year': 2046,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {'title': 'Connectivity', 'questions': ['Fiber connection', 'Network access']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+        question_ids = created['groups'][0]['question_ids']
+
+        with self.sessions() as db:
+            ministry_table = metadata.tables['ministry']
+            survey_table = metadata.tables['ministrysurvey']
+            ministry_ids = [
+                db.native.execute(
+                    ministry_table.insert().values(
+                        ministryName=f'Rate Ministry {index + 1}'
+                    )
+                ).inserted_primary_key[0]
+                for index in range(4)
+            ]
+            first, second, third, _ = ministry_ids
+            answers = [
+                (first, question_ids[0], True),
+                (first, question_ids[1], False),
+                (second, question_ids[0], True),
+                (third, question_ids[0], False),
+            ]
+            for ministry_id, question_id, has_item in answers:
+                db.native.execute(
+                    survey_table.insert().values(
+                        ministryId=ministry_id,
+                        mQId=question_id,
+                        hasItem=has_item,
+                        itemCount=3 if has_item else None,
+                        submittedAt=datetime(2041, 11, 12, 10, 30),
+                    )
+                )
+            db.commit()
+
+        status, _, detail = await self.admin_request(
+            f'/reports/ministry/{year_id}/question-answer-rates'
+        )
+        self.assertEqual(status, 200, detail)
+        self.assertEqual(detail['question_count'], 2)
+        self.assertEqual(detail['total_ministries'], 4)
+        self.assertEqual(detail['answered_ministries'], 3)
+        self.assertEqual(detail['not_answered_ministries'], 1)
+        self.assertEqual(detail['answered_percent'], 75.0)
+        self.assertEqual(detail['not_answered_percent'], 25.0)
+        self.assertNotIn('university_types', detail)
+        self.assertNotIn('total_universities', detail)
+
+        group = detail['groups'][0]
+        fiber, network = group['questions']
+        self.assertEqual(fiber['answered_ministries'], 3)
+        self.assertEqual(fiber['unanswered_ministries'], 1)
+        self.assertEqual(fiber['has_item_count'], 2)
+        self.assertEqual(fiber['no_item_count'], 1)
+        self.assertEqual(fiber['answered_percent'], 75.0)
+        self.assertEqual(network['answered_ministries'], 1)
+        self.assertEqual(network['unanswered_ministries'], 3)
+        self.assertEqual(network['has_item_count'], 0)
+        self.assertEqual(network['no_item_count'], 1)
+
+        status, _, _ = await self.admin_request(
+            '/reports/ministry/999999/question-answer-rates'
+        )
+        self.assertEqual(status, 404)
+
+    async def test_ministry_report_pages_are_reachable(self):
+        await self.login()
+        for path, title, page in (
+            ('/dashboard/reports/ministry', 'ဝန်ကြီးဌာန အစီရင်ခံစာများ', 'ministry_reports'),
+            ('/dashboard/reports/ministry-answers', 'ဝန်ကြီးဌာန အဖြေများ', 'ministry_answers'),
+            (
+                '/dashboard/reports/ministry-question-answer-rates',
+                'ဝန်ကြီးဌာန မေးခွန်း ဖြေဆိုနှုန်းများ',
+                'ministry_question_answer_rates',
+            ),
+        ):
+            status, _, body = await self.request(path)
+            self.assertEqual(status, 200, path)
+            self.assertIn(title, body)
+            self.assertIn(f'data-page="{page}"', body)
+
     async def test_builder_year_and_question_survive_new_requests(self):
         await self.login()
         status, _, year = await self.admin_request('/survey/years', 'POST', {
@@ -363,6 +1063,53 @@ class DashboardRecoveryTests(PortalFixture):
             row = db.native.execute(metadata.tables['year'].select().where(
                 metadata.tables['year'].c.yID == year['yID'])).one()
             self.assertEqual(row.yearFrom, date(2026, 3, 1))
+
+    async def test_year_status_update_preserves_survey_period_dates(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'university',
+            'start_year': 2035,
+            'start_month': 11,
+            'end_year': 2036,
+            'end_month': 11,
+            'status': 1,
+            'groups': [
+                {'title': 'Period integrity', 'questions': ['Keep the range']},
+            ],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+
+        status, _, updated = await self.admin_request(
+            f'/survey/years/{year_id}/status', 'PATCH', {'status': 0},
+        )
+        self.assertEqual(status, 200, updated)
+        self.assertEqual(updated['status'], 0)
+
+        with self.sessions() as db:
+            year_table = metadata.tables['year']
+            row = db.native.execute(
+                select(year_table).where(year_table.c.yID == year_id)
+            ).one()
+            self.assertEqual(row.yearFrom, date(2035, 11, 1))
+            self.assertEqual(row.yearTo, date(2036, 11, 1))
+
+        status, _, updated = await self.admin_request(
+            f'/survey/years/{year_id}/status', 'PATCH', {'status': 1},
+        )
+        self.assertEqual(status, 200, updated)
+        self.assertEqual(updated['status'], 1)
+
+        status, _, report = await self.admin_request('/reports/university')
+        self.assertEqual(status, 200, report)
+        year = next(
+            item for item in report['active_years']
+            if item['year_id'] == year_id
+        )
+        self.assertEqual(
+            year['label'],
+            '၂၀၃၅ နိုဝင်ဘာလမှ ၂၀၃၆ နိုဝင်ဘာလအထိ',
+        )
 
     async def test_create_survey_inserts_auto_increment_plain_rows(self):
         await self.login()

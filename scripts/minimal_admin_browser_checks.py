@@ -79,10 +79,9 @@ def check(page, context, base):
     assert page.get_by_role('link', name='Export PDF', exact=True).is_visible()
     page.get_by_text('More filters', exact=True).click()
     assert page.locator('select[name=version_id]').is_visible()
-    page.goto(base + '/dashboard/data')
-    page.get_by_text('Export workbook', exact=True).click()
-    assert page.get_by_role('link', name='Original format: questions', exact=True).is_visible()
-    assert page.get_by_role('link', name='Original format: questions & answers', exact=True).is_visible()
+    page.goto(base + '/dashboard/reports/ministry')
+    page.get_by_text('Export report', exact=True).click()
+    assert page.get_by_role('link', name='Export Excel', exact=True).is_visible()
     # Leave shared auth checks on a desktop overview with an accessible Sign out.
     page.goto(base + '/dashboard')
     page.locator('#content .stats').wait_for()

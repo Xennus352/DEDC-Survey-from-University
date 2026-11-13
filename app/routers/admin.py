@@ -36,7 +36,15 @@ from app.models.user import User, UserRole
 from app.portal_auth import hash_password, verify_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
 from app.services import (
+<<<<<<< HEAD
     forms, ministry_reports, reports, university_reports, workbook,
+=======
+    forms,
+    ministry_reports,
+    reports,
+    university_reports,
+    workbook,
+>>>>>>> 96b634f (updating admin site)
 )
 from app.services.presentation import audit_action, label
 from pydantic import BaseModel, Field, ValidationError
@@ -1039,6 +1047,7 @@ class UserInput(BaseModel):
     ministry_id: int | None = None
 
 
+<<<<<<< HEAD
 class AdministratorInput(BaseModel):
     username: str = Field(min_length=1, max_length=100)
     is_active: bool = True
@@ -1360,6 +1369,8 @@ def audit_logs(
     }
 
 
+=======
+>>>>>>> 96b634f (updating admin site)
 @router.post("/forms/{form_id}/submit", status_code=201)
 def submit_form(
     form_id: int,
@@ -1526,72 +1537,6 @@ def global_search(
             }
         )
     return {"items": results}
-
-
-@router.get("/users/export/{format}")
-def export_users(
-    format: str,
-    search: str = "",
-    admin: AdminIdentity = Depends(require_admin),
-    db: Session = Depends(get_db),
-):
-    if format not in {"csv", "xlsx", "pdf"}:
-        raise HTTPException(422, "Choose CSV, XLSX or PDF.")
-    query = db.query(User)
-    if search:
-        query = query.filter(User.username.contains(search))
-    if query.count() > 10000:
-        raise HTTPException(422, "Narrow the search to at most 10,000 users.")
-    rows = [
-        ["DEDC User Directory"],
-        ["Exported at", datetime.now(timezone.utc).isoformat()],
-        ["Search", search],
-        [],
-        ["User ID", "Username", "Role", "Active", "Created at"],
-    ]
-    for user in query.order_by(User.id):
-        role = db.get(UserRole, user.role_id)
-        rows.append(
-            [
-                user.id,
-                user.username,
-                role.name if role else "",
-                user.is_active,
-                user.created_at.isoformat(),
-            ]
-        )
-    rows = [[safe_cell(cell) for cell in row] for row in rows]
-    if format == "pdf":
-        from app.services.exports import pdf_document
-
-        content = pdf_document(rows, "DEDC User Directory")
-        media = "application/pdf"
-    elif format == "csv":
-        stream = StringIO()
-        csv.writer(stream).writerows(rows)
-        content = ("\ufeff" + stream.getvalue()).encode()
-        media = "text/csv; charset=utf-8"
-    else:
-        from openpyxl import Workbook
-
-        book = Workbook()
-        sheet = book.active
-        sheet.title = "Users"
-        for row in rows:
-            sheet.append(row)
-        stream = BytesIO()
-        book.save(stream)
-        content = stream.getvalue()
-        media = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    forms.audit(
-        db, admin.id, "users.export", "user", None, format=format, search=search
-    )
-    db.commit()
-    return Response(
-        content,
-        media_type=media,
-        headers={"Content-Disposition": f'attachment; filename="dedc-users.{format}"'},
-    )
 
 
 @router.get("/forms/{form_id}/export/excel")

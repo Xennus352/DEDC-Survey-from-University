@@ -73,21 +73,6 @@ def check(page, context, base, ready, output):
     page.get_by_label('University name',exact=True).fill('Digital learning department')
     page.get_by_role('button',name='Save',exact=True).click()
     page.get_by_text('Digital learning department',exact=True).wait_for()
-    # User and role management.
-    page.goto(base+'/dashboard/users');ready()
-    page.get_by_role('button',name='Add role',exact=True).click()
-    page.get_by_label('Role name',exact=True).fill('Reviewer')
-    page.get_by_role('button',name='Create role',exact=True).click()
-    expect(page.get_by_role('dialog')).not_to_be_visible()
-    page.get_by_role('button',name='Add user',exact=True).click()
-    page.get_by_label('Username',exact=True).fill('redesign-reviewer')
-    page.get_by_label('Role',exact=True).select_option(label='Reviewer')
-    page.get_by_label('Password',exact=True).fill('test-only-password')
-    page.get_by_role('button',name='Save user',exact=True).click()
-    page.get_by_text('redesign-reviewer',exact=True).wait_for()
-    page.locator('tr').filter(has_text='redesign-reviewer').get_by_role('button',name='Edit user',exact=True).click()
-    expect(page.get_by_role('dialog')).to_be_visible()
-    page.get_by_role('button',name='Close dialog',exact=True).click()
     # Search and empty results.
     page.goto(base+'/dashboard/forms?search=does-not-exist');ready()
     page.get_by_role('heading',name='No matching forms',exact=True).wait_for()
@@ -107,29 +92,10 @@ def check(page, context, base, ready, output):
     context.unroute(reports_pattern,fail_reports)
     page.get_by_role('button',name='Retry',exact=True).click()
     page.locator('#content .stats').wait_for()
-    # Real workbook drag/drop, preview, confirm and export.
-    page.goto(base+'/dashboard/data');ready()
-    source=Path('/home/kazue/Downloads/Telegram Desktop/DEDC_Survey_Form_University_of_Computer_Studies_Taungoo_27875ea2.xlsx')
-    if source.exists():
-        data=list(source.read_bytes())
-        page.locator('#workbook-drop').evaluate('''(el,bytes)=>{const dt=new DataTransfer();dt.items.add(new File([new Uint8Array(bytes)],'survey.xlsx',{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));el.dispatchEvent(new DragEvent('dragenter',{bubbles:true,cancelable:true,dataTransfer:dt}));if(!el.classList.contains('is-dragging'))throw new Error('No drag feedback');el.dispatchEvent(new DragEvent('drop',{bubbles:true,cancelable:true,dataTransfer:dt}));}''',data)
-        expect(page.locator('#workbook-name')).to_have_text('survey.xlsx')
-        page.locator('#read-workbook').click()
-        page.get_by_role('button',name='Confirm & create draft',exact=True).wait_for()
-        assert page.locator('#worksheet option').count()==4
-        page.screenshot(path=str(output/phase/'workbook-preview.png'),full_page=True)
-        page.get_by_role('button',name='Confirm & create draft',exact=True).click()
-        page.wait_for_url('**/dashboard/forms/*');ready()
-        page.goto(base+'/dashboard/data?tab=answers');ready()
-        page.get_by_text('Export workbook',exact=True).click()
-        with page.expect_download() as download:
-            page.get_by_role('link',name='Original format: questions & answers',exact=True).click()
-        assert Path(download.value.path()).read_bytes()==source.read_bytes()
-        page.screenshot(path=str(output/phase/'source-answers-populated.png'),full_page=True)
     # Settings persistence, dark screens, mobile nav, keyboard and reduced motion.
     page.goto(base+'/dashboard/settings');ready()
     page.locator('#theme-setting').select_option('dark')
-    for route,name in [('', 'overview'),('/forms','forms'),('/reports','reports'),('/settings','settings'),('/data','data')]:
+    for route,name in [('', 'overview'),('/forms','forms'),('/reports','reports'),('/settings','settings')]:
         page.goto(base+'/dashboard'+route);ready()
         assert page.evaluate('document.documentElement.dataset.theme')=='dark'
         page.screenshot(path=str(output/phase/f'{name}-dark.png'),full_page=True)
@@ -169,11 +135,6 @@ def check(page, context, base, ready, output):
     page.get_by_text('Page 2 of', exact=False).wait_for()
     page.get_by_role('cell', name='Pagination university 040', exact=True).wait_for()
     page.screenshot(path=str(review / 'directory-page-2.png'), full_page=True)
-    page.goto(base + '/dashboard/audit'); ready()
-    page.locator('.audit-changes > summary').first.click()
-    page.locator('.audit-summary').first.wait_for()
-    assert page.locator('table').inner_text().find('captain') >= 0
-    page.screenshot(path=str(review / 'audit-details.png'), full_page=True)
     def send(path, body):
         response = context.request.post(base + '/api/admin' + path, headers={'X-CSRF-Token': csrf}, data=body)
         assert response.ok, response.text()

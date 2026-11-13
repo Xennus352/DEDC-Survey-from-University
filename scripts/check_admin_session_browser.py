@@ -36,10 +36,18 @@ def main():
         persistent_metadata.create_all(engine)
         with SessionLocal() as db:
             role = UserRole(name="Admin")
-            db.add(UserRole(name="University"))
+            university_role = UserRole(name="University")
+            db.add(university_role)
             db.add(role)
             db.flush()
             db.add(User(username="browser-admin", password_hash=hash_password("browser-test-password"), role_id=role.id))
+            db.add(
+                User(
+                    username="browser-respondent",
+                    password_hash=hash_password("browser-respondent-password"),
+                    role_id=university_role.id,
+                )
+            )
             db.commit()
 
         with socket.socket() as listener:

@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from test_portal import PortalFixture
 from app.models.forms import AuditLog, FormField, Submission
+from app.models.user import UserRole
 from app.portal_auth import csrf_token
 from app.portal_auth import verify_password
 from app.models.user import User
@@ -204,8 +205,6 @@ class AdminApiTests(PortalFixture):
             self.assertEqual(answers[key], item['display_value'])
         _, _, report = await self.admin_request(f'/reports?form_id={form_id}&question=choice')
         self.assertEqual(report['analytics']['question_distribution'][0]['display_value'], 'မြန်မာ label')
-        _, _, history = await self.admin_request('/audit')
-        self.assertTrue(all(item['actor_name'] == 'admin' for item in history['items']))
 
     async def admin_request(self, path, method="GET", data=None):
         if path.endswith("/submit") and data is not None:
@@ -312,6 +311,7 @@ class AdminApiTests(PortalFixture):
         status, _, forms = await self.admin_request("/forms")
         self.assertEqual(forms["total"], 0)
 
+<<<<<<< HEAD
     async def test_user_update_cannot_remove_own_admin_access_or_leak_password(self):
         await self.login()
         _, _, data = await self.admin_request("/users")
@@ -338,6 +338,8 @@ class AdminApiTests(PortalFixture):
         _, _, result = await self.admin_request("/users")
         self.assertNotIn("password", json.dumps(result))
 
+=======
+>>>>>>> 96b634f (updating admin site)
     async def test_retired_api_is_unavailable(self):
         for path in ("/surveys/", "/questions/survey/1", "/responses/"):
             status, _, _ = await self.request(path)
@@ -413,9 +415,11 @@ class AdminApiTests(PortalFixture):
         status, _, role = await self.admin_request(
             "/roles", "POST", {"name": "Enumerator"}
         )
-        self.assertEqual(status, 201)
-        _, _, directory = await self.admin_request("/users")
-        self.assertIn(role, directory["roles"])
+        self.assertEqual(status, 201, role)
+        with self.sessions() as db:
+            self.assertIsNotNone(
+                db.query(UserRole).filter(UserRole.name == "Enumerator").first()
+            )
 
     async def test_organization_crud_persists_and_records_audit(self):
         await self.login()

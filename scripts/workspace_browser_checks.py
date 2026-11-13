@@ -92,70 +92,11 @@ def check(page, context, base):
         flush=True,
     )
 
-    page.goto(base + "/dashboard/data")
-    page.locator("#workbook-file").set_input_files(str(SOURCE))
-    page.get_by_role("button", name="Read workbook", exact=True).click()
-    page.get_by_role("button", name="Confirm & create draft", exact=True).wait_for()
-    assert page.locator("#worksheet option").count() == 4
-    page.get_by_role("button", name="Confirm & create draft", exact=True).click()
-    page.wait_for_url("**/dashboard/forms/*")
-    page.get_by_text("Form settings", exact=True).wait_for()
-    imported_form_id = int(urlparse(page.url).path.split("/")[-1])
-    page.goto(base + f"/dashboard/forms/{imported_form_id}/preview")
-    assert page.get_by_label("From date", exact=True).input_value() == "2010-01-01"
-    assert page.get_by_label("To date", exact=True).input_value() == "2015-12-31"
-    page.get_by_role("button", name="Start survey", exact=False).click()
-    page.locator("input[name=q1_quantity]").fill("42")
-    page.get_by_role("button", name="Next section", exact=False).click()
-    assert page.locator('[data-section="1"]').is_visible()
-    page.get_by_role("button", name="Back", exact=True).click()
-    assert page.locator("input[name=q1_quantity]").input_value() == "42"
-    print(
-        "PASS: reporting period is first; imported period defaults and section navigation preserve entered answers",
-        flush=True,
-    )
-
-    page.goto(base + "/dashboard/data?tab=answers")
-    page.get_by_role("heading", name="Original workbook answers").wait_for()
-    page.get_by_text("Export workbook", exact=True).click()
-    with page.expect_download() as exact_export:
-        page.get_by_role(
-            "link", name="Original format: questions & answers", exact=True
-        ).click()
-    assert Path(exact_export.value.path()).read_bytes() == SOURCE.read_bytes()
-    print(
-        "PASS: browser downloads a byte-identical original-format questions-and-answers workbook",
-        flush=True,
-    )
-
-    page.get_by_text("B.C.Sc.= 210", exact=False).wait_for()
-    with page.expect_download() as download:
-        page.get_by_role("link", name="Export Excel", exact=True).click()
-    from openpyxl import load_workbook
-    from io import BytesIO
-
-    book = load_workbook(BytesIO(Path(download.value.path()).read_bytes()))
-    assert book.active.max_row == 30
-    book.close()
-    print(
-        "PASS: actual workbook uploads, detects four sheets, creates a draft, preserves source answers and exports Excel",
-        flush=True,
-    )
-
-    page.goto(base + "/dashboard/users")
-    page.get_by_role("button", name="Add user", exact=False).click()
-    page.get_by_label("Username", exact=True).fill("browser-created-user")
-    page.get_by_label("Password", exact=True).fill("browser-user-password")
-    page.locator("select[name=role_id]").select_option(label="University")
-    page.get_by_role("button", name="Save user", exact=True).click()
-    page.get_by_text("browser-created-user", exact=True).wait_for()
-    print("PASS: user creation persists through the real user API", flush=True)
-
     respondent = context.browser.new_context(viewport={"width": 390, "height": 900})
     other = respondent.new_page()
     other.goto(base + "/survey/login")
-    other.get_by_label("Username", exact=True).fill("browser-created-user")
-    other.get_by_label("Password", exact=True).fill("browser-user-password")
+    other.get_by_label("Username", exact=True).fill("browser-respondent")
+    other.get_by_label("Password", exact=True).fill("browser-respondent-password")
     other.get_by_role("button", name="Sign in", exact=True).click()
     other.wait_for_url(base + "/survey")
     other.get_by_role("link", name="Open survey").click()
