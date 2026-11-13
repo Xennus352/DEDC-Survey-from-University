@@ -5,36 +5,47 @@ The university survey stores one answer row per institution and question in
 changing the native tables or the existing submission APIs.
 """
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, case, func, select
 
+from app.services.survey_formatting import MYANMAR_MONTHS, to_myanmar_number
 from app.storage import university_survey_schema as schema
 
-MONTH_NAMES = [
-    "",
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-]
+
+def _burmese_year_month(value):
+    year = getattr(value, "year", None)
+    month = getattr(value, "month", 0)
+    if not year:
+        return ""
+    year_text = to_myanmar_number(year)
+    month_text = MYANMAR_MONTHS.get(month)
+    if month_text:
+        return f"{year_text} {month_text}လ"
+    return year_text
 
 
 def year_label(year_from, year_to):
-    """Return the same readable period label used by the survey builder."""
-    month = getattr(year_from, "month", 0)
-    year = getattr(year_to, "year", None) or getattr(year_from, "year", None)
-    if 1 <= month <= 12 and year:
-        return f"{MONTH_NAMES[month]} {year}"
-    if year:
-        return str(year)
-    return "ကာလ မသတ်မှတ်ထားပါ"
+    """Return the full Burmese survey period shown on the reports page."""
+    start = _burmese_year_month(year_from)
+    end = _burmese_year_month(year_to)
+    if start and end:
+        return f"{start}မှ {end}အထိ"
+    return start or end or "ကာလ မသတ်မှတ်ထားပါ"
+
+
+def period_heading(year_from, year_to):
+    """Return the period wording used by the original survey workbook."""
+    start = to_myanmar_number(year_from.year) if year_from else ""
+    end = to_myanmar_number(year_to.year) if year_to else ""
+    end_month = MYANMAR_MONTHS.get(year_to.month, "") if year_to else ""
+    if start and end and year_from.year == year_to.year:
+        if end_month:
+            return f"{start} ခုနှစ်၊ {end_month}လအထိ"
+        return f"{start} ခုနှစ်အထိ"
+    if start and end:
+        if end_month:
+            return f"{start} ခုနှစ် မှ {end} ခုနှစ်၊ {end_month}လအထိ"
+        return f"{start} ခုနှစ် မှ {end} ခုနှစ်အထိ"
+    return start or end or ""
 
 
 def _iso(value):
@@ -189,6 +200,402 @@ def university_year_roster(db, year_id, state):
         "state": state,
         "total": len(universities),
         "universities": universities,
+    }
+
+
+def university_answer_detail(db, year_id, university_id):
+    """Return every university question for a year with one university's answer."""
+    connection = db.native
+    year_row = (
+        connection.execute(
+            select(
+                schema.year.c.yID,
+                schema.year.c.yearFrom,
+                schema.year.c.yearTo,
+            ).where(
+                schema.year.c.yID == year_id,
+                schema.year.c.status == 1,
+            )
+        )
+        .mappings()
+        .first()
+    )
+    if not year_row:
+        return None
+
+    university_row = (
+        connection.execute(
+            select(
+                schema.university.c.uniId,
+                schema.university.c.uniName,
+                schema.university.c.uniType,
+            ).where(schema.university.c.uniId == university_id)
+        )
+        .mappings()
+        .first()
+    )
+    if not university_row:
+        return None
+
+    rows = (
+        connection.execute(
+            select(
+                schema.uniquestion.c.uQId,
+                schema.uniquestion.c.uQDetail,
+                schema.uniquestion.c.qTID,
+                schema.questiontitle.c.qTDetail,
+                schema.questiontitle.c.description.label("title_description"),
+                schema.unisurvey.c.uniSurveyId,
+                schema.unisurvey.c.hasItem,
+                schema.unisurvey.c.itemCount,
+                schema.unisurvey.c.surveyDescription,
+                schema.unisurvey.c.remark,
+                schema.unisurvey.c.submittedAt,
+                schema.unisurvey.c.updatedAt,
+            )
+            .select_from(
+                schema.uniquestion
+                .outerjoin(
+                    schema.questiontitle,
+                    schema.questiontitle.c.qTID == schema.uniquestion.c.qTID,
+                )
+                .outerjoin(
+                    schema.unisurvey,
+                    and_(
+                        schema.unisurvey.c.uQId == schema.uniquestion.c.uQId,
+                        schema.unisurvey.c.uniId == university_id,
+                    ),
+                )
+            )
+            .where(schema.uniquestion.c.yID == year_id)
+            .order_by(
+                schema.uniquestion.c.qTID,
+                schema.uniquestion.c.uQId,
+            )
+        )
+        .mappings()
+        .all()
+    )
+    if not rows:
+        return None
+
+    groups = []
+    groups_by_key = {}
+    answered_questions = 0
+    has_item_questions = 0
+    no_item_questions = 0
+    last_submitted_at = None
+    for number, row in enumerate(rows, start=1):
+        answered = row["uniSurveyId"] is not None
+        submitted_at = row["submittedAt"] if answered else None
+        if answered:
+            answered_questions += 1
+            if row["hasItem"]:
+                has_item_questions += 1
+            else:
+                no_item_questions += 1
+            if submitted_at and (
+                last_submitted_at is None or submitted_at > last_submitted_at
+            ):
+                last_submitted_at = submitted_at
+
+        group_key = row["qTID"] if row["qTID"] is not None else "other"
+        group = groups_by_key.get(group_key)
+        if group is None:
+            group = {
+                "title_id": row["qTID"],
+                "title": row["qTDetail"] or "အခြား မေးခွန်းများ",
+                "description": row["title_description"] or "",
+                "question_count": 0,
+                "answered_questions": 0,
+                "questions": [],
+            }
+            groups_by_key[group_key] = group
+            groups.append(group)
+
+        group["question_count"] += 1
+        if answered:
+            group["answered_questions"] += 1
+        group["questions"].append(
+            {
+                "question_id": row["uQId"],
+                "number": number,
+                "question": row["uQDetail"],
+                "answered": answered,
+                "answer": (
+                    {
+                        "has_item": bool(row["hasItem"]),
+                        "item_count": row["itemCount"],
+                        "description": row["surveyDescription"],
+                        "remark": row["remark"],
+                        "submitted_at": _iso(row["submittedAt"]),
+                        "updated_at": _iso(row["updatedAt"]),
+                    }
+                    if answered
+                    else None
+                ),
+            }
+        )
+
+    question_count = len(rows)
+    unanswered_questions = max(0, question_count - answered_questions)
+    completion = _percent(answered_questions, question_count)
+    return {
+        "year_id": year_row["yID"],
+        "year_label": year_label(
+            year_row["yearFrom"], year_row["yearTo"]
+        ),
+        "period_heading": period_heading(
+            year_row["yearFrom"], year_row["yearTo"]
+        ),
+        "year_from": getattr(year_row["yearFrom"], "year", None),
+        "year_to": getattr(year_row["yearTo"], "year", None),
+        "question_count": question_count,
+        "answered_questions": answered_questions,
+        "has_item_questions": has_item_questions,
+        "no_item_questions": no_item_questions,
+        "unanswered_questions": unanswered_questions,
+        "has_item_percent": _percent(has_item_questions, question_count),
+        "no_item_percent": _percent(no_item_questions, question_count),
+        "unanswered_percent": _percent(unanswered_questions, question_count),
+        "completion_percent": completion,
+        "last_submitted_at": _iso(last_submitted_at),
+        "status": _year_status(
+            answered_questions, question_count, completion
+        ),
+        "university": {
+            "university_id": university_row["uniId"],
+            "university": university_row["uniName"],
+            "university_type": university_row["uniType"],
+        },
+        "groups": groups,
+    }
+
+
+def question_answer_rates(db, year_id):
+    """Build per-question has/has-not rates for one active survey year."""
+    connection = db.native
+    year_row = (
+        connection.execute(
+            select(
+                schema.year.c.yID,
+                schema.year.c.yearFrom,
+                schema.year.c.yearTo,
+            ).where(
+                schema.year.c.yID == year_id,
+                schema.year.c.status == 1,
+            )
+        )
+        .mappings()
+        .first()
+    )
+    if not year_row:
+        return None
+
+    total_universities = (
+        connection.execute(
+            select(func.count()).select_from(schema.university)
+        ).scalar()
+        or 0
+    )
+    answered_universities = (
+        connection.execute(
+            select(
+                func.count(func.distinct(schema.unisurvey.c.uniId))
+            )
+            .select_from(
+                schema.unisurvey.join(
+                    schema.uniquestion,
+                    schema.uniquestion.c.uQId == schema.unisurvey.c.uQId,
+                )
+            )
+            .where(schema.uniquestion.c.yID == year_id)
+        ).scalar()
+        or 0
+    )
+
+    total_by_type = {
+        row["uniType"]: int(row["total_universities"] or 0)
+        for row in connection.execute(
+            select(
+                schema.university.c.uniType,
+                func.count(schema.university.c.uniId).label(
+                    "total_universities"
+                ),
+            ).group_by(schema.university.c.uniType)
+        )
+        .mappings()
+        .all()
+    }
+    answered_by_type = {
+        row["uniType"]: int(row["answered_universities"] or 0)
+        for row in connection.execute(
+            select(
+                schema.university.c.uniType,
+                func.count(
+                    func.distinct(schema.unisurvey.c.uniId)
+                ).label("answered_universities"),
+            )
+            .select_from(
+                schema.university.join(
+                    schema.unisurvey,
+                    schema.unisurvey.c.uniId == schema.university.c.uniId,
+                ).join(
+                    schema.uniquestion,
+                    schema.uniquestion.c.uQId == schema.unisurvey.c.uQId,
+                )
+            )
+            .where(schema.uniquestion.c.yID == year_id)
+            .group_by(schema.university.c.uniType)
+        )
+        .mappings()
+        .all()
+    }
+    university_types = []
+    for university_type, type_total in total_by_type.items():
+        type_answered = min(
+            type_total, answered_by_type.get(university_type, 0)
+        )
+        university_types.append(
+            {
+                "university_type": university_type,
+                "total_universities": type_total,
+                "answered_universities": type_answered,
+                "not_answered_universities": max(
+                    0, type_total - type_answered
+                ),
+                "answered_percent": _percent(type_answered, type_total),
+                "not_answered_percent": _percent(
+                    type_total - type_answered, type_total
+                ),
+            }
+        )
+    university_types.sort(
+        key=lambda item: (
+            -item["answered_universities"],
+            -item["total_universities"],
+            item["university_type"],
+        )
+    )
+
+    answered_count = func.count(
+        func.distinct(schema.unisurvey.c.uniId)
+    ).label("answered_universities")
+    has_item_count = func.count(
+        func.distinct(
+            case(
+                (schema.unisurvey.c.hasItem.is_(True), schema.unisurvey.c.uniId)
+            )
+        )
+    ).label("has_item_count")
+    no_item_count = func.count(
+        func.distinct(
+            case(
+                (schema.unisurvey.c.hasItem.is_(False), schema.unisurvey.c.uniId)
+            )
+        )
+    ).label("no_item_count")
+
+    rows = (
+        connection.execute(
+            select(
+                schema.uniquestion.c.uQId,
+                schema.uniquestion.c.uQDetail,
+                schema.uniquestion.c.qTID,
+                schema.questiontitle.c.qTDetail,
+                schema.questiontitle.c.description.label("title_description"),
+                answered_count,
+                has_item_count,
+                no_item_count,
+            )
+            .select_from(
+                schema.uniquestion
+                .outerjoin(
+                    schema.questiontitle,
+                    schema.questiontitle.c.qTID == schema.uniquestion.c.qTID,
+                )
+                .outerjoin(
+                    schema.unisurvey,
+                    schema.unisurvey.c.uQId == schema.uniquestion.c.uQId,
+                )
+            )
+            .where(schema.uniquestion.c.yID == year_id)
+            .group_by(
+                schema.uniquestion.c.uQId,
+                schema.uniquestion.c.uQDetail,
+                schema.uniquestion.c.qTID,
+                schema.questiontitle.c.qTDetail,
+                schema.questiontitle.c.description,
+            )
+            .order_by(
+                schema.uniquestion.c.qTID,
+                schema.uniquestion.c.uQId,
+            )
+        )
+        .mappings()
+        .all()
+    )
+    if not rows:
+        return None
+
+    groups = []
+    groups_by_key = {}
+    for number, row in enumerate(rows, start=1):
+        question_answered = int(row["answered_universities"] or 0)
+        has_items = int(row["has_item_count"] or 0)
+        no_items = int(row["no_item_count"] or 0)
+        group_key = row["qTID"] if row["qTID"] is not None else "other"
+        group = groups_by_key.get(group_key)
+        if group is None:
+            group = {
+                "title_id": row["qTID"],
+                "title": row["qTDetail"] or "အခြား မေးခွန်းများ",
+                "description": row["title_description"] or "",
+                "question_count": 0,
+                "questions": [],
+            }
+            groups_by_key[group_key] = group
+            groups.append(group)
+        group["question_count"] += 1
+        group["questions"].append(
+            {
+                "question_id": row["uQId"],
+                "number": number,
+                "question": row["uQDetail"],
+                "answered_universities": question_answered,
+                "unanswered_universities": max(
+                    0, total_universities - question_answered
+                ),
+                "has_item_count": has_items,
+                "no_item_count": no_items,
+                "has_item_percent": _percent(has_items, question_answered),
+                "no_item_percent": _percent(no_items, question_answered),
+                "answered_percent": _percent(
+                    question_answered, total_universities
+                ),
+            }
+        )
+
+    not_answered = max(0, total_universities - answered_universities)
+    return {
+        "year_id": year_row["yID"],
+        "year_label": year_label(
+            year_row["yearFrom"], year_row["yearTo"]
+        ),
+        "year_from": getattr(year_row["yearFrom"], "year", None),
+        "year_to": getattr(year_row["yearTo"], "year", None),
+        "question_count": len(rows),
+        "total_universities": total_universities,
+        "answered_universities": answered_universities,
+        "not_answered_universities": not_answered,
+        "answered_percent": _percent(
+            answered_universities, total_universities
+        ),
+        "not_answered_percent": _percent(
+            not_answered, total_universities
+        ),
+        "university_types": university_types,
+        "groups": groups,
     }
 
 

@@ -856,6 +856,8 @@ const SURVEY_ICONS = {
 const REPORT_ICONS = {
   years: SURVEY_ICONS.period,
   universities: SURVEY_ICONS.building,
+  ministries: SURVEY_ICONS.landmark,
+  forms: SURVEY_ICONS.forms,
   reports: SURVEY_ICONS.forms,
   completion:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.6 2.6L16.5 9"/></svg>',
@@ -863,6 +865,96 @@ const REPORT_ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   trend:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18V6M4 18h16"/><path d="m7 14 4-4 3 2 4-5"/></svg>',
+  download:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 20h14"/></svg>',
+};
+
+const UNIVERSITY_REPORT_CONFIG = {
+  audience: "university",
+  api: "/reports/university",
+  entity: "တက္ကသိုလ်",
+  entityPlural: "တက္ကသိုလ်များ",
+  totalKey: "universities",
+  participatingKey: "participating_universities",
+  yearSubmittedKey: "submitted_universities",
+  yearPendingKey: "pending_universities",
+  rosterKey: "universities",
+  rosterEntityKey: "university",
+  rosterTypeKey: "university_type",
+  detailEntityKey: "university",
+  detailTypeKey: "university_type",
+  ratesTotalKey: "total_universities",
+  ratesAnsweredKey: "answered_universities",
+  ratesNotAnsweredKey: "not_answered_universities",
+  showTypes: true,
+  mainPath: "/dashboard/reports",
+  answersPath: "/dashboard/reports/university-answers",
+  ratesPath: "/dashboard/reports/question-answer-rates",
+  answersEyebrow: "တက္ကသိုလ် အဖြေ အသေးစိတ်",
+  ratesEyebrow: "မေးခွန်း ဖြေဆိုနှုန်း",
+  shortcutAnswersTitle: "တက္ကသိုလ်တစ်ခုချင်း၏ အဖြေများ",
+  shortcutAnswersHint:
+    "တက္ကသိုလ် တစ်ခုချင်းစီ တင်သွင်းထားသော အဖြေများကို ကြည့်ရန်",
+  shortcutRatesTitle: "ထုတ်ဝေထားသော မေးခွန်းများ၏ ဖြေဆိုနှုန်း",
+  shortcutRatesHint:
+    "မေးခွန်းတစ်ခုချင်းစီအတွက် တက္ကသိုလ်များ၏ ဖြေဆိုနှုန်းကို ကြည့်ရန်",
+  icon: REPORT_ICONS.universities,
+  rosterApi: (yearId, state) =>
+    `/reports/university/${yearId}/universities?state=${encodeURIComponent(state)}`,
+  detailApi: (yearId, entityId) =>
+    `/reports/university/${yearId}/universities/${entityId}/answers`,
+  ratesApi: (yearId) =>
+    `/reports/university/${yearId}/question-answer-rates`,
+  exportPath: (detail) =>
+    `/api/admin/reports/university/${Number(detail.year_id)}/universities/${Number(detail.university.university_id)}/answers/export`,
+  yearSelectId: "ua-year",
+  entitySelectId: "ua-university",
+  formId: "ua-selector",
+  resultId: "ua-result",
+};
+
+const MINISTRY_REPORT_CONFIG = {
+  audience: "ministry",
+  api: "/reports/ministry",
+  entity: "ဝန်ကြီးဌာန",
+  entityPlural: "ဝန်ကြီးဌာနများ",
+  totalKey: "ministries",
+  participatingKey: "participating_ministries",
+  yearSubmittedKey: "submitted_ministries",
+  yearPendingKey: "pending_ministries",
+  rosterKey: "ministries",
+  rosterEntityKey: "ministry",
+  rosterTypeKey: null,
+  detailEntityKey: "ministry",
+  detailTypeKey: null,
+  ratesTotalKey: "total_ministries",
+  ratesAnsweredKey: "answered_ministries",
+  ratesNotAnsweredKey: "not_answered_ministries",
+  showTypes: false,
+  mainPath: "/dashboard/reports/ministry",
+  answersPath: "/dashboard/reports/ministry-answers",
+  ratesPath: "/dashboard/reports/ministry-question-answer-rates",
+  answersEyebrow: "ဝန်ကြီးဌာန အဖြေ အသေးစိတ်",
+  ratesEyebrow: "မေးခွန်း ဖြေဆိုနှုန်း",
+  shortcutAnswersTitle: "ဝန်ကြီးဌာနတစ်ခုချင်း၏ အဖြေများ",
+  shortcutAnswersHint:
+    "ဝန်ကြီးဌာန တစ်ခုချင်းစီ တင်သွင်းထားသော အဖြေများကို ကြည့်ရန်",
+  shortcutRatesTitle: "ထုတ်ဝေထားသော မေးခွန်းများ၏ ဖြေဆိုနှုန်း",
+  shortcutRatesHint:
+    "မေးခွန်းတစ်ခုချင်းစီအတွက် ဝန်ကြီးဌာနများ၏ ဖြေဆိုနှုန်းကို ကြည့်ရန်",
+  icon: REPORT_ICONS.ministries,
+  rosterApi: (yearId, state) =>
+    `/reports/ministry/${yearId}/ministries?state=${encodeURIComponent(state)}`,
+  detailApi: (yearId, entityId) =>
+    `/reports/ministry/${yearId}/ministries/${entityId}/answers`,
+  ratesApi: (yearId) =>
+    `/reports/ministry/${yearId}/question-answer-rates`,
+  exportPath: (detail) =>
+    `/api/admin/reports/ministry/${Number(detail.year_id)}/ministries/${Number(detail.ministry.ministry_id)}/answers/export`,
+  yearSelectId: "ma-year",
+  entitySelectId: "ma-ministry",
+  formId: "ma-selector",
+  resultId: "ma-result",
 };
 
 function surveyOrgLabel(orgType) {
@@ -1140,13 +1232,9 @@ async function formsPage() {
       const form = findSurvey(yearId, control.dataset.orgType);
       const published = control.checked;
       try {
-        await api(`/survey/years/${yearId}`, {
-          method: "PUT",
-          body: {
-            year_from: form?.month_from || 1,
-            year_to: form?.year_to || new Date().getFullYear(),
-            status: published ? 1 : 0,
-          },
+        await api(`/survey/years/${yearId}/status`, {
+          method: "PATCH",
+          body: { status: published ? 1 : 0 },
         });
         const badge = control.closest("tr")?.querySelector(".sf-status");
         if (badge) {
@@ -1488,55 +1576,57 @@ function reportKpiCard({ icon, value, title, hint, tone = "primary", meter = nul
   </article>`;
 }
 
-function reportYearCard(year, totalUniversities) {
+function reportYearCard(year, totalEntities, config) {
   const completion = Number(year.completion_percent) || 0;
   const coverage = Number(year.answer_coverage_percent) || 0;
-  const lastSubmitted = year.last_submitted_at
-    ? dateTime(year.last_submitted_at)
-    : "တင်သွင်းမှု မရှိသေးပါ";
+  const submitted = Number(year[config.yearSubmittedKey]) || 0;
+  const pending = Number(year[config.yearPendingKey]) || 0;
   return `<article class="rp-year">
     <div class="rp-year__head">
       <div class="rp-year__identity">
         <span class="rp-year__icon" aria-hidden="true">${SURVEY_ICONS.period}</span>
         <div>
           <h3>${e(year.label)}</h3>
-          <p>${reportNumber(year.question_count)} မေးခွန်း · ${reportNumber(year.submitted_universities)} / ${reportNumber(totalUniversities)} တက္ကသိုလ်</p>
+          <p>${reportNumber(year.question_count)} မေးခွန်း · ${reportNumber(submitted)} / ${reportNumber(totalEntities)} ${e(config.entity)}</p>
         </div>
       </div>
       ${reportStatusBadge(year.status)}
     </div>
-    <div class="rp-meter rp-meter--lg" role="progressbar" aria-label="${e(year.label)} တက္ကသိုလ် တင်သွင်းမှု" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${completion}">
+    <div class="rp-meter rp-meter--lg" role="progressbar" aria-label="${e(year.label)} ${e(config.entity)} တင်သွင်းမှု" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${completion}">
       <span style="width:${Math.min(100, completion)}%"></span>
     </div>
     <div class="rp-year__foot">
       <span class="rp-year__stat"><strong>${reportPercent(completion)}</strong><small>တင်သွင်းပြီး</small></span>
-      <span class="rp-year__stat"><strong>${reportNumber(year.pending_universities)}</strong><small>ကျန်ရှိ</small></span>
+      <span class="rp-year__stat"><strong>${reportNumber(pending)}</strong><small>ကျန်ရှိ</small></span>
       <span class="rp-year__stat"><strong>${reportPercent(coverage)}</strong><small>အဖြေ လွှမ်းခြုံမှု</small></span>
-      <span class="rp-year__last">${REPORT_ICONS.clock}<span>${e(lastSubmitted)}</span></span>
     </div>
-    <div class="rp-year__actions" aria-label="${e(year.label)} တက္ကသိုလ် စာရင်း">
+    <div class="rp-year__actions" aria-label="${e(year.label)} ${e(config.entity)} စာရင်း">
       <button class="rp-year__action rp-year__action--answered" type="button" data-report-year="${Number(year.year_id)}" data-report-state="answered" aria-haspopup="dialog">
         <span class="rp-year__action-icon" aria-hidden="true">${REPORT_ICONS.completion}</span>
         <span class="rp-year__action-label">တင်သွင်းပြီး</span>
-        <strong>${reportNumber(year.submitted_universities)}</strong>
+        <strong>${reportNumber(submitted)}</strong>
       </button>
       <button class="rp-year__action rp-year__action--pending" type="button" data-report-year="${Number(year.year_id)}" data-report-state="pending" aria-haspopup="dialog">
         <span class="rp-year__action-icon" aria-hidden="true">${REPORT_ICONS.clock}</span>
         <span class="rp-year__action-label">မတင်သွင်းရသေး</span>
-        <strong>${reportNumber(year.pending_universities)}</strong>
+        <strong>${reportNumber(pending)}</strong>
       </button>
     </div>
   </article>`;
 }
 
-function reportRecentCard(report) {
+function reportRecentCard(report, config) {
   const completion = Number(report.completion_percent) || 0;
+  const name = report[config.rosterEntityKey] || "?";
+  const type = config.rosterTypeKey
+    ? report[config.rosterTypeKey]
+    : "";
   return `<article class="rp-recent">
     <div class="rp-recent__top">
-      <span class="rp-org-mark" aria-hidden="true">${e(String(report.university || "?").slice(0, 1).toUpperCase())}</span>
+      <span class="rp-org-mark" aria-hidden="true">${e(String(name).slice(0, 1).toUpperCase())}</span>
       <div class="rp-recent__identity">
-        <strong>${e(report.university)}</strong>
-        <small>${e(report.university_type || "တက္ကသိုလ်")}</small>
+        <strong>${e(name)}</strong>
+        ${type ? `<small>${e(type)}</small>` : ""}
       </div>
       ${reportStatusBadge(report.status)}
     </div>
@@ -1551,188 +1641,761 @@ function reportRecentCard(report) {
   </article>`;
 }
 
-function reportUniversityModal(data) {
+function reportRosterModal(data, config) {
   const answered = data.state === "answered";
-  const title = `${data.year_label} · ${answered ? "တင်သွင်းပြီး တက္ကသိုလ်များ" : "မတင်သွင်းရသေး တက္ကသိုလ်များ"}`;
+  const roster = data[config.rosterKey] || [];
+  const title = `${data.year_label} · ${
+    answered
+      ? `တင်သွင်းပြီး ${config.entityPlural}`
+      : `မတင်သွင်းရသေး ${config.entityPlural}`
+  }`;
   const intro = answered
-    ? `${reportNumber(data.total)} တက္ကသိုလ်က ${reportNumber(data.question_count)} မေးခွန်းအတွက် အဖြေ တင်သွင်းထားပါသည်။`
-    : `${reportNumber(data.total)} တက္ကသိုလ်က ဤစစ်တမ်းကာလအတွက် အဖြေ မတင်သွင်းရသေးပါ။`;
+    ? `${reportNumber(data.total)} ${config.entity}က ${reportNumber(data.question_count)} မေးခွန်းအတွက် အဖြေ တင်သွင်းထားပါသည်။`
+    : `${reportNumber(data.total)} ${config.entity}က ဤစစ်တမ်းကာလအတွက် အဖြေ မတင်သွင်းရသေးပါ။`;
   let body;
-  if (!data.universities.length) {
-    body = `<div class="rp-roster-empty"><span aria-hidden="true">${answered ? REPORT_ICONS.completion : REPORT_ICONS.clock}</span><p>${answered ? "တင်သွင်းထားသော တက္ကသိုလ် မရှိသေးပါ။" : "တင်သွင်းရန် ကျန်ရှိသော တက္ကသိုလ် မရှိပါ။"}</p></div>`;
+  if (!roster.length) {
+    body = `<div class="rp-roster-empty"><span aria-hidden="true">${answered ? REPORT_ICONS.completion : REPORT_ICONS.clock}</span><p>${answered ? `တင်သွင်းထားသော ${config.entity} မရှိသေးပါ။` : `တင်သွင်းရန် ကျန်ရှိသော ${config.entity} မရှိပါ။`}</p></div>`;
   } else if (answered) {
     body = `<div class="rp-roster">${table(
-      ["တက္ကသိုလ်", "ဖြေဆိုပြီး", "အခြေအနေ", "နောက်ဆုံး တင်သွင်းချိန်"],
-      data.universities.map(
-        (row) =>
-          `<tr><td class="title"><strong>${e(row.university)}</strong><small>${e(row.university_type || "တက္ကသိုလ်")}</small></td><td class="numeric">${reportNumber(row.answered_questions)} / ${reportNumber(row.question_count)}</td><td>${reportStatusBadge(row.status)}</td><td>${e(dateTime(row.last_submitted_at))}</td></tr>`,
-      ),
+      [config.entity, "ဖြေဆိုပြီး", "အခြေအနေ", "နောက်ဆုံး တင်သွင်းချိန်"],
+      roster.map((row) => {
+        const name = row[config.rosterEntityKey];
+        const type = config.rosterTypeKey
+          ? row[config.rosterTypeKey]
+          : "";
+        return `<tr><td class="title"><strong>${e(name)}</strong>${type ? `<small>${e(type)}</small>` : ""}</td><td class="numeric">${reportNumber(row.answered_questions)} / ${reportNumber(row.question_count)}</td><td>${reportStatusBadge(row.status)}</td><td>${e(dateTime(row.last_submitted_at))}</td></tr>`;
+      }),
     )}</div>`;
   } else {
+    const headers = config.rosterTypeKey
+      ? [config.entity, "အမျိုးအစား", "အခြေအနေ"]
+      : [config.entity, "အခြေအနေ"];
     body = `<div class="rp-roster">${table(
-      ["တက္ကသိုလ်", "အမျိုးအစား", "အခြေအနေ"],
-      data.universities.map(
-        (row) =>
-          `<tr><td class="title"><strong>${e(row.university)}</strong></td><td>${e(row.university_type || "—")}</td><td>${reportStatusBadge(row.status)}</td></tr>`,
-      ),
+      headers,
+      roster.map((row) => {
+        const name = row[config.rosterEntityKey];
+        const typeCell = config.rosterTypeKey
+          ? `<td>${e(row[config.rosterTypeKey] || "—")}</td>`
+          : "";
+        return `<tr><td class="title"><strong>${e(name)}</strong></td>${typeCell}<td>${reportStatusBadge(row.status)}</td></tr>`;
+      }),
     )}</div>`;
   }
   modal(title, `<p class="dialog-intro">${e(intro)}</p>${body}`);
 }
 
-function reportLegacySection(p, data, formData, users) {
-  const analytics = data.analytics;
-  const peak = Math.max(1, ...analytics.trend.map((day) => day.count));
-  return `<details class="rp-more" ${location.search ? "open" : ""}>
-    <summary class="rp-more__summary">
-      <span class="rp-more__identity">
-        <span class="rp-more__icon" aria-hidden="true">${SURVEY_ICONS.forms}</span>
-        <span>
-          <strong>အသေးစိတ် တင်သွင်းမှု မှတ်တမ်းများ</strong>
-          <small>ဖောင် တင်သွင်းချက်များကို စစ်ထုတ်၊ စစ်ဆေးပြီး တင်ပို့ပါ။</small>
-        </span>
-      </span>
-      <span class="rp-more__aside">
-        <span class="rp-more__count">${reportNumber(data.total)} မှတ်တမ်း</span>
-        <span class="rp-more__chevron" aria-hidden="true">⌄</span>
-      </span>
-    </summary>
-    <div class="rp-more__body">
-      <div class="rp-more__toolbar">
-        <span>
-          <strong>အစီရင်ခံစာ တင်ပို့ရန်</strong>
-          <small>လက်ရှိ စစ်ထုတ်မှုအတိုင်း ဒေါင်းလုဒ်လုပ်ပါ။</small>
-        </span>
-        <details class="export-menu"><summary class="button">ဖိုင် ရွေးရန်</summary><div><a href="/api/admin/reports/export/csv?${e(p)}">CSV ဒေါင်းလုဒ်</a><a href="/api/admin/reports/export/xlsx?${e(p)}">Excel ဒေါင်းလုဒ်</a><a href="/api/admin/reports/export/pdf?${e(p)}">PDF ဒေါင်းလုဒ်</a></div></details>
-      </div>
-      ${reportFilters(p, formData, users)}
-      ${
-        data.items.length
-          ? table(
-              [
-                "",
-                "တင်သွင်းမှု",
-                "စစ်တမ်း",
-                "တင်သွင်းသူ",
-                "အခြေအနေ",
-                "ရရှိချိန်",
-                "",
-              ],
-              data.items.map(
-                (r) =>
-                  `<tr><td><input type="checkbox" data-select-submission="${r.id}" aria-label="တင်သွင်းမှု ${r.id} ကို ရွေးရန်"></td><td>#${r.id}</td><td class="title">${e(r.form)}<small>ဗားရှင်း ${r.version} · ${date(r.reporting_start)} → ${date(r.reporting_end)}</small></td><td>${e(r.username)}</td><td>${badge(r.status)}</td><td>${date(r.created_at)}</td><td><button class="button small" data-view-submission="${r.id}">အဖြေများ ကြည့်ရန်</button></td></tr>`,
-              ),
-            )
-          : empty(
-              "ကိုက်ညီသော တင်သွင်းချက် မရှိပါ",
-              "အခြားရက်စွဲအပိုင်းအခြား စမ်းကြည့်ပါ၊ စစ်ထုတ်မှုများ ရှင်းလင်းပါ၊ သို့မဟုတ် ထုတ်ဝေထားသော စစ်တမ်းမှတစ်ဆင့် တုံ့ပြန်ချက်များ စုဆောင်းပါ။",
-              button("စစ်တမ်းများ ကြည့်ရန်", "/dashboard/forms"),
-            )
-      }
-      ${pagination(data.total)}
-      ${
-        data.items.length
-          ? '<div class="filters rp-review-bar"><span>ရွေးထားသည်များကို စစ်ဆေးရန်</span><button class="button small" data-review="approved">အတည်ပြုရန်</button><button class="button small danger" data-review="rejected">ပယ်ချရန်</button><button class="button small" data-review="pending_review">စစ်ဆေးရန် စောင့်ဆိုင်းအဖြစ် မှတ်ရန်</button></div>'
-          : ""
-      }
-      <div class="overview-grid report-insights rp-insights">
-        <section class="panel">
-          <div class="panel-head"><div><h2>စစ်ထုတ်ထားသည့် တင်သွင်းမှု လမ်းကြောင်း</h2><p>${analytics.completion_percent}% ပြီးစီး · ပျမ်းမျှ ပြီးစီးချိန် · ${analytics.average_seconds === null ? "—" : analytics.average_seconds + " စက္ကန့်"}</p></div></div>
-          <div class="panel-body">${
-            analytics.trend.length
-              ? `<div class="chart" role="img" aria-label="${e(analytics.trend.map((day) => day.date + ": " + day.count).join("; "))}">${analytics.trend.map((day) => `<div class="chart-column" tabindex="0" title="${day.date}: ${day.count}"><div class="chart-bar" style="height:${Math.max(1, (day.count / peak) * 100)}%"></div></div>`).join("")}</div>`
-              : empty(
-                  "ဤရွေးချယ်မှုအတွက် လုပ်ဆောင်ချက် မရှိပါ",
-                  "တင်သွင်းထားသော တုံ့ပြန်ချက်များ ပါဝင်ရန် စစ်ထုတ်မှုများကို ပြောင်းပါ။",
-                )
-          }</div>
-        </section>
-        <section class="panel">
-          <div class="panel-head"><h2>ဖြေဆိုသူများ၏ လုပ်ဆောင်ချက်</h2></div>
-          ${
-            analytics.by_user.length
-              ? table(
-                  ["အသုံးပြုသူ", "တင်သွင်းမှုများ"],
-                  analytics.by_user.map(
-                    (row) =>
-                      `<tr><td>${e(row.username)}</td><td class="numeric">${row.count}</td></tr>`,
-                  ),
-                )
-              : empty(
-                  "ဖြေဆိုသူ လုပ်ဆောင်ချက် မရှိပါ",
-                  "တင်သွင်းထားသော တုံ့ပြန်ချက်များ ဤနေရာတွင် ပေါ်လာပါမည်။",
-                )
-          }
-        </section>
-      </div>
-      ${
-        analytics.question_distribution.length
-          ? `<section class="panel rp-question-distribution"><div class="panel-head"><h2>အဖြေ ဖြန့်ဝေမှု · ${e(p.get("question"))}</h2></div>${table(
-              ["အဖြေ", "တုံ့ပြန်ချက်များ"],
-              analytics.question_distribution.map(
-                (item) =>
-                  `<tr><td>${e(item.display_value ?? valueText(item.answer))}</td><td class="numeric">${item.count}</td></tr>`,
-              ),
-            )}</section>`
-          : ""
-      }
-    </div>
-  </details>`;
+function answerPlaceholder(title, description, icon = REPORT_ICONS.reports) {
+  return `<div class="ua-empty"><span class="ua-empty__icon" aria-hidden="true">${icon}</span><h3>${e(title)}</h3><p>${e(description)}</p></div>`;
 }
 
-async function reportsPage() {
-  describe("");
-  actions("");
-  const p = new URLSearchParams(location.search);
-  let activity = null;
-  let data, formData, users;
-  let activityError = null;
-  let legacyError = null;
-  const [activityResult, legacyResult] = await Promise.allSettled([
-    api("/reports/university"),
-    Promise.all([
-      api("/reports?" + p),
-      api("/forms?limit=100"),
-      api("/users?limit=100"),
-    ]),
-  ]);
-  if (activityResult.status === "fulfilled") activity = activityResult.value;
-  else activityError = activityResult.reason;
-  if (legacyResult.status === "fulfilled") {
-    [data, formData, users] = legacyResult.value;
+function answerQuestion(question) {
+  const answered = Boolean(question.answered);
+  const answer = question.answer;
+  let answerBody;
+  if (!answered || !answer) {
+    answerBody = `<div class="ua-answer-empty"><span aria-hidden="true">${REPORT_ICONS.clock}</span><p>ဤမေးခွန်းအတွက် အဖြေ မတင်သွင်းရသေးပါ။</p></div>`;
   } else {
-    legacyError = legacyResult.reason;
+    const hasItem = Boolean(answer.has_item);
+    answerBody = `<div class="ua-answer-grid">
+      <div class="ua-answer-cell">
+        <span>ရှိ / မရှိ</span>
+        <strong class="ua-answer-yesno ${hasItem ? "is-yes" : "is-no"}">${hasItem ? "ရှိသည်" : "မရှိပါ"}</strong>
+      </div>
+      ${
+        hasItem
+          ? `<div class="ua-answer-cell"><span>အရေအတွက်</span><strong>${reportNumber(answer.item_count)}</strong></div>
+             <div class="ua-answer-cell ua-answer-cell--wide"><span>အကြောင်းအရာ</span><p>${e(answer.description || "—")}</p></div>`
+          : ""
+      }
+      ${
+        answer.remark
+          ? `<div class="ua-answer-cell ua-answer-cell--wide"><span>မှတ်ချက်</span><p>${e(answer.remark)}</p></div>`
+          : ""
+      }
+    </div>`;
   }
+  return `<article class="ua-question ${answered ? "ua-question--answered" : "ua-question--pending"}">
+    <header class="ua-question__head">
+      <span class="ua-question__number" aria-hidden="true">${reportNumber(question.number)}</span>
+      <div class="ua-question__identity">
+        <span class="ua-question__label">မေးခွန်း</span>
+        <h4>${e(question.question)}</h4>
+        ${
+          answered
+            ? `<span class="ua-question__date">${REPORT_ICONS.clock}ဖြေဆိုချိန် ${e(dateTime(answer.submitted_at))}</span>`
+            : ""
+        }
+      </div>
+      <span class="ua-question__state ${answered ? "ua-question__state--answered" : "ua-question__state--pending"}">
+        ${answered ? REPORT_ICONS.completion : REPORT_ICONS.clock}
+        ${answered ? "ဖြေဆိုပြီး" : "မဖြေဆိုရသေး"}
+      </span>
+    </header>
+    <div class="ua-answer">${answerBody}</div>
+  </article>`;
+}
 
-  if (!activity && !data) {
-    const message =
-      (activityError && activityError.message) ||
-      (legacyError && legacyError.message) ||
-      "အစီရင်ခံစာ အချက်အလက်များကို ဖွင့်မရပါ။";
+function answerGroup(group) {
+  return `<section class="ua-group">
+    <header class="ua-group__head">
+      <div>
+        <span class="ua-group__eyebrow">မေးခွန်း ခေါင်းစဉ်</span>
+        <h3>${e(group.title)}</h3>
+        ${group.description ? `<p>${e(group.description)}</p>` : ""}
+      </div>
+      <span class="ua-group__count">${reportNumber(group.answered_questions)} / ${reportNumber(group.question_count)} ဖြေဆိုပြီး</span>
+    </header>
+    <div class="ua-question-list">
+      ${group.questions.map(answerQuestion).join("")}
+    </div>
+  </section>`;
+}
+
+function answerResult(detail, config) {
+  const entity = detail[config.detailEntityKey] || {};
+  const entityName = entity[config.detailEntityKey] || "?";
+  const entityType = config.detailTypeKey
+    ? entity[config.detailTypeKey] || config.entity
+    : "";
+  const hasItems = Number(detail.has_item_questions) || 0;
+  const noItems = Number(detail.no_item_questions) || 0;
+  const unanswered = Number(detail.unanswered_questions) || 0;
+  const hasPercent = Math.min(100, Math.max(0, Number(detail.has_item_percent) || 0));
+  const noPercent = Math.min(100, Math.max(0, Number(detail.no_item_percent) || 0));
+  const unansweredPercent = Math.min(100, Math.max(0, Number(detail.unanswered_percent) || 0));
+  const exportHref = config.exportPath(detail);
+  return `<div class="ua-detail">
+    <header class="ua-summary">
+      <div class="ua-summary__identity">
+        <span class="ua-summary__mark" aria-hidden="true">${e(String(entityName).slice(0, 1).toUpperCase())}</span>
+        <div>
+          <span class="ua-summary__eyebrow">${e(config.answersEyebrow)}</span>
+          <h3>${e(entityName)}</h3>
+          ${entityType ? `<p>${e(entityType)}</p>` : ""}
+        </div>
+      </div>
+      <div class="ua-summary__facts">
+        <span><small>စစ်တမ်းကာလ</small><strong>${e(detail.year_label)}</strong></span>
+        <span><small>ဖြေဆိုပြီး</small><strong>${reportNumber(detail.answered_questions)} / ${reportNumber(detail.question_count)}</strong></span>
+        <span><small>နောက်ဆုံး ဖြေဆိုချိန်</small><strong>${detail.last_submitted_at ? e(dateTime(detail.last_submitted_at)) : "—"}</strong></span>
+      </div>
+    </header>
+    <div class="ua-export-bar">
+      <div class="ua-export-bar__copy">
+        <span class="ua-export-bar__icon" aria-hidden="true">${REPORT_ICONS.download}</span>
+        <div>
+          <strong>Excel အစီရင်ခံစာ</strong>
+          <p>${e(config.entity)}အမည်၊ စစ်တမ်းကာလ၊ တင်သွင်းသည့် ရက်စွဲ၊ မေးခွန်းခေါင်းစဉ်နှင့် အဖြေများ ပါဝင်ပါသည်။</p>
+        </div>
+      </div>
+      <a class="button ua-export" href="${exportHref}" download>${REPORT_ICONS.download}Excel ဒေါင်းလုဒ်</a>
+    </div>
+    <div class="ua-answer-mix">
+      <div class="ua-answer-mix__copy">
+        <span>ရှိ / မရှိ အဖြေ ဖြန့်ဝေမှု</span>
+        <strong>${reportNumber(hasItems)} ရှိသည် · ${reportNumber(noItems)} မရှိပါ</strong>
+      </div>
+      <div
+        class="ua-answer-mix__track"
+        role="img"
+        aria-label="ရှိသည် ${reportPercent(hasPercent)}၊ မရှိပါ ${reportPercent(noPercent)}၊ မဖြေဆိုရသေး ${reportPercent(unansweredPercent)}"
+      >
+        <span class="ua-answer-mix__has" style="width:${hasPercent}%"></span>
+        <span class="ua-answer-mix__no" style="width:${noPercent}%"></span>
+        <span class="ua-answer-mix__pending" style="width:${unansweredPercent}%"></span>
+      </div>
+      <div class="ua-answer-mix__legend">
+        <span><i class="ua-answer-mix__dot ua-answer-mix__dot--has" aria-hidden="true"></i>ရှိသည် ${reportNumber(hasItems)} (${reportPercent(hasPercent)})</span>
+        <span><i class="ua-answer-mix__dot ua-answer-mix__dot--no" aria-hidden="true"></i>မရှိပါ ${reportNumber(noItems)} (${reportPercent(noPercent)})</span>
+        <span><i class="ua-answer-mix__dot ua-answer-mix__dot--pending" aria-hidden="true"></i>မဖြေဆိုရသေး ${reportNumber(unanswered)} (${reportPercent(unansweredPercent)})</span>
+      </div>
+    </div>
+    ${
+      detail.groups.length
+        ? `<div class="ua-groups">${detail.groups.map(answerGroup).join("")}</div>`
+        : answerPlaceholder(
+            "မေးခွန်း မရှိပါ",
+            "ဤစစ်တမ်းကာလအတွက် မေးခွန်း မရှိပါ။",
+            REPORT_ICONS.forms,
+          )
+    }
+  </div>`;
+}
+
+async function answersPage(config) {
+  const entity = config.entity;
+  const yearSelectId = config.yearSelectId;
+  const entitySelectId = config.entitySelectId;
+  const formId = config.formId;
+  const resultId = config.resultId;
+  describe(`စစ်တမ်းကာလနှင့် ${entity}ကို ရွေးချယ်ပြီး တင်သွင်းထားသော အဖြေများကို ကြည့်ပါ။`);
+  actions("");
+  let activity;
+  try {
+    activity = await api(config.api);
+  } catch (error) {
     setContent(
-      `<div class="notice error" role="alert">${e(message)}</div><button class="button" id="retry-reports" type="button">ထပ်စမ်းကြည့်ရန်</button>`,
+      `<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry-answers" type="button">ထပ်စမ်းကြည့်ရန်</button>`,
     );
-    document.querySelector("#retry-reports").onclick = reportsPage;
+    document.querySelector("#retry-answers").onclick = () =>
+      answersPage(config);
     return;
   }
 
-  const totals = activity?.totals || {
-    universities: 0,
-    active_years: 0,
-    questions: 0,
-    reports_expected: 0,
-    reports_submitted: 0,
-    reports_pending: 0,
-    participating_universities: 0,
-    completion_percent: 0,
-    answer_coverage_percent: 0,
-    answers: 0,
-    last_submitted_at: null,
+  const years = activity?.active_years || [];
+  const hero = `<div class="ua-hero">
+    <div>
+      <span class="ua-eyebrow"><i aria-hidden="true"></i>${e(config.answersEyebrow)}</span>
+      <h2>${e(entity)}တစ်ခုချင်း၏ အဖြေများ</h2>
+      <p>စစ်တမ်းကာလနှင့် ${e(entity)}ကို ရွေးချယ်ပြီး မေးခွန်းများနှင့်အတူ တင်သွင်းထားသော အဖြေများကို ကြည့်ပါ။</p>
+    </div>
+    <a class="button ua-back" href="${config.mainPath}">အစီရင်ခံစာများသို့ ပြန်သွားရန်</a>
+  </div>`;
+
+  if (!years.length) {
+    setContent(`<section class="ua-stage">${hero}${answerPlaceholder(
+      "လက်ရှိ စစ်တမ်းကာလ မရှိပါ",
+      `စစ်တမ်းကာလတစ်ခုကို ထုတ်ဝေပြီးပါက ၎င်း၏ ${entity} အဖြေများကို ဤနေရာတွင် ကြည့်နိုင်ပါမည်။`,
+      REPORT_ICONS.years,
+    )}<a class="button ua-back ua-back--center" href="/dashboard/forms">စစ်တမ်းများ ကြည့်ရန်</a></section>`);
+    return;
+  }
+
+  setContent(`<section class="ua-stage">
+    ${hero}
+    <form class="ua-selector" id="${formId}">
+      <label class="ua-field">
+        <span>စစ်တမ်းကာလ</span>
+        <select id="${yearSelectId}" name="year_id" required>
+          <option value="">စစ်တမ်းကာလ ရွေးပါ</option>
+          ${years.map((year) => `<option value="${Number(year.year_id)}">${e(year.label)} · ${reportNumber(year.question_count)} မေးခွန်း</option>`).join("")}
+        </select>
+      </label>
+      <label class="ua-field">
+        <span>${e(entity)}</span>
+        <select id="${entitySelectId}" name="entity_id" required disabled>
+          <option value="">စစ်တမ်းကာလ အရင် ရွေးပါ</option>
+        </select>
+      </label>
+      <button class="button primary ua-submit" type="submit" disabled>အဖြေများ ကြည့်ရန်</button>
+    </form>
+    <div id="${resultId}" class="ua-result-shell">
+      ${answerPlaceholder(
+        `စစ်တမ်းကာလနှင့် ${entity}ကို ရွေးချယ်ပါ`,
+        `အဖြေ အသေးစိတ်ကို ကြည့်ရန် စစ်တမ်းကာလနှင့် ${entity}ကို အရင် ရွေးချယ်ပါ။`,
+        config.icon,
+      )}
+    </div>
+  </section>`);
+
+  const form = document.querySelector(`#${formId}`);
+  const yearSelect = document.querySelector(`#${yearSelectId}`);
+  const entitySelect = document.querySelector(`#${entitySelectId}`);
+  const submit = form ? form.querySelector(".ua-submit") : null;
+  const result = document.querySelector(`#${resultId}`);
+  let rosterRequest = 0;
+
+  const resetResult = (title, description, icon) => {
+    result.innerHTML = answerPlaceholder(title, description, icon);
   };
+
+  yearSelect.onchange = async () => {
+    const yearId = Number(yearSelect.value);
+    const request = ++rosterRequest;
+    entitySelect.innerHTML = `<option value="">${e(config.entityPlural)} ဖွင့်နေသည်…</option>`;
+    entitySelect.disabled = true;
+    submit.disabled = true;
+    if (!yearId) {
+      entitySelect.innerHTML = `<option value="">စစ်တမ်းကာလ အရင် ရွေးပါ</option>`;
+      resetResult(
+        `စစ်တမ်းကာလနှင့် ${entity}ကို ရွေးချယ်ပါ`,
+        `အဖြေ အသေးစိတ်ကို ကြည့်ရန် စစ်တမ်းကာလနှင့် ${entity}ကို အရင် ရွေးချယ်ပါ။`,
+        config.icon,
+      );
+      return;
+    }
+    try {
+      const roster = await api(config.rosterApi(yearId, "answered"));
+      if (request !== rosterRequest) return;
+      const rows = roster[config.rosterKey] || [];
+      if (!rows.length) {
+        entitySelect.innerHTML = `<option value="">အဖြေ တင်သွင်းထားသော ${e(entity)} မရှိပါ</option>`;
+        resetResult(
+          `အဖြေ တင်သွင်းထားသော ${entity} မရှိပါ`,
+          `ဤစစ်တမ်းကာလအတွက် အဖြေ တင်သွင်းထားသော ${entity} မရှိသေးပါ။`,
+          REPORT_ICONS.clock,
+        );
+        return;
+      }
+      entitySelect.innerHTML = `<option value="">${e(entity)} ရွေးပါ</option>${rows
+        .map((row) => {
+          const id = row[`${config.rosterEntityKey}_id`];
+          const name = row[config.rosterEntityKey];
+          return `<option value="${Number(id)}">${e(name)} · ${reportNumber(row.answered_questions)} / ${reportNumber(row.question_count)} မေးခွန်း</option>`;
+        })
+        .join("")}`;
+      entitySelect.disabled = false;
+      resetResult(
+        `${entity}ကို ရွေးချယ်ပါ`,
+        `အဖြေများ ကြည့်ရန် ${entity}ကို ရွေးချယ်ပါ။`,
+        config.icon,
+      );
+      entitySelect.focus();
+    } catch (error) {
+      if (request !== rosterRequest) return;
+      entitySelect.innerHTML = `<option value="">${e(config.entityPlural)} ဖွင့်မရပါ</option>`;
+      resetResult(
+        `${config.entityPlural}ကို ဖွင့်မရပါ`,
+        error.message,
+        REPORT_ICONS.clock,
+      );
+    }
+  };
+
+  entitySelect.onchange = () => {
+    submit.disabled = !entitySelect.value;
+    if (entitySelect.value) {
+      resetResult(
+        "အဖြေများ ကြည့်ရန် အသင့်",
+        `“အဖြေများ ကြည့်ရန်” ကို နှိပ်ပြီး ရွေးချယ်ထားသော ${entity}၏ အဖြေ အသေးစိတ်ကို ကြည့်ပါ။`,
+        REPORT_ICONS.reports,
+      );
+    }
+  };
+
+  form.onsubmit = (event) => {
+    event.preventDefault();
+    const yearId = Number(yearSelect.value);
+    const entityId = Number(entitySelect.value);
+    if (!yearId || !entityId) return;
+    busy(event.submitter || submit, async () => {
+      try {
+        const detail = await api(config.detailApi(yearId, entityId));
+        result.innerHTML = answerResult(detail, config);
+        result.scrollIntoView({ behavior: "smooth", block: "start" });
+      } catch (error) {
+        resetResult("အဖြေ အသေးစိတ်ကို ဖွင့်မရပါ", error.message, REPORT_ICONS.clock);
+        toast(error.message);
+      }
+    });
+  };
+}
+
+async function universityAnswersPage() {
+  await answersPage(UNIVERSITY_REPORT_CONFIG);
+}
+
+async function ministryAnswersPage() {
+  await answersPage(MINISTRY_REPORT_CONFIG);
+}
+
+function questionRatePlaceholder(title, description, icon = REPORT_ICONS.trend) {
+  return `<div class="qa-empty"><span class="qa-empty__icon" aria-hidden="true">${icon}</span><h3>${e(title)}</h3><p>${e(description)}</p></div>`;
+}
+
+function questionRateBar(label, count, percent, tone, entity = "တက္ကသိုလ်") {
+  const width = Math.min(100, Math.max(0, Number(percent) || 0));
+  return `<div class="qa-bar-row qa-bar-row--${tone}">
+    <span class="qa-bar-row__label">${e(label)}</span>
+    <div class="qa-bar-track" role="img" aria-label="${e(label)} ${reportNumber(count)} ${e(entity)}၊ ${reportPercent(width)}">
+      <span style="width:${width}%"></span>
+    </div>
+    <span class="qa-bar-row__value">
+      <strong>${reportNumber(count)}</strong>
+      <small>${reportPercent(width)}</small>
+    </span>
+  </div>`;
+}
+
+function questionRateQuestion(question, totalEntities, options = {}) {
+  const entity = options.entity || "တက္ကသိုလ်";
+  const answeredKey = options.answeredKey || "answered_universities";
+  const unansweredKey = options.unansweredKey || "unanswered_universities";
+  const answered = Number(question[answeredKey]) || 0;
+  const unanswered = Number(question[unansweredKey]) || 0;
+  return `<article class="qa-question">
+    <header class="qa-question__head">
+      <span class="qa-question__number" aria-hidden="true">${reportNumber(question.number)}</span>
+      <div class="qa-question__identity">
+        <span class="qa-question__label">မေးခွန်း</span>
+        <h4>${e(question.question)}</h4>
+      </div>
+      <span class="qa-question__answered">${reportNumber(answered)} / ${reportNumber(totalEntities)} ${e(entity)}</span>
+    </header>
+    <div class="qa-bars">
+      ${questionRateBar("ရှိသည်", question.has_item_count, question.has_item_percent, "yes", entity)}
+      ${questionRateBar("မရှိပါ", question.no_item_count, question.no_item_percent, "no", entity)}
+    </div>
+    <footer class="qa-question__meta">
+      <span class="qa-question__meta-item qa-question__meta-item--yes">${REPORT_ICONS.completion}ဖြေဆိုနှုန်း ${reportPercent(question.answered_percent)}</span>
+      <span class="qa-question__meta-item">${REPORT_ICONS.clock}မဖြေဆိုရသေး ${reportNumber(unanswered)}</span>
+      <span class="qa-question__meta-item">စုစုပေါင်း ${reportNumber(answered + unanswered)} ${e(entity)}</span>
+    </footer>
+  </article>`;
+}
+
+function questionRateGroup(group, totalEntities, options = {}) {
+  return `<section class="qa-group">
+    <header class="qa-group__head">
+      <div>
+        <span class="qa-group__eyebrow">မေးခွန်း ခေါင်းစဉ်</span>
+        <h3>${e(group.title)}</h3>
+        ${group.description ? `<p>${e(group.description)}</p>` : ""}
+      </div>
+      <span class="qa-group__count">${reportNumber(group.question_count)} မေးခွန်း</span>
+    </header>
+    <div class="qa-question-list">
+      ${group.questions.map((question) => questionRateQuestion(question, totalEntities, options)).join("")}
+    </div>
+  </section>`;
+}
+
+const QUESTION_TYPE_COLORS = [
+  "#4f46e5",
+  "#0e7a5f",
+  "#b45309",
+  "#0e7490",
+  "#be185d",
+  "#6d28d9",
+  "#15803d",
+  "#b91c1c",
+  "#475569",
+  "#a16207",
+  "#2563eb",
+  "#c2410c",
+];
+
+function questionTypeColor(index) {
+  if (index < QUESTION_TYPE_COLORS.length) {
+    return QUESTION_TYPE_COLORS[index];
+  }
+  return `hsl(${(index * 67) % 360} 55% 48%)`;
+}
+
+function questionRatePiePoint(cx, cy, radius, angle) {
+  const radians = ((angle - 90) * Math.PI) / 180;
+  return {
+    x: cx + radius * Math.cos(radians),
+    y: cy + radius * Math.sin(radians),
+  };
+}
+
+function questionRatePieChart(types) {
+  const colorByType = new Map(
+    types.map((type, index) => [type.university_type, questionTypeColor(index)]),
+  );
+  const answeredTypes = types.filter(
+    (type) => Number(type.answered_universities) > 0,
+  );
+  const answeredTotal = answeredTypes.reduce(
+    (sum, type) => sum + Number(type.answered_universities),
+    0,
+  );
+  const cx = 110;
+  const cy = 110;
+  const radius = 92;
+  if (!answeredTotal) {
+    return `<svg class="qa-pie" viewBox="0 0 220 220" role="img" aria-label="ဖြေဆိုပြီး တက္ကသိုလ် မရှိသေးပါ">
+      <circle cx="${cx}" cy="${cy}" r="${radius}" class="qa-pie__empty"></circle>
+      <text x="${cx}" y="${cy + 4}" text-anchor="middle" class="qa-pie__empty-label">ဖြေဆိုမှု မရှိသေး</text>
+    </svg>`;
+  }
+
+  let angle = 0;
+  const slices = answeredTypes.map((type, index) => {
+    const share = (Number(type.answered_universities) / answeredTotal) * 360;
+    const start = angle;
+    const end = angle + share;
+    angle = end;
+    const color = colorByType.get(type.university_type) || questionTypeColor(index);
+    if (share >= 359.999) {
+      return `<circle cx="${cx}" cy="${cy}" r="${radius}" fill="${color}" class="qa-pie__slice"></circle>`;
+    }
+    const startPoint = questionRatePiePoint(cx, cy, radius, start);
+    const endPoint = questionRatePiePoint(cx, cy, radius, end);
+    const largeArc = share > 180 ? 1 : 0;
+    return `<path
+      d="M ${cx} ${cy} L ${startPoint.x.toFixed(2)} ${startPoint.y.toFixed(2)} A ${radius} ${radius} 0 ${largeArc} 1 ${endPoint.x.toFixed(2)} ${endPoint.y.toFixed(2)} Z"
+      fill="${color}"
+      class="qa-pie__slice"
+    ></path>`;
+  });
+
+  return `<svg class="qa-pie" viewBox="0 0 220 220" role="img" aria-label="ဖြေဆိုပြီး တက္ကသိုလ်များ၏ အမျိုးအစား အချိုးအစား">
+    ${slices.join("")}
+    <circle cx="${cx}" cy="${cy}" r="47" class="qa-pie__hole"></circle>
+    <text x="${cx}" y="${cy - 3}" text-anchor="middle" class="qa-pie__total">${reportNumber(answeredTotal)}</text>
+    <text x="${cx}" y="${cy + 15}" text-anchor="middle" class="qa-pie__caption">ဖြေဆိုပြီး</text>
+  </svg>`;
+}
+
+function questionRateTypeChart(types, answeredUniversities) {
+  const rows = types.length
+    ? types.map((type, index) => {
+        const answered = Number(type.answered_universities) || 0;
+        const percent = Math.min(
+          100,
+          Math.max(0, Number(type.answered_percent) || 0),
+        );
+        return `<div class="qa-type-row${answered ? "" : " qa-type-row--empty"}">
+          <span class="qa-type-row__dot" style="background:${answered ? questionTypeColor(index) : "var(--border)"}" aria-hidden="true"></span>
+          <div class="qa-type-row__identity">
+            <span class="qa-type-row__name">${e(type.university_type)}</span>
+            <span class="qa-type-row__count">${reportNumber(answered)} / ${reportNumber(type.total_universities)} တက္ကသိုလ်</span>
+            <span class="qa-type-row__meter" aria-hidden="true"><span style="width:${percent}%;background:${answered ? questionTypeColor(index) : "var(--border)"}"></span></span>
+          </div>
+          <span class="qa-type-row__rate">${reportPercent(percent)}</span>
+        </div>`;
+      }).join("")
+    : questionRatePlaceholder(
+        "အမျိုးအစား အချက်အလက် မရှိပါ",
+        "တက္ကသိုလ် အမျိုးအစားများ မတွေ့ရပါ။",
+        REPORT_ICONS.universities,
+      );
+
+  return `<section class="qa-type-chart" aria-labelledby="qa-type-title">
+    <header class="qa-type-chart__head">
+      <div>
+        <span class="qa-group__eyebrow">တက္ကသိုလ် အမျိုးအစား</span>
+        <h3 id="qa-type-title">အမျိုးအစားအလိုက် ဖြေဆိုနှုန်း</h3>
+        <p>အပိုင်းအခြားများသည် ဖြေဆိုပြီး တက္ကသိုလ် ${reportNumber(answeredUniversities)} ခု၏ အမျိုးအစား အချိုးအစားဖြစ်သည်။</p>
+      </div>
+      <span class="qa-type-chart__badge">${reportNumber(types.length)} အမျိုးအစား</span>
+    </header>
+    <div class="qa-type-chart__body">
+      <div class="qa-type-chart__figure">
+        ${questionRatePieChart(types)}
+        <p>ဖြေဆိုပြီး တက္ကသိုလ်များ၏ အမျိုးအစား အချိုးအစား</p>
+      </div>
+      <div class="qa-type-chart__legend">${rows}</div>
+    </div>
+  </section>`;
+}
+
+function questionRateResult(detail, config) {
+  const entity = config.entity;
+  const total = Number(detail[config.ratesTotalKey]) || 0;
+  const answered = Number(detail[config.ratesAnsweredKey]) || 0;
+  const notAnswered = Number(detail[config.ratesNotAnsweredKey]) || 0;
+  const answeredPercent = Math.min(100, Math.max(0, Number(detail.answered_percent) || 0));
+  const notAnsweredPercent = Math.min(100, Math.max(0, Number(detail.not_answered_percent) || 0));
+  const questionOptions = {
+    entity,
+    answeredKey: config.ratesAnsweredKey,
+    unansweredKey: config.ratesNotAnsweredKey,
+  };
+  return `<div class="qa-detail">
+    <header class="qa-summary">
+      <div class="qa-summary__identity">
+        <span class="qa-summary__mark" aria-hidden="true">${REPORT_ICONS.trend}</span>
+        <div>
+          <span class="qa-summary__eyebrow">မေးခွန်း ကာလ</span>
+          <h3>${e(detail.year_label)}</h3>
+          <p>မေးခွန်း ${reportNumber(detail.question_count)} ခု · ${e(entity)} ${reportNumber(total)} ခု</p>
+        </div>
+      </div>
+      <div class="qa-summary__facts">
+        <span class="qa-fact qa-fact--yes">
+          <small>ဖြေဆိုပြီး ${e(entity)}</small>
+          <strong>${reportNumber(answered)}</strong>
+        </span>
+        <span class="qa-fact qa-fact--no">
+          <small>မဖြေဆိုရသေး ${e(entity)}</small>
+          <strong>${reportNumber(notAnswered)}</strong>
+        </span>
+        <span class="qa-fact qa-fact--yes">
+          <small>ဖြေဆိုနှုန်း</small>
+          <strong>${reportPercent(answeredPercent)}</strong>
+        </span>
+        <span class="qa-fact qa-fact--no">
+          <small>မဖြေဆိုနှုန်း</small>
+          <strong>${reportPercent(notAnsweredPercent)}</strong>
+        </span>
+      </div>
+    </header>
+    <div class="qa-ratio">
+      <div class="qa-ratio__copy">
+        <span>${e(entity)} ဖြေဆိုနှုန်း</span>
+        <strong>${reportPercent(answeredPercent)}</strong>
+      </div>
+      <div
+        class="qa-ratio__track"
+        role="img"
+        aria-label="ဖြေဆိုပြီး ${reportPercent(answeredPercent)}၊ မဖြေဆိုရသေး ${reportPercent(notAnsweredPercent)}"
+      >
+        <span class="qa-ratio__yes" style="width:${answeredPercent}%"></span>
+        <span class="qa-ratio__no" style="width:${notAnsweredPercent}%"></span>
+      </div>
+      <div class="qa-ratio__legend">
+        <span><i class="qa-ratio__dot qa-ratio__dot--yes" aria-hidden="true"></i>ဖြေဆိုပြီး ${reportNumber(answered)} (${reportPercent(answeredPercent)})</span>
+        <span><i class="qa-ratio__dot qa-ratio__dot--no" aria-hidden="true"></i>မဖြေဆိုရသေး ${reportNumber(notAnswered)} (${reportPercent(notAnsweredPercent)})</span>
+      </div>
+    </div>
+    ${
+      config.showTypes
+        ? questionRateTypeChart(
+            detail.university_types || [],
+            detail[config.ratesAnsweredKey] || 0,
+          )
+        : ""
+    }
+    ${
+      detail.groups?.length
+        ? `<div class="qa-groups">${detail.groups.map((group) => questionRateGroup(group, total, questionOptions)).join("")}</div>`
+        : questionRatePlaceholder(
+            "မေးခွန်း မရှိပါ",
+            "ဤစစ်တမ်းကာလအတွက် မေးခွန်း မရှိပါ။",
+            REPORT_ICONS.forms,
+          )
+    }
+  </div>`;
+}
+
+async function questionRatePage(config) {
+  describe("မေးခွန်းတစ်ခုချင်းစီအတွက် ရှိသည် / မရှိပါ အဖြေနှုန်းများကို ကြည့်ပါ။");
+  actions("");
+  let activity;
+  try {
+    activity = await api(config.api);
+  } catch (error) {
+    setContent(
+      `<div class="notice error" role="alert">${e(error.message)}</div><button class="button" id="retry-rates" type="button">ထပ်စမ်းကြည့်ရန်</button>`,
+    );
+    document.querySelector("#retry-rates").onclick = () =>
+      questionRatePage(config);
+    return;
+  }
+
+  const years = activity?.active_years || [];
+  const hero = `<div class="qa-hero">
+    <div>
+      <span class="qa-eyebrow"><i aria-hidden="true"></i>${e(config.ratesEyebrow)}</span>
+      <h2>ထုတ်ဝေထားသော မေးခွန်းများ၏ ဖြေဆိုနှုန်း</h2>
+      <p>စစ်တမ်းကာလကို ရွေးချယ်ပြီး မေးခွန်းတစ်ခုချင်းစီအတွက် ရှိသည် / မရှိပါ အဖြေနှုန်းများကို ကြည့်ပါ။</p>
+    </div>
+    <a class="button qa-back" href="${config.mainPath}">အစီရင်ခံစာများသို့ ပြန်သွားရန်</a>
+  </div>`;
+
+  if (!years.length) {
+    setContent(`<section class="qa-stage">${hero}${questionRatePlaceholder(
+      "လက်ရှိ စစ်တမ်းကာလ မရှိပါ",
+      "စစ်တမ်းကာလတစ်ခုကို ထုတ်ဝေပြီးပါက ၎င်း၏ မေးခွန်း ဖြေဆိုနှုန်းများကို ဤနေရာတွင် ကြည့်နိုင်ပါမည်။",
+      REPORT_ICONS.years,
+    )}<a class="button qa-back qa-back--center" href="/dashboard/forms">စစ်တမ်းများ ကြည့်ရန်</a></section>`);
+    return;
+  }
+
+  setContent(`<section class="qa-stage">
+    ${hero}
+    <div class="qa-selector">
+      <label class="qa-field">
+        <span>မေးခွန်း ကာလ</span>
+        <select id="qa-year" required>
+          <option value="">စစ်တမ်းကာလ ရွေးပါ</option>
+          ${years.map((year) => `<option value="${Number(year.year_id)}">${e(year.label)} · ${reportNumber(year.question_count)} မေးခွန်း</option>`).join("")}
+        </select>
+      </label>
+      <p class="qa-selector__hint">စစ်တမ်းကာလတစ်ခုကို ရွေးချယ်ပါက မေးခွန်းအားလုံး၏ ဖြေဆိုနှုန်းများကို ဖော်ပြပါမည်။</p>
+    </div>
+    <div id="qa-result" class="qa-result-shell">
+      ${questionRatePlaceholder(
+        "မေးခွန်း ကာလကို ရွေးချယ်ပါ",
+        "ဖြေဆိုနှုန်း အချက်အလက်များကို ကြည့်ရန် စစ်တမ်းကာလကို အရင် ရွေးချယ်ပါ။",
+        REPORT_ICONS.years,
+      )}
+    </div>
+  </section>`);
+
+  const yearSelect = document.querySelector("#qa-year");
+  const result = document.querySelector("#qa-result");
+  let request = 0;
+
+  yearSelect.onchange = async () => {
+    const yearId = Number(yearSelect.value);
+    const current = ++request;
+    if (!yearId) {
+      result.innerHTML = questionRatePlaceholder(
+        "မေးခွန်း ကာလကို ရွေးချယ်ပါ",
+        "ဖြေဆိုနှုန်း အချက်အလက်များကို ကြည့်ရန် စစ်တမ်းကာလကို အရင် ရွေးချယ်ပါ။",
+        REPORT_ICONS.years,
+      );
+      return;
+    }
+    result.innerHTML = questionRatePlaceholder(
+      "ဖြေဆိုနှုန်းများ ဖွင့်နေသည်…",
+      "ရွေးချယ်ထားသော စစ်တမ်းကာလ၏ မေးခွန်း အဖြေများကို တွက်ချက်နေပါသည်။",
+      REPORT_ICONS.clock,
+    );
+    try {
+      const detail = await api(config.ratesApi(yearId));
+      if (current !== request) return;
+      result.innerHTML = questionRateResult(detail, config);
+    } catch (error) {
+      if (current !== request) return;
+      result.innerHTML = questionRatePlaceholder(
+        "ဖြေဆိုနှုန်းများကို ဖွင့်မရပါ",
+        error.message,
+        REPORT_ICONS.clock,
+      );
+      toast(error.message);
+    }
+  };
+}
+
+async function questionAnswerRatesPage() {
+  await questionRatePage(UNIVERSITY_REPORT_CONFIG);
+}
+
+async function ministryQuestionAnswerRatesPage() {
+  await questionRatePage(MINISTRY_REPORT_CONFIG);
+}
+
+async function reportsPage(config) {
+  describe("");
+  actions("");
+  let activity = null;
+  let activityError = null;
+  try {
+    activity = await api(config.api);
+  } catch (error) {
+    activityError = error;
+  }
+
+  if (!activity) {
+    const message =
+      activityError?.message ||
+      `${config.entity} အစီရင်ခံစာ အချက်အလက်များကို ဖွင့်မရပါ။`;
+    setContent(
+      `<div class="notice error" role="alert">${e(message)}</div><button class="button" id="retry-activity" type="button">ထပ်စမ်းကြည့်ရန်</button>`,
+    );
+    document.querySelector("#retry-activity").onclick = () =>
+      reportsPage(config);
+    return;
+  }
+
+  const totals = activity?.totals || {};
   const activeYears = activity?.active_years || [];
   const recentReports = activity?.recent_reports || [];
   const activityPanel = activity
-    ? `<div class="rp-kpis">
+    ? `<nav class="rp-shortcuts" aria-label="အသေးစိတ် အစီရင်ခံစာများ">
+        <a class="rp-shortcut rp-shortcut--answers" href="${config.answersPath}">
+          <span class="rp-shortcut__icon" aria-hidden="true">${config.icon}</span>
+          <span class="rp-shortcut__body">
+            <strong>${e(config.shortcutAnswersTitle)}</strong>
+            <small>${e(config.shortcutAnswersHint)}</small>
+          </span>
+          <span class="rp-shortcut__arrow" aria-hidden="true">↗</span>
+        </a>
+        <a class="rp-shortcut rp-shortcut--rates" href="${config.ratesPath}">
+          <span class="rp-shortcut__icon" aria-hidden="true">${REPORT_ICONS.trend}</span>
+          <span class="rp-shortcut__body">
+            <strong>${e(config.shortcutRatesTitle)}</strong>
+            <small>${e(config.shortcutRatesHint)}</small>
+          </span>
+          <span class="rp-shortcut__arrow" aria-hidden="true">↗</span>
+        </a>
+      </nav>
+      <div class="rp-kpis">
         ${reportKpiCard({
           icon: REPORT_ICONS.years,
           value: reportNumber(totals.active_years),
@@ -1741,10 +2404,10 @@ async function reportsPage() {
           tone: "years",
         })}
         ${reportKpiCard({
-          icon: REPORT_ICONS.universities,
-          value: reportNumber(totals.participating_universities),
-          title: "ပါဝင်တင်သွင်းသည့် တက္ကသိုလ်",
-          hint: `<strong>${reportNumber(totals.universities)}</strong> တက္ကသိုလ်အနက်`,
+          icon: config.icon,
+          value: reportNumber(totals[config.participatingKey]),
+          title: `ပါဝင်တင်သွင်းသည့် ${config.entity}`,
+          hint: `<strong>${reportNumber(totals[config.totalKey])}</strong> ${e(config.entity)}အနက်`,
           tone: "universities",
         })}
         ${reportKpiCard({
@@ -1766,39 +2429,37 @@ async function reportsPage() {
       <div class="rp-grid">
         <section class="rp-panel rp-panel--years">
           <header class="rp-panel__head">
-            <div><h2>လက်ရှိ စစ်တမ်းကာလများ</h2><p>သက်ဝင်နေသော နှစ်များနှင့် တက္ကသိုလ် တင်သွင်းမှု တိုးတက်မှု</p></div>
+            <div><h2>လက်ရှိ စစ်တမ်းကာလများ</h2><p>သက်ဝင်နေသော နှစ်များနှင့် ${e(config.entity)} တင်သွင်းမှု တိုးတက်မှု</p></div>
             <span class="rp-count">${reportNumber(activeYears.length)} ကာလ</span>
           </header>
           ${
             activeYears.length
-              ? `<div class="rp-year-list">${activeYears.map((year) => reportYearCard(year, totals.universities)).join("")}</div>`
-              : `<div class="rp-empty rp-empty--compact"><span class="rp-empty__icon" aria-hidden="true">${REPORT_ICONS.years}</span><h3>လက်ရှိ စစ်တမ်းကာလ မရှိပါ</h3><p>စစ်တမ်းကာလတစ်ခုကို ထုတ်ဝေပြီးပါက ၎င်း၏ တက္ကသိုလ် တင်သွင်းမှု အခြေအနေ ဤနေရာတွင် ပေါ်လာပါမည်။</p><a class="button" href="/dashboard/forms">စစ်တမ်းများ ကြည့်ရန်</a></div>`
+              ? `<div class="rp-year-list">${activeYears.map((year) => reportYearCard(year, totals[config.totalKey], config)).join("")}</div>`
+              : `<div class="rp-empty rp-empty--compact"><span class="rp-empty__icon" aria-hidden="true">${REPORT_ICONS.years}</span><h3>လက်ရှိ စစ်တမ်းကာလ မရှိပါ</h3><p>စစ်တမ်းကာလတစ်ခုကို ထုတ်ဝေပြီးပါက ၎င်း၏ ${e(config.entity)} တင်သွင်းမှု အခြေအနေ ဤနေရာတွင် ပေါ်လာပါမည်။</p><a class="button" href="/dashboard/forms">စစ်တမ်းများ ကြည့်ရန်</a></div>`
           }
         </section>
         <section class="rp-panel rp-panel--recent">
           <header class="rp-panel__head">
-            <div><h2>မကြာသေးမီ တင်သွင်းမှုများ</h2><p>လက်ရှိ စစ်တမ်းကာလများအတွင်း နောက်ဆုံး တင်သွင်းခဲ့သည့် တက္ကသိုလ်များ</p></div>
+            <div><h2>မကြာသေးမီ တင်သွင်းမှုများ</h2><p>လက်ရှိ စစ်တမ်းကာလများအတွင်း နောက်ဆုံး တင်သွင်းခဲ့သည့် ${e(config.entityPlural)}</p></div>
             <span class="rp-count">${reportNumber(recentReports.length)} ခု</span>
           </header>
           ${
             recentReports.length
-              ? `<div class="rp-recent-list">${recentReports.map(reportRecentCard).join("")}</div>`
-              : `<div class="rp-empty rp-empty--compact"><span class="rp-empty__icon" aria-hidden="true">${REPORT_ICONS.reports}</span><h3>တင်သွင်းမှု မရှိသေးပါ</h3><p>တက္ကသိုလ်များ တင်သွင်းပြီးပါက နောက်ဆုံး အစီရင်ခံစာများ ဤနေရာတွင် ပေါ်လာပါမည်။</p></div>`
+              ? `<div class="rp-recent-list">${recentReports.map((report) => reportRecentCard(report, config)).join("")}</div>`
+              : `<div class="rp-empty rp-empty--compact"><span class="rp-empty__icon" aria-hidden="true">${REPORT_ICONS.reports}</span><h3>တင်သွင်းမှု မရှိသေးပါ</h3><p>${e(config.entityPlural)} တင်သွင်းပြီးပါက နောက်ဆုံး အစီရင်ခံစာများ ဤနေရာတွင် ပေါ်လာပါမည်။</p></div>`
           }
         </section>
       </div>`
-    : `<div class="notice error" role="alert">${e(activityError?.message || "တက္ကသိုလ် အစီရင်ခံစာ အချက်အလက်များကို ဖွင့်မရပါ။")}</div><button class="button" id="retry-activity" type="button">တက္ကသိုလ် အစီရင်ခံစာများ ထပ်စမ်းကြည့်ရန်</button>`;
+    : `<div class="notice error" role="alert">${e(activityError?.message || `${config.entity} အစီရင်ခံစာ အချက်အလက်များကို ဖွင့်မရပါ။`)}</div><button class="button" id="retry-activity" type="button">${e(config.entity)} အစီရင်ခံစာများ ထပ်စမ်းကြည့်ရန်</button>`;
 
   setContent(
     `<section class="rp-stage">
       <div class="rp-intro">
         <div>
-          <span class="rp-eyebrow"><i aria-hidden="true"></i>တက္ကသိုလ် စစ်တမ်း လုပ်ငန်းစဉ်</span>
+          <span class="rp-eyebrow"><i aria-hidden="true"></i>${e(config.entity)} စစ်တမ်း လုပ်ငန်းစဉ်</span>
           <h2>လက်ရှိ စစ်တမ်းကာလများ၏ တင်သွင်းမှု အခြေအနေ</h2>
-          <p>သက်ဝင်နေသော စစ်တမ်းကာလများတွင် တက္ကသိုလ်များ၏ တင်သွင်းမှုကို တစ်နေရာတည်းမှ စောင့်ကြည့်ပါ။</p>
+          <p>သက်ဝင်နေသော စစ်တမ်းကာလများတွင် ${e(config.entityPlural)}၏ တင်သွင်းမှုကို တစ်နေရာတည်းမှ စောင့်ကြည့်ပါ။</p>
           <div class="rp-intro__facts">
-            <span><strong>${reportNumber(totals.questions)}</strong> မေးခွန်း</span>
-            <span><strong>${reportNumber(totals.answers)}</strong> အဖြေ</span>
             <span><strong>${reportNumber(totals.reports_expected)}</strong> မျှော်မှန်း အစီရင်ခံစာ</span>
           </div>
         </div>
@@ -1808,74 +2469,38 @@ async function reportsPage() {
         </div>
       </div>
       ${activityPanel}
-      ${
-        data
-          ? reportLegacySection(p, data, formData, users)
-          : `<div class="notice error" role="alert">${e(legacyError?.message || "အသေးစိတ် တင်သွင်းမှု မှတ်တမ်းများကို ဖွင့်မရပါ။")}</div><button class="button" id="retry-legacy" type="button">အသေးစိတ် မှတ်တမ်းများ ထပ်စမ်းကြည့်ရန်</button>`
-      }
     </section>`,
   );
 
   const bindRefresh = (selector) => {
     const node = document.querySelector(selector);
-    if (node) node.onclick = () => busy(node, reportsPage);
+    if (node) node.onclick = () => busy(node, () => reportsPage(config));
   };
   bindRefresh("#retry-activity");
-  bindRefresh("#retry-legacy");
   document.querySelectorAll("[data-report-state]").forEach((button) => {
     button.onclick = () =>
       busy(button, async () => {
         try {
           const report = await api(
-            `/reports/university/${Number(button.dataset.reportYear)}/universities?state=${encodeURIComponent(button.dataset.reportState)}`,
+            config.rosterApi(
+              Number(button.dataset.reportYear),
+              button.dataset.reportState,
+            ),
           );
-          reportUniversityModal(report);
+          reportRosterModal(report, config);
         } catch (error) {
           toast(error.message);
         }
       });
   });
+}
 
-  if (data) {
-    bindFilters(load);
-    document.querySelectorAll("[data-view-submission]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          busy(b, async () => {
-            try {
-              const detail = await api(
-                "/submissions/" + b.dataset.viewSubmission,
-              );
-              modal(
-                "တင်သွင်းမှု #" + detail.id,
-                `<p class="editor-meta">${e(detail.form)} · ဗားရှင်း ${detail.version} · ${e(detail.username)}</p>${detail.sections.map((s) => `<section class="stack"><h3>${e(s.title)}</h3>${s.answers.map((a) => `<div class="notice"><strong>${e(a.title)}</strong><p class="source-text">${["file", "image"].includes(a.kind) && a.value?.file_id ? `<a class="table-link" href="/api/files/${Number(a.value.file_id)}">${e(a.display_value || "ပူးတွဲဖိုင် ဒေါင်းလုဒ်လုပ်ရန်")} ${arrowIcon}</a>` : e(a.display_value ?? valueText(a.value))}</p></div>`).join("")}</section>`).join("")}`,
-              );
-            } catch (error) {
-              toast(error.message);
-            }
-          })),
-    );
-    document.querySelectorAll("[data-review]").forEach(
-      (b) =>
-        (b.onclick = () =>
-          busy(b, async () => {
-            const ids = [
-              ...document.querySelectorAll("[data-select-submission]:checked"),
-            ].map((c) => Number(c.dataset.selectSubmission));
-            if (!ids.length) return toast("အနည်းဆုံး တင်သွင်းမှုတစ်ခု ရွေးပါ။");
-            try {
-              await api("/submissions/review", {
-                method: "POST",
-                body: { ids, status: b.dataset.review },
-              });
-              toast("စစ်ဆေးမှု ရလဒ် သိမ်းဆည်းပြီးပါပြီ။");
-              load();
-            } catch (error) {
-              toast(error.message);
-            }
-          })),
-    );
-  }
+async function universityReportsPage() {
+  await reportsPage(UNIVERSITY_REPORT_CONFIG);
+}
+
+async function ministryReportsPage() {
+  await reportsPage(MINISTRY_REPORT_CONFIG);
 }
 
 function themeOption(value, name, description) {
@@ -2058,8 +2683,13 @@ async function load() {
     forms: () => safeLoad(formsPage, "စစ်တမ်းများ"),
     departments: () => safeLoad(departments, "တက္ကသိုလ်များ"),
     ministries: () => safeLoad(ministries, "ဝန်ကြီးဌာနများ"),
-    submissions: () => safeLoad(reportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
-    reports: () => safeLoad(reportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
+    submissions: () => safeLoad(universityReportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
+    reports: () => safeLoad(universityReportsPage, "တက္ကသိုလ် အစီရင်ခံစာများ"),
+    ministry_reports: () => safeLoad(ministryReportsPage, "ဝန်ကြီးဌာန အစီရင်ခံစာများ"),
+    university_answers: () => safeLoad(universityAnswersPage, "တက္ကသိုလ် အဖြေများ"),
+    ministry_answers: () => safeLoad(ministryAnswersPage, "ဝန်ကြီးဌာန အဖြေများ"),
+    question_answer_rates: () => safeLoad(questionAnswerRatesPage, "မေးခွန်း ဖြေဆိုနှုန်းများ"),
+    ministry_question_answer_rates: () => safeLoad(ministryQuestionAnswerRatesPage, "ဝန်ကြီးဌာန မေးခွန်း ဖြေဆိုနှုန်းများ"),
     settings: () => safeLoad(settings, "ဆက်တင်များ"),
     editor: () =>
       safeLoad(
@@ -2092,6 +2722,11 @@ const workspacePages = {
   "/dashboard/departments": ["departments", "တက္ကသိုလ်များ"],
   "/dashboard/ministries": ["ministries", "ဝန်ကြီးဌာနများ"],
   "/dashboard/reports": ["reports", "တက္ကသိုလ် အစီရင်ခံစာများ"],
+  "/dashboard/reports/ministry": ["ministry_reports", "ဝန်ကြီးဌာန အစီရင်ခံစာများ"],
+  "/dashboard/reports/university-answers": ["university_answers", "တက္ကသိုလ် အဖြေများ"],
+  "/dashboard/reports/ministry-answers": ["ministry_answers", "ဝန်ကြီးဌာန အဖြေများ"],
+  "/dashboard/reports/question-answer-rates": ["question_answer_rates", "မေးခွန်း ဖြေဆိုနှုန်းများ"],
+  "/dashboard/reports/ministry-question-answer-rates": ["ministry_question_answer_rates", "ဝန်ကြီးဌာန မေးခွန်း ဖြေဆိုနှုန်းများ"],
   "/dashboard/settings": ["settings", "ဆက်တင်များ"],
 };
 let navigating = false;
@@ -2109,7 +2744,11 @@ async function renderWorkspacePage() {
   document.querySelector("h1").textContent = target[1];
   document.querySelector(".breadcrumb strong").textContent = target[1];
   document.querySelectorAll(".sidebar nav a").forEach((link) => {
-    if (new URL(link.href).pathname === location.pathname) link.setAttribute("aria-current", "page");
+    const linkPath = new URL(link.href).pathname;
+    const active = linkPath === location.pathname ||
+      (linkPath === "/dashboard/reports" && ["/dashboard/reports/university-answers", "/dashboard/reports/question-answer-rates"].includes(location.pathname)) ||
+      (linkPath === "/dashboard/reports/ministry" && ["/dashboard/reports/ministry-answers", "/dashboard/reports/ministry-question-answer-rates"].includes(location.pathname));
+    if (active) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
   document.body.classList.remove("sidebar-open");

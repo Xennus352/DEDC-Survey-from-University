@@ -22,12 +22,12 @@
     </script>
     <link
       rel="stylesheet"
-      href="/static/css/admin/dashboard.css?v=20261113-overviewmetrics1"
+      href="/static/css/admin/dashboard.css?v=20261114-reports1"
     />
     <script defer src="/static/js/admin-session.js"></script>
     <script
       type="module"
-      src="/static/js/admin/workspace.js?v=20261113-overviewmetrics1"
+      src="/static/js/admin/workspace.js?v=20261114-reports1"
     ></script>
   </head>
   <body
@@ -115,13 +115,14 @@
         အစီရင်ခံစာများ')] %}
         <a
           href="/dashboard{{ '' if key=='overview' else '/'+key }}"
-          {% if page == key or (key == 'forms' and page in ['editor', 'preview']) %}
+          {% if page == key or (key == 'forms' and page in ['editor', 'preview']) or (key == 'reports' and page in ['university_answers', 'question_answer_rates']) %}
           aria-current="page"
           {% endif %}
           title="{{ label }}"
           >{{ symbol(key) }}<span>{{ label }}</span></a
         >
         {% endfor %}
+        <a href="/dashboard/reports/ministry" {% if page in ['ministry_reports','ministry_answers','ministry_question_answer_rates'] %}aria-current="page"{% endif %} title="ဝန်ကြီးဌာန အစီရင်ခံစာများ">{{ symbol('reports') }}<span>ဝန်ကြီးဌာန အစီရင်ခံစာများ</span></a>
       </nav>
       <div class="sidebar-bottom">
         <nav>

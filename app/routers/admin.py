@@ -35,7 +35,9 @@ from app.storage.schema import metadata as persistent_metadata
 from app.models.user import User, UserRole
 from app.portal_auth import hash_password, verify_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
-from app.services import forms, reports, university_reports, workbook
+from app.services import (
+    forms, ministry_reports, reports, university_reports, workbook,
+)
 from app.services.presentation import audit_action, label
 from pydantic import BaseModel, Field, ValidationError
 
@@ -699,6 +701,162 @@ def university_report_roster(
     if roster is None:
         raise HTTPException(404, "Active university survey year not found.")
     return roster
+
+
+@router.get(
+    "/reports/university/{year_id}/universities/{university_id}/answers"
+)
+def university_report_answers(
+    year_id: int,
+    university_id: int,
+    db: Session = Depends(get_db),
+):
+    detail = university_reports.university_answer_detail(
+        db, year_id, university_id
+    )
+    if detail is None:
+        raise HTTPException(404, "University survey answers not found.")
+    return detail
+
+
+@router.get(
+    "/reports/university/{year_id}/universities/{university_id}/answers/export"
+)
+def university_report_answers_export(
+    year_id: int,
+    university_id: int,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from app.services.university_report_export import university_answer_workbook
+
+    content = university_answer_workbook(db, year_id, university_id)
+    if content is None:
+        raise HTTPException(404, "University survey answers not found.")
+    forms.audit(
+        db,
+        admin.id,
+        "university_answers.export",
+        "university",
+        university_id,
+        year_id=year_id,
+    )
+    db.commit()
+    return Response(
+        content,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": (
+                "attachment; filename="
+                f'"dedc-university-answers-{year_id}-{university_id}.xlsx"'
+            ),
+        },
+    )
+
+
+@router.get(
+    "/reports/university/{year_id}/question-answer-rates"
+)
+def university_question_answer_rates(
+    year_id: int,
+    db: Session = Depends(get_db),
+):
+    rates = university_reports.question_answer_rates(db, year_id)
+    if rates is None:
+        raise HTTPException(404, "University question answer rates not found.")
+    return rates
+
+
+@router.get("/reports/ministry")
+def ministry_report_summary(
+    recent_limit: int = Query(8, ge=1, le=25),
+    db: Session = Depends(get_db),
+):
+    return ministry_reports.ministry_activity(db, recent_limit)
+
+
+@router.get("/reports/ministry/{year_id}/ministries")
+def ministry_report_roster(
+    year_id: int,
+    state: str = Query("answered", pattern="^(answered|pending)$"),
+    db: Session = Depends(get_db),
+):
+    roster = ministry_reports.ministry_year_roster(db, year_id, state)
+    if roster is None:
+        raise HTTPException(404, "Active ministry survey year not found.")
+    return roster
+
+
+@router.get(
+    "/reports/ministry/{year_id}/ministries/{ministry_id}/answers"
+)
+def ministry_report_answers(
+    year_id: int,
+    ministry_id: int,
+    db: Session = Depends(get_db),
+):
+    detail = ministry_reports.ministry_answer_detail(
+        db, year_id, ministry_id
+    )
+    if detail is None:
+        raise HTTPException(404, "Ministry survey answers not found.")
+    return detail
+
+
+@router.get(
+    "/reports/ministry/{year_id}/ministries/{ministry_id}/answers/export"
+)
+def ministry_report_answers_export(
+    year_id: int,
+    ministry_id: int,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from app.services.university_report_export import (
+        ministry_answer_workbook,
+    )
+
+    content = ministry_answer_workbook(db, year_id, ministry_id)
+    if content is None:
+        raise HTTPException(404, "Ministry survey answers not found.")
+    forms.audit(
+        db,
+        admin.id,
+        "ministry_answers.export",
+        "ministry",
+        ministry_id,
+        year_id=year_id,
+    )
+    db.commit()
+    return Response(
+        content,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": (
+                "attachment; filename="
+                f'"dedc-ministry-answers-{year_id}-{ministry_id}.xlsx"'
+            ),
+        },
+    )
+
+
+@router.get(
+    "/reports/ministry/{year_id}/question-answer-rates"
+)
+def ministry_question_answer_rates(
+    year_id: int,
+    db: Session = Depends(get_db),
+):
+    rates = ministry_reports.ministry_question_answer_rates(db, year_id)
+    if rates is None:
+        raise HTTPException(404, "Ministry question answer rates not found.")
+    return rates
 
 
 @router.get("/submissions/{submission_id}")

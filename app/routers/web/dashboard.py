@@ -46,6 +46,86 @@ def preview(
     )
 
 
+@router.get("/reports/university-answers", name="university_answers")
+def university_answers(
+    request: Request, admin: AdminIdentity = Depends(require_admin)
+):
+    return render(
+        request,
+        "dashboard",
+        request.cookies[COOKIE_NAME],
+        username=admin.username,
+        active_tab="years",
+        page="university_answers",
+        page_title="တက္ကသိုလ် အဖြေများ",
+    )
+
+
+@router.get(
+    "/reports/question-answer-rates", name="question_answer_rates"
+)
+def question_answer_rates(
+    request: Request, admin: AdminIdentity = Depends(require_admin)
+):
+    return render(
+        request,
+        "dashboard",
+        request.cookies[COOKIE_NAME],
+        username=admin.username,
+        active_tab="years",
+        page="question_answer_rates",
+        page_title="မေးခွန်း ဖြေဆိုနှုန်းများ",
+    )
+
+
+@router.get("/reports/ministry", name="ministry_reports")
+def ministry_reports(
+    request: Request, admin: AdminIdentity = Depends(require_admin)
+):
+    return render(
+        request,
+        "dashboard",
+        request.cookies[COOKIE_NAME],
+        username=admin.username,
+        active_tab="years",
+        page="ministry_reports",
+        page_title="ဝန်ကြီးဌာန အစီရင်ခံစာများ",
+    )
+
+
+@router.get("/reports/ministry-answers", name="ministry_answers")
+def ministry_answers(
+    request: Request, admin: AdminIdentity = Depends(require_admin)
+):
+    return render(
+        request,
+        "dashboard",
+        request.cookies[COOKIE_NAME],
+        username=admin.username,
+        active_tab="years",
+        page="ministry_answers",
+        page_title="ဝန်ကြီးဌာန အဖြေများ",
+    )
+
+
+@router.get(
+    "/reports/ministry-question-answer-rates",
+    name="ministry_question_answer_rates",
+)
+def ministry_question_answer_rates(
+    request: Request, admin: AdminIdentity = Depends(require_admin)
+):
+    return render(
+        request,
+        "dashboard",
+        request.cookies[COOKIE_NAME],
+        username=admin.username,
+        active_tab="years",
+        page="ministry_question_answer_rates",
+        page_title="ဝန်ကြီးဌာန မေးခွန်း ဖြေဆိုနှုန်းများ",
+    )
+
+
 @router.get("/{page}", name="dashboard_page")
 def page(page: str, request: Request, admin: AdminIdentity = Depends(require_admin)):
     from fastapi import HTTPException

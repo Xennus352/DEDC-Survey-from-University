@@ -34,6 +34,7 @@ from app.schemas.survey_builder import (
     YearInput,
     YearListParams,
     YearOutput,
+    YearStatusUpdate,
 )
 
 router = APIRouter(prefix="/api/admin/survey", tags=["survey builder"])
@@ -155,6 +156,21 @@ def update_year(
         status=year.status,
         label=label,
     )
+
+
+@router.patch("/years/{yID}/status")
+def update_year_status(
+    yID: int,
+    data: YearStatusUpdate,
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Publish or unpublish a year without changing yearFrom/yearTo."""
+    year = crud.update_year_status(db, yID, data.status)
+    if not year:
+        raise HTTPException(404, "Year not found")
+    db.commit()
+    return {"yID": year.yID, "status": year.status}
 
 
 @router.delete("/years/{yID}", status_code=204)

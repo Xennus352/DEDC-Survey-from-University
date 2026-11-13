@@ -26,6 +26,14 @@ class YearInput(BaseModel):
         return self
 
 
+class YearStatusUpdate(BaseModel):
+    """Status-only update that must not rewrite the stored survey period."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: YearStatus = Field(description="0=draft, 1=published")
+
+
 class YearOutput(BaseModel):
     """Output for a year period (from `year` table)."""
     model_config = ConfigDict(from_attributes=True)

@@ -106,6 +106,7 @@ class PortalFixture(unittest.IsolatedAsyncioTestCase):
         target_app=None,
         raw_body=None,
         content_type=None,
+        decode=True,
     ):
         parsed = urlsplit(path)
         path = parsed.path
@@ -154,8 +155,10 @@ class PortalFixture(unittest.IsolatedAsyncioTestCase):
         for key, value in start["headers"]:
             if key == b"set-cookie":
                 self.cookies.load(value.decode())
-        text = b"".join(m.get("body", b"") for m in messages[1:]).decode()
-        return start["status"], dict(start["headers"]), text
+        body = b"".join(m.get("body", b"") for m in messages[1:])
+        if not decode:
+            return start["status"], dict(start["headers"]), body
+        return start["status"], dict(start["headers"]), body.decode()
 
     async def csrf(self):
         status, _, body = await self.request()

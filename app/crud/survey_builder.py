@@ -118,6 +118,21 @@ def update_year(db: Session, yID: int, data: YearInput) -> Any:
     return conn.execute(select(uni_schema.year).where(uni_schema.year.c.yID == yID)).first()
 
 
+def update_year_status(db: Session, yID: int, status: int) -> Any:
+    """Update only a year's published status, preserving its date range."""
+    conn = _get_native_connection(db)
+    result = conn.execute(
+        uni_schema.year.update()
+        .where(uni_schema.year.c.yID == yID)
+        .values(status=status)
+    )
+    if result.rowcount == 0:
+        return None
+    return conn.execute(
+        select(uni_schema.year).where(uni_schema.year.c.yID == yID)
+    ).first()
+
+
 def delete_year(db: Session, yID: int) -> bool:
     """Delete a year period and everything under it from `year` table.
 
