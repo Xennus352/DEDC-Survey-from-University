@@ -219,10 +219,10 @@ export async function busy(button, task) {
     button.removeAttribute("aria-busy");
   }
 }
-export function pagination(total, reload) {
+export function pagination(total, sizeOverride) {
   const params = new URLSearchParams(location.search);
   const p = Number(params.get("page") || 1),
-    size = Number(params.get("limit") || 25),
+    size = Number(params.get("limit") || sizeOverride || 25),
     count = Math.max(1, Math.ceil(total / size));
   const first = Math.max(1, Math.min(p - 2, count - 4));
   const last = Math.min(count, first + 4);

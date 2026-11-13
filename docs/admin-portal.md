@@ -52,6 +52,19 @@ Run the portal checks with `.venv/bin/python -m unittest discover -s tests -v`.
 
 ## Department directory and appearance
 
+The dashboard Settings page shows one full-width section at a time; its section
+buttons switch between account security, administrator management, and appearance.
+An administrator can change their own password by entering the current password,
+which revokes that account's other sessions. The administrator directory supports
+search, pagination, creation, editing,
+deactivation, password resets for other administrators, and deletion. An account
+with survey or audit history must be deactivated to preserve those records;
+the current administrator cannot deactivate or delete their own account. The
+separate Users page remains available for respondent accounts. These controls
+use the authenticated `/api/admin/administrators` and `/api/admin/account/password`
+endpoints and the dashboard's CSRF protection. New accounts start active; the
+status control appears when editing an existing account.
+
 The Department directory combines universities and ministries in one searchable
 list. **Add department** opens a single dialog: **Type** first, then **Name**.
 Both fields are visible immediately. Choosing a type updates the name label;
@@ -60,8 +73,8 @@ organization type fixed. Duplicate-name errors stay inside the same dialog.
 
 Admin colors come from the homepage palette in `static/css/base/tokens.css`
 (`--home-*`). The home page and workspace share the same primary blue,
-`#1556a6`. Dashboard routes use `static/css/admin/dashboard.css`: white navigation,
-a neutral working canvas, compact controls, and task-specific layouts. Login and
+`#1556a6`. Dashboard routes use `static/css/admin/dashboard.css`: navy navigation,
+a pale blue-gray working canvas, compact controls, and task-specific layouts. Login and
 respondent pages keep `workspace.css`. Report and workbook export options are
 grouped in menus; advanced report filters and audit details remain expandable.
 
@@ -73,6 +86,12 @@ screenshots under `/tmp/dedc-redesign-review/after`. Use `--interactions` to che
 only workflows, or `--before` to capture a visual baseline. The configured MySQL
 database is never used. The workbook portion uses the existing local reference
 file when available.
+
+For the Settings page alone, run
+`METADATA_STORAGE=sql uv run --with playwright python scripts/check_dashboard_redesign.py --settings-only`.
+This checks `/`, `/portal`, `/dashboard`, and Settings at four viewport widths,
+then exercises administrator pagination, create/edit/delete, and the current
+account's password change against temporary data.
 
 ## Dashboard recovery checks
 

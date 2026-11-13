@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import delete
 
 from app.config import settings
 from app.models.user import User, UserRole
@@ -29,3 +30,12 @@ def authenticate_account(db: Session, username: str, password: str) -> User | No
     account=db.query(User).filter(User.username==username,User.is_active.is_(True)).first()
     password_hash=account.password_hash if account else ('pbkdf2_sha256$600000$dummy-salt$'+'0'*64)
     return account if verify_password(password,password_hash) else None
+
+
+def delete_account(db: Session, account: User) -> None:
+    """Delete from both stores; CompactSession only upserts surviving native users."""
+    native = getattr(db, "native", None)
+    if native is not None:
+        from app.storage.schema import user as native_user
+        native.execute(delete(native_user).where(native_user.c.userId == account.id))
+    db.delete(account)

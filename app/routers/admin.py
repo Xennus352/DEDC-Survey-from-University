@@ -33,7 +33,7 @@ from app.models.forms import (
 )
 from app.storage.schema import metadata as persistent_metadata
 from app.models.user import User, UserRole
-from app.portal_auth import hash_password
+from app.portal_auth import hash_password, verify_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
 from app.services import forms, reports, university_reports, workbook
 from app.services.presentation import audit_action, label
@@ -881,6 +881,177 @@ class UserInput(BaseModel):
     ministry_id: int | None = None
 
 
+class AdministratorInput(BaseModel):
+    username: str = Field(min_length=1, max_length=100)
+    is_active: bool = True
+    password: str | None = Field(default=None, min_length=8, max_length=1024)
+
+
+class PasswordChangeInput(BaseModel):
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=8, max_length=1024)
+
+
+def administrator_role(db: Session) -> UserRole:
+    from app.config import settings
+
+    role = db.query(UserRole).filter(UserRole.name == settings.ADMIN_ROLE_NAME).first()
+    if not role:
+        raise HTTPException(409, "Administrator role is not configured.")
+    return role
+
+
+def administrator_payload(account: User) -> dict:
+    return {
+        "id": account.id,
+        "username": account.username,
+        "is_active": account.is_active,
+        "created_at": account.created_at.isoformat(),
+    }
+
+
+@router.get("/administrators")
+def list_administrators(
+    search: str = Query("", max_length=100),
+    page: int = Query(1, ge=1),
+    limit: int = Query(25, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    query = db.query(User).filter(User.role_id == administrator_role(db).id)
+    if search.strip():
+        query = query.filter(User.username.contains(search.strip()))
+    return {
+        "total": query.count(),
+        "items": [administrator_payload(account) for account in
+                  query.order_by(User.id.desc()).offset((page - 1) * limit).limit(limit)],
+    }
+
+
+@router.get("/administrators/{administrator_id}")
+def get_administrator(administrator_id: int, db: Session = Depends(get_db)):
+    account = db.query(User).filter(
+        User.id == administrator_id, User.role_id == administrator_role(db).id
+    ).first()
+    if not account:
+        raise HTTPException(404, "Administrator not found.")
+    return administrator_payload(account)
+
+
+@router.post("/administrators", status_code=201)
+def create_administrator(
+    data: AdministratorInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    username = data.username.strip()
+    if not username or not data.password:
+        raise HTTPException(422, "Enter a username and a password of at least 8 characters.")
+    if db.query(User).filter(User.username == username).first():
+        raise HTTPException(409, "Username already exists.")
+    account = User(
+        username=username, role_id=administrator_role(db).id,
+        is_active=data.is_active, password_hash=hash_password(data.password),
+    )
+    db.add(account)
+    db.flush()
+    forms.audit(db, admin.id, "administrator.create", "user", account.id,
+                username=username, is_active=data.is_active)
+    db.commit()
+    return administrator_payload(account)
+
+
+@router.put("/administrators/{administrator_id}")
+def update_administrator(
+    administrator_id: int,
+    data: AdministratorInput,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    account = db.query(User).filter(
+        User.id == administrator_id, User.role_id == administrator_role(db).id
+    ).with_for_update().first()
+    if not account:
+        raise HTTPException(404, "Administrator not found.")
+    username = data.username.strip()
+    if not username:
+        raise HTTPException(422, "Enter a username.")
+    if administrator_id == admin.id and not data.is_active:
+        raise HTTPException(409, "You cannot deactivate your own account.")
+    if administrator_id == admin.id and data.password:
+        raise HTTPException(409, "Use the current-password form to change your own password.")
+    if db.query(User).filter(User.username == username, User.id != administrator_id).first():
+        raise HTTPException(409, "Username already exists.")
+    account.username = username
+    account.is_active = data.is_active
+    if data.password:
+        account.password_hash = hash_password(data.password)
+        from app.crud import admin_session
+        admin_session.revoke_user_sessions(db, administrator_id)
+    elif not data.is_active:
+        from app.crud import admin_session
+        admin_session.revoke_user_sessions(db, administrator_id)
+    forms.audit(db, admin.id, "administrator.edit", "user", administrator_id,
+                username=username, is_active=data.is_active, password_reset=bool(data.password))
+    db.commit()
+    return administrator_payload(account)
+
+
+@router.delete("/administrators/{administrator_id}", status_code=204)
+def delete_administrator(
+    administrator_id: int,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from app.models.forms import AnswerFile
+
+    account = db.query(User).filter(
+        User.id == administrator_id, User.role_id == administrator_role(db).id
+    ).with_for_update().first()
+    if not account:
+        raise HTTPException(404, "Administrator not found.")
+    if administrator_id == admin.id:
+        raise HTTPException(409, "You cannot delete your own account.")
+    references = (
+        db.query(Submission.id).filter(Submission.user_id == administrator_id).first()
+        or db.query(WorkbookImport.id).filter(WorkbookImport.actor_id == administrator_id).first()
+        or db.query(AnswerFile.id).filter(AnswerFile.user_id == administrator_id).first()
+        or db.query(AuditLog.id).filter(AuditLog.actor_id == administrator_id).first()
+    )
+    if references:
+        raise HTTPException(409, "This administrator has historical records. Deactivate the account instead.")
+    from app.crud import admin_session, user
+    admin_session.revoke_user_sessions(db, administrator_id)
+    username = account.username
+    user.delete_account(db, account)
+    forms.audit(db, admin.id, "administrator.delete", "user", administrator_id,
+                username=username)
+    db.commit()
+
+
+@router.post("/account/password")
+def change_own_password(
+    data: PasswordChangeInput,
+    request: Request,
+    admin: AdminIdentity = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    from app.crud import admin_session
+    from app.admin_auth import COOKIE_NAME
+
+    account = db.query(User).filter(User.id == admin.id).with_for_update().first()
+    if not account or not verify_password(data.current_password, account.password_hash):
+        raise HTTPException(400, "Current password is incorrect.")
+    if data.current_password == data.new_password:
+        raise HTTPException(422, "Choose a different new password.")
+    account.password_hash = hash_password(data.new_password)
+    admin_session.revoke_user_sessions(
+        db, admin.id, keep_token=request.cookies.get(COOKIE_NAME, "")
+    )
+    forms.audit(db, admin.id, "account.password.change", "user", admin.id)
+    db.commit()
+    return {"changed": True}
+
+
 @router.get("/users")
 def users(
     search: str = "",
@@ -965,12 +1136,15 @@ def edit_user(
         not data.is_active or role.name != settings.ADMIN_ROLE_NAME
     ):
         raise HTTPException(409, "You cannot remove your own administrator access.")
+    if account.id == admin.id and data.password:
+        raise HTTPException(409, "Use Settings to change your own password.")
     if (
         db.query(User)
         .filter(User.username == data.username, User.id != user_id)
         .first()
     ):
         raise HTTPException(409, "Username already exists.")
+    old_role_id = account.role_id
     account.username = data.username
     account.role_id = data.role_id
     account.is_active = data.is_active
@@ -978,6 +1152,9 @@ def edit_user(
     account.ministry_id = data.ministry_id
     if data.password:
         account.password_hash = hash_password(data.password)
+    if data.password or not data.is_active or data.role_id != old_role_id:
+        from app.crud import admin_session
+        admin_session.revoke_user_sessions(db, user_id)
     forms.audit(
         db,
         admin.id,

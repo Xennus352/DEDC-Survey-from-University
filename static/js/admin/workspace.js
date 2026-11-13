@@ -24,7 +24,7 @@ import {
   pagination,
   bindFilters,
   searchFilter,
-} from "./ui.js?v=20261112-orgs2";
+} from "./ui.js?v=20261113-settings2";
 
 // Dynamic imports with error boundaries
 let loadEditor, loadPreview, loadImport;
@@ -78,10 +78,20 @@ if (topbarDate) {
   topbarDate.dateTime = today.toISOString().slice(0, 10);
   topbarDate.textContent = new Intl.DateTimeFormat("my-MM", { dateStyle: "medium" }).format(today);
 }
-document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+function applyTheme(theme) {
+  const next = theme === "dark" ? "dark" : "light";
   document.documentElement.dataset.theme = next;
   try { localStorage.setItem("dedc-theme", next); } catch {}
+  document.querySelectorAll('input[name="theme-setting"]').forEach((input) => {
+    input.checked = input.value === next;
+  });
+  const current = document.querySelector("#theme-current-label");
+  if (current) current.textContent = next === "dark" ? "အမှောင်" : "အလင်း";
+  const status = document.querySelector("#theme-status");
+  if (status) status.textContent = `${next === "dark" ? "အမှောင်" : "အလင်း"} အပြင်အဆင်ကို ဤဘရောက်ဇာတွင် သိမ်းဆည်းထားပါသည်။`;
+}
+document.querySelector("[data-theme-toggle]")?.addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 });
 
 try {
@@ -744,11 +754,11 @@ async function overview() {
     actions(`<a class="button" href="/dashboard/reports">အစီရင်ခံစာ ထုတ်ယူရန်</a><button class="button primary" id="create-action">စစ်တမ်း အသစ်ဖန်တီးရန်</button>`);
     const directory = data.directory_stats;
     const metricCards = [
-      ["University မေးခွန်း", directory.university_questions, "ထုတ်ဝေထားသော စစ်တမ်း", "/dashboard/forms?org_type=university"],
-      ["Ministry မေးခွန်း", directory.ministry_questions, "ထုတ်ဝေထားသော စစ်တမ်း", "/dashboard/forms?org_type=ministry"],
-      ["University အရေအတွက်", directory.universities, "အဖွဲ့အစည်း", "/dashboard/departments"],
-      ["Ministry အရေအတွက်", directory.ministries, "အဖွဲ့အစည်း", "/dashboard/ministries"],
-    ].map(([label, value, kind, href]) => `<a class="stat" href="${href}"><span class="stat-kind">${kind}</span><span class="stat-label">${label}</span><strong>${value.toLocaleString()}</strong><span class="stat-cta" aria-hidden="true">${arrowIcon}</span></a>`).join("");
+      ["University မေးခွန်း", directory.university_questions, "ထုတ်ဝေထားသော စစ်တမ်း", "/dashboard/forms?org_type=university", SURVEY_ICONS.questions],
+      ["Ministry မေးခွန်း", directory.ministry_questions, "ထုတ်ဝေထားသော စစ်တမ်း", "/dashboard/forms?org_type=ministry", SURVEY_ICONS.questions],
+      ["University အရေအတွက်", directory.universities, "အဖွဲ့အစည်း", "/dashboard/departments", SURVEY_ICONS.building],
+      ["Ministry အရေအတွက်", directory.ministries, "အဖွဲ့အစည်း", "/dashboard/ministries", SURVEY_ICONS.landmark],
+    ].map(([label, value, kind, href, icon]) => `<a class="sf-kpi overview-metric" href="${href}"><span class="sf-kpi__icon" aria-hidden="true">${icon}</span><span class="sf-kpi__body"><strong>${value.toLocaleString()}</strong><span class="sf-kpi__label">${label}</span><small class="sf-kpi__hint">${kind}</small></span></a>`).join("");
     const shortcutLinks = [
       ["စစ်တမ်းများ", "/dashboard/forms"],
       ["အလုပ်စာအုပ် တင်သွင်းရန်", "/dashboard/data"],
@@ -1916,14 +1926,14 @@ async function usersPage() {
   const edit = (u) => {
     const dialog = modal(
       u ? "အသုံးပြုသူ ပြင်ဆင်ရန်" : "အသုံးပြုသူ ထည့်ရန်",
-      `<form id="user-form" class="field-stack"><label>အသုံးပြုသူအမည်<input name="username" required maxlength="100" autocomplete="off" value="${e(u?.username || "")}"></label><label><span id="user-role-label">အခန်းကဏ္ဍ</span><select name="role_id" aria-labelledby="user-role-label">${data.roles.map((r) => `<option value="${r.id}" ${u?.role_id === r.id ? "selected" : ""}>${e(r.name)}</option>`).join("")}</select></label><label>${u ? "စကားဝှက်အသစ် (မပြောင်းလိုပါက ဗလာထားပါ)" : "စကားဝှက်"}<input type="password" name="password" minlength="8" autocomplete="new-password" ${u ? "" : "required"}></label><label class="check-label"><input type="checkbox" name="is_active" ${u?.is_active !== false ? "checked" : ""}>အကောင့် အသုံးပြုနိုင်သည်</label><div class="dialog-actions"><button class="button primary" type="submit">အသုံးပြုသူ သိမ်းဆည်းရန်</button></div></form>`,
+      `<form id="user-form" class="field-stack"><label>အသုံးပြုသူအမည်<input name="username" required maxlength="100" autocomplete="off" value="${e(u?.username || "")}"></label><label><span id="user-role-label">အခန်းကဏ္ဍ</span><select name="role_id" aria-labelledby="user-role-label">${data.roles.map((r) => `<option value="${r.id}" ${u?.role_id === r.id ? "selected" : ""}>${e(r.name)}</option>`).join("")}</select></label><label>${u ? "စကားဝှက်အသစ် (မပြောင်းလိုပါက ဗလာထားပါ)" : "စကားဝှက်"}<input type="password" name="password" minlength="8" autocomplete="new-password" ${u ? "" : "required"}></label>${u ? `<label class="check-label"><input type="checkbox" name="is_active" ${u.is_active ? "checked" : ""}>အကောင့် အသုံးပြုနိုင်သည်</label>` : ""}<div class="dialog-actions"><button class="button primary" type="submit">အသုံးပြုသူ သိမ်းဆည်းရန်</button></div></form>`,
     );
     document.querySelector("#user-form").onsubmit = (event) => {
       event.preventDefault();
       busy(event.submitter, async () => {
         const values = Object.fromEntries(new FormData(event.target));
         values.role_id = Number(values.role_id);
-        values.is_active = event.target.is_active.checked;
+        values.is_active = u ? event.target.elements.is_active.checked : true;
         if (!values.password) delete values.password;
         try {
           await api("/users" + (u ? "/" + u.id : ""), {
@@ -2004,12 +2014,46 @@ async function audit() {
   bindFilters(load);
 }
 
+function themeOption(value, name, description) {
+  return `<label class="settings-theme-option">
+    <input class="sr-only" type="radio" name="theme-setting" value="${value}">
+    <span class="settings-theme-preview settings-theme-preview--${value}" aria-hidden="true">
+      <span class="settings-theme-preview__rail"><span class="settings-theme-preview__mark"></span><span class="settings-theme-preview__nav"></span><span class="settings-theme-preview__nav"></span><span class="settings-theme-preview__nav"></span></span>
+      <span class="settings-theme-preview__workspace"><span class="settings-theme-preview__topbar"></span><span class="settings-theme-preview__heading"></span><span class="settings-theme-preview__surface"><span></span><span></span><span></span></span></span>
+    </span>
+    <span class="settings-theme-option__copy"><span><strong>${name}</strong><small>${description}</small></span><span class="settings-theme-option__check" aria-hidden="true"></span></span>
+  </label>`;
+}
+
 async function settings() {
-  describe("သင့်အကောင့်နှင့် အလုပ်ခွင် ဆက်တင်များ။");
+  describe("သင့်အကောင့်ကို ကာကွယ်ပြီး စီမံခန့်ခွဲသူများ၏ အသုံးပြုခွင့်ကို စီမံပါ။");
+  const params = new URLSearchParams(location.search);
+  const pageSize = Number(params.get("limit") || 10);
+  params.set("limit", String(pageSize));
+  let user, directory;
   try {
-    const user = await api("/session");
+    [user, directory] = await Promise.all([
+      api("/session"), api("/administrators?" + params),
+    ]);
+    const pageNumber = Number(params.get("page") || 1);
+    const lastPage = Math.max(1, Math.ceil(directory.total / pageSize));
+    if (pageNumber > lastPage) {
+      params.set("page", String(lastPage));
+      history.replaceState({}, "", `${location.pathname}?${params}${location.hash}`);
+      return settings();
+    }
+    const rows = directory.items.map((account) =>
+      `<tr><td><div class="user-identity"><span class="avatar" aria-hidden="true">${e(account.username.slice(0, 1).toUpperCase())}</span><div><strong>${e(account.username)}</strong><small>#${account.id}${account.id === user.id ? " · သင်" : ""}</small></div></div></td><td>${badge(account.is_active ? "active" : "disabled")}</td><td>${date(account.created_at)}</td><td><div class="row-actions"><button class="button small" type="button" data-edit-admin="${account.id}">ပြင်ဆင်ရန်</button>${account.id === user.id ? "" : `<button class="button small danger" type="button" data-delete-admin="${account.id}">ဖျက်ရန်</button>`}</div></td></tr>`,
+    );
+    const mobileRows = directory.items.map((account) =>
+      `<li class="settings-mobile-item"><div class="settings-mobile-item__top"><div class="user-identity"><span class="avatar" aria-hidden="true">${e(account.username.slice(0, 1).toUpperCase())}</span><div><strong>${e(account.username)}</strong><small>#${account.id}${account.id === user.id ? " · သင်" : ""}</small></div></div>${badge(account.is_active ? "active" : "disabled")}</div><div class="settings-mobile-item__foot"><span>${date(account.created_at)}</span><div class="row-actions"><button class="button small" type="button" data-edit-admin="${account.id}">ပြင်ဆင်ရန်</button>${account.id === user.id ? "" : `<button class="button small danger" type="button" data-delete-admin="${account.id}">ဖျက်ရန်</button>`}</div></div></li>`,
+    );
     setContent(
-      `<div class="settings-layout"><nav class="settings-index" aria-label="ဆက်တင် ကဏ္ဍများ"><a href="#appearance">အသွင်အပြင်</a><a href="#account">သင့်အကောင့်</a></nav><div class="settings-sections"><section class="settings-row" id="appearance"><div class="settings-copy"><h2>အသွင်အပြင်</h2><p>ဤစက်ပစ္စည်းပေါ်တွင် အလုပ်ခွင် မည်သို့ပေါ်မည်ကို ရွေးပါ။</p></div><div class="settings-control"><label><span id="theme-setting-label">အလုပ်ခွင် အပြင်အဆင်</span><select id="theme-setting" aria-labelledby="theme-setting-label"><option value="light">အလင်း</option><option value="dark">အမှောင်</option></select></label><p class="field-hint">ရွေးချယ်မှုကို ဤဘရောက်ဇာတွင် သိမ်းဆည်းထားပါသည်။</p></div></section><section class="settings-row" id="account"><div class="settings-copy"><h2>သင့်အကောင့်</h2><p>သင့် စီမံခန့်ခွဲသူ ပရိုဖိုင်နှင့် အသုံးပြုခွင့်။</p></div><div class="settings-control"><div class="account-summary"><span class="avatar" aria-hidden="true">${e(user.username.slice(0,1).toUpperCase())}</span><div><h3>${e(user.username)}</h3><p class="field-hint">စီမံခန့်ခွဲသူ · အသုံးပြုသူ #${user.id}</p></div></div><a class="button" href="/dashboard/users">အကောင့်များ စီမံရန်</a></div></section></div></div>`,
+      `<div class="settings-layout"><div class="settings-index" role="tablist" aria-label="ဆက်တင် ကဏ္ဍများ"><button id="settings-tab-account" type="button" role="tab" aria-controls="account" data-settings-tab="account">သင့်အကောင့်</button><button id="settings-tab-administrators" type="button" role="tab" aria-controls="administrators" data-settings-tab="administrators">စီမံခန့်ခွဲသူများ</button><button id="settings-tab-appearance" type="button" role="tab" aria-controls="appearance" data-settings-tab="appearance">အသွင်အပြင်</button></div><div class="settings-sections">
+        <section class="settings-row" id="account" role="tabpanel" aria-labelledby="settings-tab-account" tabindex="-1"><div class="settings-copy"><h2 id="account-title">သင့်အကောင့်</h2><p>သင့်စကားဝှက်ကို အချိန်မရွေး ပြောင်းလဲနိုင်ပါသည်။</p></div><div class="settings-control"><div class="account-summary"><span class="avatar" aria-hidden="true">${e(user.username.slice(0, 1).toUpperCase())}</span><div><h3>${e(user.username)}</h3><p class="field-hint">စီမံခန့်ခွဲသူ · #${user.id}</p></div></div><form id="password-form" class="settings-form"><label>လက်ရှိ စကားဝှက်<input name="current_password" type="password" required autocomplete="current-password"></label><label>စကားဝှက်အသစ်<input name="new_password" type="password" required minlength="8" maxlength="1024" autocomplete="new-password"><small>အနည်းဆုံး ၈ လုံး အသုံးပြုပါ။</small></label><label>စကားဝှက်အသစ် ထပ်ရိုက်ပါ<input name="confirm_password" type="password" required minlength="8" maxlength="1024" autocomplete="new-password"></label><p class="settings-feedback" id="password-feedback" role="status" aria-live="polite"></p><button class="button primary" type="submit">စကားဝှက် ပြောင်းရန်</button></form></div></section>
+        <section class="settings-row settings-row--wide" id="administrators" role="tabpanel" aria-labelledby="settings-tab-administrators" tabindex="-1"><div class="settings-copy settings-copy--action"><div><h2 id="admins-title">စီမံခန့်ခွဲသူများ</h2><p>အကောင့်အသစ် ထည့်ရန်၊ ပြင်ဆင်ရန်၊ အသုံးပြုခွင့် ပိတ်ရန် သို့မဟုတ် ဖျက်ရန်။ <a class="table-link" href="/dashboard/users">စစ်တမ်းဖြေဆိုသူ အကောင့်များကို စီမံရန်</a></p></div><button class="button primary" id="add-administrator" type="button">စီမံခန့်ခွဲသူ ထည့်ရန်</button></div><form class="filters settings-search" data-filter-form><label class="sr-only" for="admin-search">စီမံခန့်ခွဲသူ ရှာဖွေရန်</label><input id="admin-search" type="search" name="search" placeholder="အမည်ဖြင့် ရှာဖွေရန်…" value="${e(params.get("search") || "")}"><button class="button" type="submit">ရှာဖွေရန်</button><span class="settings-count">${directory.total} ယောက်</span></form>${rows.length ? table(["အကောင့်", "အခြေအနေ", "ဖန်တီးချိန်", ""], rows) + `<ul class="settings-mobile-list">${mobileRows.join("")}</ul>` : empty("စီမံခန့်ခွဲသူ မတွေ့ပါ", params.get("search") ? "ရှာဖွေမှုကို ရှင်းလင်းပြီး ထပ်စမ်းကြည့်ပါ။" : "စီမံခန့်ခွဲသူအသစ် ထည့်နိုင်ပါသည်။", params.get("search") ? button("ရှာဖွေမှု ရှင်းရန်", "/dashboard/settings#administrators") : "")}${pagination(directory.total, pageSize)}</section>
+        <section class="settings-row settings-row--appearance" id="appearance" role="tabpanel" aria-labelledby="settings-tab-appearance" tabindex="-1"><div class="settings-appearance-head"><div><h2 id="appearance-title">အသွင်အပြင်</h2><p>အလုပ်ခွင်အတွက် သင့်မျက်စိနှင့် သင့်တော်သော အရောင်ကို ရွေးပါ။</p></div><p class="settings-appearance-current">လက်ရှိရွေးချယ်မှု <strong id="theme-current-label"></strong></p></div><fieldset class="settings-theme-fieldset"><legend class="sr-only">အလုပ်ခွင် အပြင်အဆင်</legend><div class="settings-theme-choice-group"><p>အလုပ်ခွင် အပြင်အဆင်</p><div class="settings-theme-options">${themeOption("light", "အလင်း", "နေ့ခင်းဘက် အသုံးပြုရန်")}${themeOption("dark", "အမှောင်", "အလင်းနည်းသော နေရာတွင် အသုံးပြုရန်")}</div></div></fieldset><p class="settings-appearance-status" id="theme-status" role="status" aria-live="polite"></p></section>
+      </div></div>`,
     );
   } catch (error) {
     setContent(
@@ -2018,24 +2062,115 @@ async function settings() {
     document.querySelector("#retry").onclick = settings;
     return;
   }
-  const settingLinks = [...document.querySelectorAll('.settings-index a')];
-  function selectSetting(hash) {
-    settingLinks.forEach(link => {
-      if (link.hash === hash) link.setAttribute('aria-current', 'location');
-      else link.removeAttribute('aria-current');
+  const settingTabs = [...document.querySelectorAll('[data-settings-tab]')];
+  function selectSetting(id, updateUrl = false) {
+    const selected = settingTabs.some((tab) => tab.dataset.settingsTab === id) ? id : 'account';
+    settingTabs.forEach((tab) => {
+      const active = tab.dataset.settingsTab === selected;
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      document.getElementById(tab.dataset.settingsTab).hidden = !active;
     });
+    if (updateUrl) history.replaceState({}, '', `${location.pathname}${location.search}#${selected}`);
   }
-  selectSetting(location.hash || '#appearance');
-  settingLinks.forEach(link => link.onclick = () => selectSetting(link.hash));
-  document.querySelector("#theme-setting").value =
-    document.documentElement.dataset.theme;
-  document.querySelector("#theme-setting").onchange = (event) => {
-    document.documentElement.dataset.theme = event.target.value;
-    try {
-      localStorage.setItem("dedc-theme", event.target.value);
-    } catch {}
-    toast("အပြင်အဆင် သိမ်းဆည်းပြီးပါပြီ။");
+  selectSetting(location.hash.slice(1));
+  settingTabs.forEach((tab, index) => {
+    tab.onclick = () => selectSetting(tab.dataset.settingsTab, true);
+    tab.onkeydown = (event) => {
+      const next = event.key === 'ArrowRight' ? index + 1 : event.key === 'ArrowLeft' ? index - 1 : event.key === 'Home' ? 0 : event.key === 'End' ? settingTabs.length - 1 : null;
+      if (next === null) return;
+      event.preventDefault();
+      const target = settingTabs[(next + settingTabs.length) % settingTabs.length];
+      selectSetting(target.dataset.settingsTab, true);
+      target.focus();
+    };
+  });
+  document.querySelector("#password-form").onsubmit = (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const values = Object.fromEntries(new FormData(form));
+    const feedback = form.querySelector("#password-feedback");
+    if (values.new_password !== values.confirm_password) {
+      feedback.textContent = "စကားဝှက်အသစ် နှစ်ခု မတူပါ။";
+      feedback.dataset.state = "error";
+      return;
+    }
+    busy(event.submitter, async () => {
+      try {
+        await api("/account/password", { method: "POST", body: {
+          current_password: values.current_password, new_password: values.new_password,
+        } });
+        form.reset();
+        feedback.textContent = "စကားဝှက် ပြောင်းပြီးပါပြီ။ အခြားစက်များမှ အကောင့်ဝင်ထားမှုများကို ပိတ်ထားပါသည်။";
+        feedback.dataset.state = "success";
+      } catch (error) {
+        feedback.textContent = error.message;
+        feedback.dataset.state = "error";
+      }
+    });
   };
+  function editAdministrator(account) {
+    const dialog = modal(account ? "စီမံခန့်ခွဲသူ ပြင်ဆင်ရန်" : "စီမံခန့်ခွဲသူ ထည့်ရန်",
+      `<form id="administrator-form" class="field-stack"><label>အသုံးပြုသူအမည်<input name="username" required maxlength="100" value="${e(account?.username || "")}" autocomplete="off"></label>${account?.id === user.id ? "<p class=\"field-hint\">သင့်စကားဝှက်ကို သင့်အကောင့်ကဏ္ဍတွင် ပြောင်းပါ။</p>" : `<label>${account ? "စကားဝှက်အသစ် (မပြောင်းလိုပါက ဗလာထားပါ)" : "စကားဝှက်"}<input name="password" type="password" minlength="8" maxlength="1024" autocomplete="new-password" ${account ? "" : "required"}></label>`}${account ? `<label class="check-label"><input name="is_active" type="checkbox" ${account.is_active ? "checked" : ""} ${account.id === user.id ? "disabled" : ""}>အကောင့် အသုံးပြုနိုင်သည်</label>` : ""}<div class="dialog-actions"><button class="button primary" type="submit">${account ? "ပြောင်းလဲမှု သိမ်းရန်" : "အကောင့် ဖန်တီးရန်"}</button></div></form>`);
+    dialog.querySelector("#administrator-form").onsubmit = (event) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      busy(event.submitter, async () => {
+        const values = Object.fromEntries(new FormData(form));
+        values.is_active = !account || account.id === user.id ? true : form.elements.is_active.checked;
+        if (!values.password) delete values.password;
+        try {
+          await api("/administrators" + (account ? "/" + account.id : ""), {
+            method: account ? "PUT" : "POST", body: values,
+          });
+          await settings();
+          dialog.close();
+          toast("စီမံခန့်ခွဲသူ အကောင့် သိမ်းဆည်းပြီးပါပြီ။");
+        } catch (error) { errorMessage(error); }
+      });
+    };
+  }
+  document.querySelector("#add-administrator").onclick = () => editAdministrator(null);
+  document.querySelectorAll("[data-edit-admin]").forEach((button) => {
+    button.onclick = () => editAdministrator(directory.items.find((account) => account.id === Number(button.dataset.editAdmin)));
+  });
+  document.querySelectorAll("[data-delete-admin]").forEach((button) => {
+    button.onclick = () => {
+      const account = directory.items.find((item) => item.id === Number(button.dataset.deleteAdmin));
+      confirmDelete("စီမံခန့်ခွဲသူ ဖျက်ရန်", `${account.username} အကောင့်ကို ဖျက်မည်လား။ မှတ်တမ်းရှိသည့်အကောင့်ကို ဖျက်မရပါ။`, "အကောင့် ဖျက်ရန်", async () => {
+        await api("/administrators/" + account.id, { method: "DELETE" });
+        toast("စီမံခန့်ခွဲသူ အကောင့် ဖျက်ပြီးပါပြီ။");
+        await settings();
+      });
+    };
+  });
+  document.querySelectorAll('#administrators [data-pagination]').forEach((button) => {
+    button.onclick = async () => {
+      const next = new URLSearchParams(location.search);
+      next.set('page', button.dataset.pagination);
+      next.set('limit', String(pageSize));
+      history.pushState({}, '', `${location.pathname}?${next}#administrators`);
+      await settings();
+      document.querySelector('#administrators').focus({ preventScroll: true });
+      window.scrollTo({ top: 0 });
+    };
+  });
+  document.querySelector('#administrators .settings-search').onsubmit = async (event) => {
+    event.preventDefault();
+    const next = new URLSearchParams(new FormData(event.currentTarget));
+    for (const [key, value] of [...next]) if (!value) next.delete(key);
+    next.set('limit', String(pageSize));
+    history.pushState({}, '', `${location.pathname}?${next}#administrators`);
+    await settings();
+    document.querySelector('#administrators').focus({ preventScroll: true });
+  };
+  document.querySelectorAll('input[name="theme-setting"]').forEach((input) => {
+    input.checked = input.value === document.documentElement.dataset.theme;
+    input.onchange = () => applyTheme(input.value);
+  });
+  const currentTheme = document.documentElement.dataset.theme === "dark" ? "အမှောင်" : "အလင်း";
+  document.querySelector("#theme-current-label").textContent = currentTheme;
+  document.querySelector("#theme-status").textContent = `${currentTheme} အပြင်အဆင်ကို ဤဘရောက်ဇာတွင် သိမ်းဆည်းထားပါသည်။`;
 }
 
 // Error boundary wrapper for page loading

@@ -58,6 +58,22 @@ def delete_session(db: Session, token: str) -> None:
     _exec_native(db, "DELETE FROM admin_sessions WHERE token_hash = :th", {"th": token_hash(token)})
 
 
+def revoke_user_sessions(db: Session, user_id: int, keep_token: str | None = None) -> None:
+    """Remove a user's sessions from the projection and native fallback store."""
+    query = db.query(AdminSession).filter(AdminSession.user_id == user_id)
+    statement = "DELETE FROM admin_sessions WHERE user_id = :user_id"
+    params = {"user_id": user_id}
+    if keep_token is not None:
+        keep_hash = token_hash(keep_token)
+        query = query.filter(AdminSession.token_hash != keep_hash)
+        statement += " AND token_hash != :keep_hash"
+        params["keep_hash"] = keep_hash
+    query.delete(synchronize_session=False)
+    native = getattr(db, "native", None)
+    if native is not None:
+        native.execute(text(statement), params)
+
+
 def create_session(db: Session, user_id: int | None = None) -> str:
     # Clean up expired sessions in both ORM and native
     native = getattr(db, 'native', None)

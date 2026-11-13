@@ -7,10 +7,106 @@ from pathlib import Path
 from test_portal import PortalFixture
 from app.models.forms import AuditLog, FormField, Submission
 from app.portal_auth import csrf_token
+from app.portal_auth import verify_password
+from app.models.user import User
 from app.routers.web.portal import COOKIE_NAME
 
 
 class AdminApiTests(PortalFixture):
+    async def test_administrator_management_crud_pagination_and_guards(self):
+        status, _, _ = await self.request('/api/admin/administrators')
+        self.assertEqual(status, 401)
+        await self.login()
+        status, _, created = await self.admin_request(
+            '/administrators', 'POST',
+            {'username': ' second-admin ', 'password': 'second-password-123'},
+        )
+        self.assertEqual(status, 201, created)
+        self.assertEqual(created['username'], 'second-admin')
+        self.assertNotIn('password', json.dumps(created))
+        admin_id = created['id']
+
+        status, _, listing = await self.admin_request('/administrators?limit=1&page=1')
+        self.assertEqual(status, 200, listing)
+        self.assertEqual(listing['total'], 3)
+        self.assertEqual(listing['items'][0]['id'], admin_id)
+        _, _, second_page = await self.admin_request('/administrators?limit=1&page=2')
+        self.assertEqual(len(second_page['items']), 1)
+        _, _, searched = await self.admin_request('/administrators?search=second')
+        self.assertEqual([item['id'] for item in searched['items']], [admin_id])
+        status, _, detail = await self.admin_request(f'/administrators/{admin_id}')
+        self.assertEqual(status, 200, detail)
+
+        with self.sessions() as db:
+            from app.crud.admin_session import create_session
+            delegated_token = create_session(db, admin_id)
+        status, _, updated = await self.admin_request(
+            f'/administrators/{admin_id}', 'PUT',
+            {'username': 'renamed-admin', 'is_active': False},
+        )
+        self.assertEqual(status, 200, updated)
+        self.assertFalse(updated['is_active'])
+        with self.sessions() as db:
+            from app.crud.admin_session import find_session
+            self.assertIsNone(find_session(db, delegated_token))
+        status, _, _ = await self.admin_request(
+            f'/administrators/{admin_id}', 'PUT',
+            {'username': 'admin', 'is_active': True},
+        )
+        self.assertEqual(status, 409)
+        status, _, _ = await self.admin_request('/administrators/1', 'DELETE')
+        self.assertEqual(status, 409)
+        status, _, _ = await self.admin_request(f'/administrators/{admin_id}', 'DELETE')
+        self.assertEqual(status, 204)
+        status, _, _ = await self.admin_request(f'/administrators/{admin_id}')
+        self.assertEqual(status, 404)
+
+    async def test_password_change_verifies_current_password_and_revokes_other_sessions(self):
+        await self.login()
+        with self.sessions() as db:
+            account = db.query(User).filter(User.username == 'admin').one()
+            from app.crud.admin_session import create_session
+            other_token = create_session(db, account.id)
+        status, _, _ = await self.admin_request('/account/password', 'POST', {
+            'current_password': 'incorrect', 'new_password': 'new-password-123',
+        })
+        self.assertEqual(status, 400)
+        status, _, result = await self.admin_request('/account/password', 'POST', {
+            'current_password': self.password, 'new_password': 'new-password-123',
+        })
+        self.assertEqual(status, 200, result)
+        self.assertTrue(result['changed'])
+        with self.sessions() as db:
+            account = db.query(User).filter(User.username == 'admin').one()
+            self.assertTrue(verify_password('new-password-123', account.password_hash))
+            from app.crud.admin_session import find_session
+            self.assertIsNone(find_session(db, other_token))
+        status, _, _ = await self.admin_request('/session')
+        self.assertEqual(status, 200)
+
+    async def test_administrator_with_history_can_be_deactivated_but_not_deleted(self):
+        await self.login()
+        _, _, created = await self.admin_request('/administrators', 'POST', {
+            'username': 'historical-admin', 'password': 'historical-password',
+        })
+        with self.sessions() as db:
+            from app.models.forms import AuditLog
+            from app.routers.admin import delete_administrator
+            from app.admin_auth import AdminIdentity
+            from fastapi import HTTPException
+            db.add(AuditLog(actor_id=created['id'], action='auth.login', entity='user',
+                            target_id=created['id'], changes={}))
+            db.flush()
+            with self.assertRaises(HTTPException) as error:
+                delete_administrator(created['id'], AdminIdentity(1, 'admin', 1), db)
+            self.assertEqual(error.exception.status_code, 409)
+        status, _, result = await self.admin_request(
+            f'/administrators/{created["id"]}', 'PUT',
+            {'username': 'historical-admin', 'is_active': False},
+        )
+        self.assertEqual(status, 200, result)
+        self.assertFalse(result['is_active'])
+
     async def test_form_list_exposes_period_and_archive_preserves_publication(self):
         await self.login()
         _, _, form = await self.admin_request('/forms', 'POST', {'title': 'Reporting period'})
@@ -224,6 +320,13 @@ class AdminApiTests(PortalFixture):
             "/users/" + str(admin["id"]),
             "PUT",
             {"username": "admin", "role_id": admin["role_id"], "is_active": False},
+        )
+        self.assertEqual(status, 409)
+        status, _, _ = await self.admin_request(
+            "/users/" + str(admin["id"]),
+            "PUT",
+            {"username": "admin", "role_id": admin["role_id"],
+             "password": "bypass-password-123"},
         )
         self.assertEqual(status, 409)
         status, _, result = await self.admin_request(
