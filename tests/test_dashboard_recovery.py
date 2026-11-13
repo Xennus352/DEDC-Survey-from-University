@@ -588,6 +588,18 @@ class DashboardRecoveryTests(PortalFixture):
             self.assertIn(f'href="{path}"', body, path)
             self.assertIn(title, body, path)
 
+    async def test_removed_dashboard_pages_are_unavailable_and_unlinked(self):
+        await self.login()
+        for path in ("/dashboard/audit", "/dashboard/data", "/dashboard/users"):
+            status, _, body = await self.request(path)
+            self.assertEqual(status, 404, path)
+            self.assertIn("Page not found", body)
+
+        status, _, body = await self.request("/dashboard")
+        self.assertEqual(status, 200)
+        for path in ("/dashboard/audit", "/dashboard/data", "/dashboard/users"):
+            self.assertNotIn(path, body)
+
     async def test_builder_page_is_removed_and_the_api_stays_protected(self):
         status, _, _ = await self.request('/dashboard/survey-builder')
         self.assertEqual(status, 303)

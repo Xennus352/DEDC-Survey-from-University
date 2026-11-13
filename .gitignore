@@ -7,7 +7,7 @@ wheels/
 *.egg-info
 .ruff_cache
 
-/node_modules
+./node_modules
 # Virtual environments
 .venv
 

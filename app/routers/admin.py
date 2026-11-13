@@ -1367,14 +1367,6 @@ def global_search(
                 "url": f"/dashboard/forms/{version.form_id}?version={version.id}",
             }
         )
-    for account in db.query(User).filter(User.username.contains(q)).limit(5):
-        results.append(
-            {
-                "title": account.username,
-                "type": "User",
-                "url": f"/dashboard/users?search={account.username}",
-            }
-        )
     return {"items": results}
 
 

@@ -112,8 +112,7 @@
       <nav aria-label="စီမံခန့်ခွဲမှု လမ်းညွှန်">
         {% for key,label in
         [('overview','အကျဉ်းချုပ်'),('forms','စစ်တမ်းများ'),('departments','တက္ကသိုလ်များ'),('ministries','ဝန်ကြီးဌာနများ'),('reports','တက္ကသိုလ်
-        အစီရင်ခံစာများ'),('users','အသုံးပြုသူများနှင့် စစ်တမ်းကောက်သူများ'),('data','ဒေတာ
-        စီမံခန့်ခွဲမှု')] %}
+        အစီရင်ခံစာများ')] %}
         <a
           href="/dashboard{{ '' if key=='overview' else '/'+key }}"
           {% if page == key or (key == 'forms' and page in ['editor', 'preview']) %}
@@ -127,12 +126,6 @@
       <div class="sidebar-bottom">
         <nav>
           <a
-            href="/dashboard/audit"
-            {% if page == 'audit' %}
-            aria-current="page"
-            {% endif %}
-            >{{ symbol('audit') }}<span>လုပ်ဆောင်ချက် မှတ်တမ်း</span></a
-          ><a
             href="/dashboard/settings"
             {% if page == 'settings' %}
             aria-current="page"
@@ -229,7 +222,6 @@
             <div class="account-menu__panel">
               <strong>{{ username }}</strong>
               <a href="/dashboard/settings">ဆက်တင်များ</a>
-              <a href="/dashboard/users">အသုံးပြုသူများ</a>
               <form action="/portal/logout" method="post">
                 <input
                   type="hidden"
