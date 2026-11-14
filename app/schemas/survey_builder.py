@@ -45,6 +45,35 @@ class YearOutput(BaseModel):
     label: str
 
 
+class YearPeriodUpdateInput(BaseModel):
+    """Input for changing the full start/end period of an existing survey year."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start_year: int = Field(ge=1900, le=2100, description="Start year")
+    start_month: int = Field(ge=1, le=12, description="Start month (1-12)")
+    end_year: int = Field(ge=1900, le=2100, description="End year")
+    end_month: int = Field(ge=1, le=12, description="End month (1-12)")
+    status: YearStatus = Field(default=0, description="0=draft, 1=published")
+
+    @model_validator(mode="after")
+    def validate_period(self):
+        if (self.start_year, self.start_month) > (self.end_year, self.end_month):
+            raise ValueError("Start period must not be after end period")
+        return self
+
+
+class YearPeriodOutput(BaseModel):
+    """Full period of an existing survey year."""
+
+    yID: int
+    year_from: int
+    month_from: int
+    year_to: int
+    month_to: int
+    status: int
+
+
 class QuestionTitleInput(BaseModel):
     """Input for creating/updating a question title (uses `questiontitle` table)."""
     model_config = ConfigDict(extra="forbid")

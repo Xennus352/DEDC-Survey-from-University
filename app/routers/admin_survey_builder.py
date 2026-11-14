@@ -28,12 +28,15 @@ from app.schemas.survey_builder import (
     QuestionTitleOutput,
     SurveyFormVirtual,
     SurveyListParams,
+    SurveyQuestionGroupInput,
     YearQuestionGroupsOutput,
     UniQuestionInput,
     UniQuestionOutput,
     YearInput,
     YearListParams,
     YearOutput,
+    YearPeriodOutput,
+    YearPeriodUpdateInput,
     YearStatusUpdate,
 )
 
@@ -155,6 +158,29 @@ def update_year(
         year_to=year_to,
         status=year.status,
         label=label,
+    )
+
+
+@router.put("/years/{yID}/period", response_model=YearPeriodOutput)
+def update_year_period(
+    yID: int,
+    data: YearPeriodUpdateInput,
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Update an existing survey year's full start/end period and status."""
+    year = crud.update_year_period(db, yID, data)
+    if not year:
+        db.native.rollback()
+        raise HTTPException(404, "Year not found")
+    db.commit()
+    return YearPeriodOutput(
+        yID=year.yID,
+        year_from=_extract_year(year.yearFrom),
+        month_from=_extract_month(year.yearFrom),
+        year_to=_extract_year(year.yearTo),
+        month_to=_extract_month(year.yearTo),
+        status=year.status,
     )
 
 
@@ -717,6 +743,31 @@ def create_survey_form(
     except Exception:
         db.native.rollback()
         raise
+
+
+@router.post(
+    "/builder/groups/{org_type}/{year_id}",
+    response_model=QuestionGroupOutput,
+    status_code=201,
+)
+def create_year_question_group(
+    org_type: OrgType,
+    year_id: int,
+    data: SurveyQuestionGroupInput,
+    db: Session = Depends(get_db),
+    admin: AdminIdentity = Depends(require_admin),
+):
+    """Add a new question title with its questions to an existing survey year."""
+    try:
+        result = crud.create_year_question_group(db, org_type, year_id, data)
+    except Exception:
+        db.native.rollback()
+        raise
+    if result is None:
+        db.native.rollback()
+        raise HTTPException(404, "Year not found")
+    db.commit()
+    return result
 
 
 @router.get("/builder/groups/{org_type}/{year_id}", response_model=YearQuestionGroupsOutput)

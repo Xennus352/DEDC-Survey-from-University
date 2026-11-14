@@ -533,8 +533,132 @@ async function editSurveyYear(form) {
   renderSurveyGroupsList(dialog);
 }
 
+function monthOptionsHTML(selected) {
+  return SURVEY_MONTH_NAMES
+    .map((name, month) => (month ? `<option value="${month}"${month === selected ? " selected" : ""}>${name}</option>` : ""))
+    .join("");
+}
+
+async function editSurveyPeriod(form) {
+  if (!form) return;
+  const dialog = modal("စစ်တမ်းကာလ ပြင်ဆင်ရန်", "");
+  dialog.dataset.variant = "survey-wizard";
+  renderSurveyPeriodEditor(dialog, form, false);
+}
+
+function renderSurveyPeriodEditor(dialog, form, returnToGroups = false) {
+  document.querySelector("#dialog-title").textContent = "စစ်တမ်းကာလ ပြင်ဆင်ရန်";
+  const content = dialog.querySelector("#dialog-content");
+  const now = new Date();
+  const startYear = form.year_from || now.getFullYear();
+  const startMonth = form.month_from || now.getMonth() + 1;
+  const endYear = form.year_to || startYear;
+  const endMonth = form.month_to || startMonth;
+  const published = form.year_status === 1 || form.is_active;
+  content.innerHTML = `
+    <form id="survey-period-form" class="survey-wizard" novalidate>
+      <div class="survey-wizard-summary">
+        <span>အမျိုးအစား <strong>${e(surveyOrgLabel(form.org_type))}</strong></span>
+        <span>လက်ရှိ ကာလ <strong>${e(formatYearRange(form) || "မသတ်မှတ်ထားပါ")}</strong></span>
+      </div>
+      <p class="dialog-intro">စစ်တမ်း စတင်ရက် နှင့် ပြီးဆုံးရကို ပြင်ဆင်ပါ။ ဤကာလအတွင်း တင်သွင်းမှုများကို အစီရင်ခံစာများတွင် အသုံးပြုပါမည်။</p>
+      <div class="wizard-range">
+        <div class="wizard-range__end">
+          <span class="wizard-range__tag">စတင်ရက်</span>
+          <div class="wizard-range__fields">
+            <label class="wizard-field"><span>လ</span><select name="start-month">${monthOptionsHTML(startMonth)}</select></label>
+            <label class="wizard-field"><span>ခုနှစ်</span><input type="number" name="start-year" min="1900" max="2100" value="${startYear}" inputmode="numeric" required></label>
+          </div>
+        </div>
+        <span class="wizard-range__arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="wizard-range__end">
+          <span class="wizard-range__tag">ပြီးဆုံးရက်</span>
+          <div class="wizard-range__fields">
+            <label class="wizard-field"><span>လ</span><select name="end-month">${monthOptionsHTML(endMonth)}</select></label>
+            <label class="wizard-field"><span>ခုနှစ်</span><input type="number" name="end-year" min="1900" max="2100" value="${endYear}" inputmode="numeric" required></label>
+          </div>
+        </div>
+      </div>
+      <label class="wizard-switch">
+        <span class="sf-toggle"><input type="checkbox" name="publish" ${published ? "checked" : ""}><span class="sf-toggle__track" aria-hidden="true"></span></span>
+        <span class="wizard-switch__text"><strong>ဖြေဆိုသူများ ဝင်ရောက်နိုင်ရန် ထုတ်ဝေထားမည်</strong></span>
+      </label>
+      <div class="survey-wizard-actions">
+        <button class="button" type="button" data-back>${returnToGroups ? "နောက်သို့" : "မလုပ်တော့ပါ"}</button>
+        <div class="right"><button class="button primary" type="submit">ကာလ သိမ်းဆည်းရန်</button></div>
+      </div>
+    </form>`;
+  const editForm = content.querySelector("#survey-period-form");
+  const startYearInput = content.querySelector('[name="start-year"]');
+  const startMonthInput = content.querySelector('[name="start-month"]');
+  const endYearInput = content.querySelector('[name="end-year"]');
+  const endMonthInput = content.querySelector('[name="end-month"]');
+  const publish = content.querySelector('input[name="publish"]');
+  [startYearInput, startMonthInput, endYearInput, endMonthInput].forEach((field) => {
+    field.oninput = () => field.setCustomValidity("");
+    field.onchange = () => field.setCustomValidity("");
+  });
+  content.querySelector("[data-back]").onclick = () => {
+    if (returnToGroups) renderSurveyGroupsList(dialog);
+    else dialog.close();
+  };
+  editForm.onsubmit = (event) => {
+    event.preventDefault();
+    if (!editForm.reportValidity()) return;
+    const sy = Number(startYearInput.value);
+    const sm = Number(startMonthInput.value);
+    const ey = Number(endYearInput.value);
+    const em = Number(endMonthInput.value);
+    if (!Number.isInteger(sy) || sy < 1900 || sy > 2100) {
+      startYearInput.setCustomValidity("စတင်မှုခုနှစ်ကို 1900 မှ 2100 အတွင်း ထည့်ပါ။");
+      startYearInput.reportValidity();
+      return;
+    }
+    if (!Number.isInteger(ey) || ey < 1900 || ey > 2100) {
+      endYearInput.setCustomValidity("ပြီးဆုံးခုနှစ်ကို 1900 မှ 2100 အတွင်း ထည့်ပါ။");
+      endYearInput.reportValidity();
+      return;
+    }
+    if (sy * 100 + sm > ey * 100 + em) {
+      endYearInput.setCustomValidity("စတင်မှု ရက်စွဲသည် ပြီးဆုံး ရက်စွဲထက် နောက်မကျရပါ။");
+      endYearInput.reportValidity();
+      return;
+    }
+    const status = publish.checked ? 1 : 0;
+    const submitButton = event.submitter || editForm.querySelector('button[type="submit"]');
+    busy(submitButton, async () => {
+      try {
+        await api(`/survey/years/${form.year_id}/period`, {
+          method: "PUT",
+          body: {
+            start_year: sy,
+            start_month: sm,
+            end_year: ey,
+            end_month: em,
+            status,
+          },
+        });
+        form.year_from = sy;
+        form.month_from = sm;
+        form.year_to = ey;
+        form.month_to = em;
+        form.year_status = status;
+        form.is_active = status === 1;
+        form.year_label = formatYearRange(form);
+        toast("စစ်တမ်းကာလကို သိမ်းဆည်းပြီးပါပြီ။");
+        if (location.pathname === "/dashboard/forms") await formsPage();
+        if (returnToGroups) renderSurveyGroupsList(dialog);
+        else dialog.close();
+      } catch (error) {
+        errorMessage(error);
+      }
+    });
+  };
+}
+
 function renderSurveyGroupsList(dialog) {
   const { form, groups } = surveyEdit;
+  dialog.dataset.variant = "survey-edit";
   document.querySelector("#dialog-title").textContent = "မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်";
   const content = dialog.querySelector("#dialog-content");
   const rows = groups
@@ -561,11 +685,21 @@ function renderSurveyGroupsList(dialog) {
         <span>အမျိုးအစား <strong>${e(surveyOrgLabel(form.org_type))}</strong></span>
         <span>ခုနှစ် <strong>${e(formatYearRange(form))}</strong></span>
       </div>
+      <div class="survey-edit-toolbar">
+        <button class="button small" type="button" data-add-group>${SURVEY_ICONS.plus}<span>ခေါင်းစဉ် အသစ် ထည့်ရန်</span></button>
+        <button class="button small" type="button" data-edit-period-inline>${SURVEY_ICONS.period}<span>ကာလ ပြင်ဆင်ရန်</span></button>
+      </div>
       ${groups.length
         ? `<p class="dialog-intro">မေးခွန်း ခေါင်းစဉ်ကို ရွေးပါ။</p>
       <ul class="survey-edit-list">${rows}</ul>`
-        : `<p class="dialog-intro">ဤစစ်တမ်းတွင် မေးခွန်း များ မရှိသေးပါ။</p>`}
+        : `<p class="dialog-intro">ဤစစ်တမ်းတွင် မေးခွန်း များ မရှိသေးပါ။ ခေါင်းစဉ် အသစ် ထည့်ရန် နှိပ်ပါ။</p>`}
     </div>`;
+  content.querySelector("[data-add-group]").onclick = () =>
+    renderSurveyGroupCreator(dialog);
+  content.querySelector("[data-edit-period-inline]").onclick = () => {
+    dialog.dataset.variant = "survey-wizard";
+    renderSurveyPeriodEditor(dialog, form, true);
+  };
   content.querySelectorAll("[data-edit-group]").forEach(
     (button) =>
       (button.onclick = () => {
@@ -590,6 +724,95 @@ function surveyEditQuestionTemplate(index, question) {
     <textarea data-question required maxlength="10000" rows="2" placeholder="မေးခွန်း စာသား ထည့်ပါ" aria-label="${QUESTION_LABEL} ${index + 1}">${value}</textarea>
     <button class="icon-button" type="button" data-remove-question aria-label="မေးခွန်း ဖယ်ရှားရန်" title="မေးခွန်း ဖယ်ရှားရန်">${closeIcon}</button>
   </div>`;
+}
+
+function renderSurveyGroupCreator(dialog) {
+  const { form } = surveyEdit;
+  document.querySelector("#dialog-title").textContent = "ခေါင်းစဉ် အသစ် ထည့်ရန်";
+  const content = dialog.querySelector("#dialog-content");
+  content.innerHTML = `
+    <form id="survey-group-create-form" class="survey-wizard" novalidate>
+      <div class="survey-wizard-summary">
+        <span>အမျိုးအစား <strong>${e(surveyOrgLabel(form.org_type))}</strong></span>
+        <span>ခုနှစ် <strong>${e(formatYearRange(form))}</strong></span>
+      </div>
+      <p class="dialog-intro">မေးခွန်း ခေါင်းစဉ် အသစ်နှင့် ယင်းအောက်ရှိ မေးခွန်းများကို ထည့်ပါ။</p>
+      <label class="wizard-field"><span>ခေါင်းစဉ်</span><input type="text" data-new-title required maxlength="10000" placeholder="ဥပမာ ဒီဂျစ်တယ် အခြေခံအဆောက်အအုံ"></label>
+      <label class="wizard-field"><span>ဖော်ပြချက် (မလိုအပ်ပါ)</span><input type="text" data-new-description maxlength="10000" placeholder="ခေါင်းစဉ်အတွက် အတိုချုပ် ရှင်းလင်းချက်"></label>
+      <div class="survey-group-questions" data-new-questions>${surveyEditQuestionTemplate(0, null)}</div>
+      <div class="survey-group-actions">
+        <button class="button small" type="button" data-add-question>+ မေးခွန်း ထပ်ထည့်ရန်</button>
+      </div>
+      <div class="survey-wizard-actions">
+        <button class="button" type="button" data-back>နောက်သို့</button>
+        <div class="right"><button class="button primary" type="submit">ခေါင်းစဉ် ထည့်ရန်</button></div>
+      </div>
+    </form>`;
+  const createForm = content.querySelector("#survey-group-create-form");
+  const list = content.querySelector("[data-new-questions]");
+  const titleInput = content.querySelector("[data-new-title]");
+  const descriptionInput = content.querySelector("[data-new-description]");
+  titleInput.oninput = () => titleInput.setCustomValidity("");
+  const renumberQuestions = () => {
+    list.querySelectorAll("[data-edit-question]").forEach((row, index) => {
+      row.querySelector(".survey-question-num").textContent = index + 1;
+      row.querySelector("[data-question]").setAttribute("aria-label", `${QUESTION_LABEL} ${index + 1}`);
+    });
+  };
+  const bindRow = (row) => {
+    const field = row.querySelector("[data-question]");
+    field.oninput = () => field.setCustomValidity("");
+    row.querySelector("[data-remove-question]").onclick = () => {
+      if (list.querySelectorAll("[data-edit-question]").length === 1) {
+        toast("အနည်းဆုံး မေးခွန်း တစ်ခု လိုအပ်ပါသည်။");
+        return;
+      }
+      row.remove();
+      renumberQuestions();
+    };
+  };
+  list.querySelectorAll("[data-edit-question]").forEach(bindRow);
+  content.querySelector("[data-add-question]").onclick = () => {
+    list.insertAdjacentHTML("beforeend", surveyEditQuestionTemplate(list.children.length, null));
+    const row = list.lastElementChild;
+    bindRow(row);
+    renumberQuestions();
+    row.querySelector("[data-question]").focus();
+  };
+  content.querySelector("[data-back]").onclick = () => renderSurveyGroupsList(dialog);
+  createForm.onsubmit = (event) => {
+    event.preventDefault();
+    if (!createForm.reportValidity()) return;
+    const questions = [...list.querySelectorAll("[data-edit-question]")]
+      .map((row) => row.querySelector("[data-question]").value.trim())
+      .filter(Boolean);
+    if (!questions.length) {
+      errorMessage(new Error("အနည်းဆုံး မေးခွန်း တစ်ခု ထည့်ပါ။"));
+      return;
+    }
+    const submitButton = event.submitter || createForm.querySelector('button[type="submit"]');
+    busy(submitButton, async () => {
+      try {
+        const created = await api(
+          `/survey/builder/groups/${form.org_type}/${form.year_id}`,
+          {
+            method: "POST",
+            body: {
+              title: titleInput.value.trim(),
+              description: descriptionInput.value.trim() || null,
+              questions,
+            },
+          },
+        );
+        surveyEdit.groups.push(created);
+        toast("မေးခွန်း ခေါင်းစဉ် အသစ်ကို ထည့်ပြီးပါပြီ။");
+        renderSurveyGroupsList(dialog);
+        if (location.pathname === "/dashboard/forms") await formsPage();
+      } catch (error) {
+        errorMessage(error);
+      }
+    });
+  };
 }
 
 function renderSurveyGroupEditor(dialog, group) {
@@ -858,6 +1081,7 @@ const SURVEY_ICONS = {
   period: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>',
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg>',
   eye: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
   edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>',
   building: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M8 7h2M8 11h2M8 15h2M16 9h2a2 2 0 0 1 2 2v10"/></svg>',
@@ -1044,6 +1268,7 @@ function surveyRow(form) {
     <td class="sf-cell-actions">
       <div class="sf-actions">
         <button type="button" class="icon-button" data-detail-year="${form.year_id}" data-org-type="${e(form.org_type)}" title="အသေးစိတ် ကြည့်ရန်" aria-label="${e(yearRange)} — အသေးစိတ် ကြည့်ရန်">${SURVEY_ICONS.eye}</button>
+        <button type="button" class="icon-button" data-edit-period="${form.year_id}" data-org-type="${e(form.org_type)}" title="စစ်တမ်းကာလ ပြင်ဆင်ရန်" aria-label="${e(yearRange)} — စစ်တမ်းကာလ ပြင်ဆင်ရန်">${SURVEY_ICONS.period}</button>
         <button type="button" class="icon-button" data-edit-year="${form.year_id}" data-org-type="${e(form.org_type)}" title="မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်" aria-label="${e(yearRange)} — မေးခွန်း ခေါင်းစဉ်များ ပြင်ဆင်ရန်">${SURVEY_ICONS.edit}</button>
         <button type="button" class="icon-button danger" data-delete-year="${form.year_id}" data-org-type="${e(form.org_type)}" title="ဖျက်ရန်" aria-label="${e(yearRange)} — ဖျက်ရန်">${SURVEY_ICONS.trash}</button>
       </div>
@@ -1277,6 +1502,13 @@ async function formsPage() {
       (button.onclick = () =>
         editSurveyYear(
           findSurvey(button.dataset.editYear, button.dataset.orgType),
+        )),
+  );
+  document.querySelectorAll("[data-edit-period]").forEach(
+    (button) =>
+      (button.onclick = () =>
+        editSurveyPeriod(
+          findSurvey(button.dataset.editPeriod, button.dataset.orgType),
         )),
   );
   document.querySelectorAll("[data-detail-year]").forEach(

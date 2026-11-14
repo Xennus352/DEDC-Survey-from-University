@@ -13,6 +13,7 @@ from app.models.native_forms import Year, QuestionTitle, UniQuestion, MinistryQu
 from app.schemas.survey_builder import (
     YearInput,
     YearOutput,
+    YearPeriodUpdateInput,
     QuestionTitleInput,
     QuestionTitleOutput,
     UniQuestionInput,
@@ -24,6 +25,7 @@ from app.schemas.survey_builder import (
     QuestionGroupOutput,
     QuestionGroupQuestionOutput,
     QuestionGroupUpdateInput,
+    SurveyQuestionGroupInput,
     YearQuestionGroupsOutput,
     SurveyListParams,
     YearListParams,
@@ -115,6 +117,23 @@ def update_year(db: Session, yID: int, data: YearInput) -> Any:
         .where(uni_schema.year.c.yID == yID)
         .values(yearFrom=date(data.year_to, data.year_from, 1), yearTo=date(data.year_to, data.year_from, 1), status=data.status)
     )
+    return conn.execute(select(uni_schema.year).where(uni_schema.year.c.yID == yID)).first()
+
+
+def update_year_period(db: Session, yID: int, data: YearPeriodUpdateInput) -> Any:
+    """Update a year's full start/end period and published status."""
+    conn = _get_native_connection(db)
+    result = conn.execute(
+        uni_schema.year.update()
+        .where(uni_schema.year.c.yID == yID)
+        .values(
+            yearFrom=date(data.start_year, data.start_month, 1),
+            yearTo=date(data.end_year, data.end_month, 1),
+            status=data.status,
+        )
+    )
+    if result.rowcount == 0:
+        return None
     return conn.execute(select(uni_schema.year).where(uni_schema.year.c.yID == yID)).first()
 
 
@@ -1125,6 +1144,45 @@ def get_year_question_groups(db: Session, org_type: OrgType, year_id: int) -> Ye
             groups.append(group)
         group.questions.append(QuestionGroupQuestionOutput(id=question_id, detail=question_detail))
     return YearQuestionGroupsOutput(year_id=year_id, org_type=org_type, groups=groups)
+
+
+def create_year_question_group(
+    db: Session,
+    org_type: OrgType,
+    year_id: int,
+    data: SurveyQuestionGroupInput,
+) -> QuestionGroupOutput | None:
+    """Create a new question title with its questions inside an existing year."""
+    conn = _get_native_connection(db)
+    year = conn.execute(
+        select(uni_schema.year.c.yID).where(uni_schema.year.c.yID == year_id)
+    ).first()
+    if not year:
+        return None
+
+    title_result = conn.execute(
+        uni_schema.questiontitle.insert().values(
+            qTDetail=data.title,
+            description=data.description,
+        )
+    )
+    qTID = title_result.inserted_primary_key[0]
+
+    question_table, _id_column, detail_column = _org_question_columns(org_type)
+    questions_output: list[QuestionGroupQuestionOutput] = []
+    for question in data.questions:
+        question_result = conn.execute(
+            question_table.insert().values(
+                **{detail_column.key: question, "qTID": qTID, "yID": year_id}
+            )
+        )
+        questions_output.append(
+            QuestionGroupQuestionOutput(
+                id=question_result.inserted_primary_key[0],
+                detail=question,
+            )
+        )
+    return QuestionGroupOutput(qTID=qTID, qTDetail=data.title, questions=questions_output)
 
 
 def update_year_question_group(

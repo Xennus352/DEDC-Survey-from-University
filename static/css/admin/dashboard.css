@@ -457,6 +457,14 @@ dialog[data-variant='survey-edit'] { width: min(640px,calc(100vw - 32px)); }
 .survey-edit-group__body small { color: var(--muted); font-size: 11.5px; }
 .survey-edit-group__actions { display: flex; gap: 8px; flex-shrink: 0; }
 .survey-edit-group.is-untitled { border-style: dashed; opacity: .8; }
+.survey-edit-toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.survey-edit-toolbar .button { display: inline-flex; align-items: center; gap: 6px; }
+.survey-edit-toolbar svg { width: 14px; height: 14px; }
+@media (max-width: 520px) {
+  .survey-edit-group { flex-wrap: wrap; align-items: flex-start; }
+  .survey-edit-group__actions { width: 100%; justify-content: flex-end; }
+  .survey-edit-toolbar .button { flex: 1 1 auto; justify-content: center; }
+}
 
 /* ===== Survey board (/dashboard/forms) =====
    Stat rail + segmented filter + table of survey periods. */

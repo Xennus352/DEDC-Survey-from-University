@@ -22,20 +22,12 @@
     </script>
     <link
       rel="stylesheet"
-<<<<<<< HEAD
-      href="/static/css/admin/dashboard.css?v=20261114-reports1"
-=======
-      href="/static/css/admin/dashboard.css?v=20261113-ministry2"
->>>>>>> 96b634f (updating admin site)
+      href="/static/css/admin/dashboard.css?v=20261114-forms1"
     />
     <script defer src="/static/js/admin-session.js"></script>
     <script
       type="module"
-<<<<<<< HEAD
-      src="/static/js/admin/workspace.js?v=20261114-reports1"
-=======
-      src="/static/js/admin/workspace.js?v=20261113-ministry2"
->>>>>>> 96b634f (updating admin site)
+      src="/static/js/admin/workspace.js?v=20261114-forms1"
     ></script>
   </head>
   <body
@@ -118,21 +110,6 @@
       >
       <div class="workspace-label">စစ်တမ်း အလုပ်ခွင်</div>
       <nav aria-label="စီမံခန့်ခွဲမှု လမ်းညွှန်">
-<<<<<<< HEAD
-        {% for key,label in
-        [('overview','အကျဉ်းချုပ်'),('forms','စစ်တမ်းများ'),('departments','တက္ကသိုလ်များ'),('ministries','ဝန်ကြီးဌာနများ'),('reports','တက္ကသိုလ်
-        အစီရင်ခံစာများ')] %}
-        <a
-          href="/dashboard{{ '' if key=='overview' else '/'+key }}"
-          {% if page == key or (key == 'forms' and page in ['editor', 'preview']) or (key == 'reports' and page in ['university_answers', 'question_answer_rates']) %}
-          aria-current="page"
-          {% endif %}
-          title="{{ label }}"
-          >{{ symbol(key) }}<span>{{ label }}</span></a
-        >
-        {% endfor %}
-        <a href="/dashboard/reports/ministry" {% if page in ['ministry_reports','ministry_answers','ministry_question_answer_rates'] %}aria-current="page"{% endif %} title="ဝန်ကြီးဌာန အစီရင်ခံစာများ">{{ symbol('reports') }}<span>ဝန်ကြီးဌာန အစီရင်ခံစာများ</span></a>
-=======
         {% for key,label in [('overview','အကျဉ်းချုပ်'),('forms','စစ်တမ်းများ'),('departments','တက္ကသိုလ်များ'),('ministries','ဝန်ကြီးဌာနများ'),('reports','တက္ကသိုလ်
         အစီရင်ခံစာများ')]
         %}
@@ -158,7 +135,6 @@
           title="ဝန်ကြီးဌာန အစီရင်ခံစာများ"
           >{{ symbol('reports') }}<span>ဝန်ကြီးဌာန အစီရင်ခံစာများ</span></a
         >
->>>>>>> 96b634f (updating admin site)
       </nav>
       <div class="sidebar-bottom">
         <nav>
@@ -236,12 +212,8 @@
             #}
             {#
           >
-<<<<<<< HEAD
-            #} {# {{ symbol('search') }} #} {#
-=======
             {#
             {{ symbol('search') }} #} {#
->>>>>>> 96b634f (updating admin site)
           </button>
           #}
           <time class="topbar-date" id="topbar-date"></time>

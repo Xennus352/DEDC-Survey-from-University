@@ -1500,6 +1500,153 @@ class DashboardRecoveryTests(PortalFixture):
             ).first()
             self.assertIsNone(remaining)
 
+    async def test_question_group_can_be_added_to_an_existing_year(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'university',
+            'start_year': 2038,
+            'start_month': 4,
+            'end_year': 2038,
+            'end_month': 4,
+            'groups': [{'title': 'Existing heading', 'questions': ['Existing question']}],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+
+        status, _, group = await self.admin_request(
+            f'/survey/builder/groups/university/{year_id}', 'POST',
+            {
+                'title': 'Added heading',
+                'description': 'Added description',
+                'questions': ['Added first', 'Added second'],
+            },
+        )
+        self.assertEqual(status, 201, group)
+        self.assertGreater(group['qTID'], 0)
+        self.assertEqual(group['qTDetail'], 'Added heading')
+        self.assertEqual(
+            [question['detail'] for question in group['questions']],
+            ['Added first', 'Added second'],
+        )
+        self.assertTrue(all(question['id'] > 0 for question in group['questions']))
+
+        status, _, groups = await self.admin_request(
+            f'/survey/builder/groups/university/{year_id}'
+        )
+        self.assertEqual(status, 200, groups)
+        self.assertEqual(
+            [item['qTDetail'] for item in groups['groups']],
+            ['Existing heading', 'Added heading'],
+        )
+        self.assertEqual(
+            [question['detail'] for question in groups['groups'][1]['questions']],
+            ['Added first', 'Added second'],
+        )
+
+        with self.sessions() as db:
+            title_row = db.native.execute(
+                select(
+                    metadata.tables['questiontitle'].c.qTDetail,
+                    metadata.tables['questiontitle'].c.description,
+                ).where(metadata.tables['questiontitle'].c.qTID == group['qTID'])
+            ).one()
+            self.assertEqual(title_row.qTDetail, 'Added heading')
+            self.assertEqual(title_row.description, 'Added description')
+
+        status, _, _ = await self.admin_request(
+            '/survey/builder/groups/university/999999', 'POST',
+            {'title': 'Orphan', 'questions': ['Nobody']},
+        )
+        self.assertEqual(status, 404)
+
+        status, _, _ = await self.admin_request(
+            f'/survey/builder/groups/university/{year_id}', 'POST',
+            {'title': 'Empty', 'questions': []},
+        )
+        self.assertEqual(status, 422)
+
+        status, _, ministry_group = await self.admin_request(
+            f'/survey/builder/groups/ministry/{year_id}', 'POST',
+            {'title': 'Ministry heading', 'questions': ['Ministry question']},
+        )
+        self.assertEqual(status, 201, ministry_group)
+        self.assertEqual(ministry_group['qTDetail'], 'Ministry heading')
+
+    async def test_year_period_update_changes_full_range_and_status(self):
+        await self.login()
+        status, _, created = await self.admin_request('/survey/forms/create', 'POST', {
+            'org_type': 'university',
+            'start_year': 2037,
+            'start_month': 2,
+            'end_year': 2037,
+            'end_month': 2,
+            'status': 1,
+            'groups': [{'title': 'Period heading', 'questions': ['Period question']}],
+        })
+        self.assertEqual(status, 201, created)
+        year_id = created['year_id']
+
+        status, _, updated = await self.admin_request(
+            f'/survey/years/{year_id}/period', 'PUT',
+            {
+                'start_year': 2037,
+                'start_month': 5,
+                'end_year': 2038,
+                'end_month': 8,
+                'status': 0,
+            },
+        )
+        self.assertEqual(status, 200, updated)
+        self.assertEqual(updated['yID'], year_id)
+        self.assertEqual(updated['year_from'], 2037)
+        self.assertEqual(updated['month_from'], 5)
+        self.assertEqual(updated['year_to'], 2038)
+        self.assertEqual(updated['month_to'], 8)
+        self.assertEqual(updated['status'], 0)
+
+        with self.sessions() as db:
+            year_table = metadata.tables['year']
+            row = db.native.execute(
+                select(year_table).where(year_table.c.yID == year_id)
+            ).one()
+            self.assertEqual(row.yearFrom, date(2037, 5, 1))
+            self.assertEqual(row.yearTo, date(2038, 8, 1))
+            self.assertEqual(row.status, 0)
+
+        status, _, forms = await self.admin_request('/survey/forms?limit=100')
+        self.assertEqual(status, 200, forms)
+        form = next(item for item in forms if item['year_id'] == year_id)
+        self.assertEqual(form['year_from'], 2037)
+        self.assertEqual(form['month_from'], 5)
+        self.assertEqual(form['year_to'], 2038)
+        self.assertEqual(form['month_to'], 8)
+        self.assertEqual(form['year_status'], 0)
+        self.assertFalse(form['is_active'])
+
+        status, _, _ = await self.admin_request(
+            f'/survey/years/{year_id}/period', 'PUT',
+            {
+                'start_year': 2039,
+                'start_month': 1,
+                'end_year': 2038,
+                'end_month': 12,
+                'status': 1,
+            },
+        )
+        self.assertEqual(status, 422)
+
+        status, _, _ = await self.admin_request(
+            '/survey/years/999999/period', 'PUT',
+            {
+                'start_year': 2037,
+                'start_month': 1,
+                'end_year': 2037,
+                'end_month': 2,
+                'status': 1,
+            },
+        )
+        self.assertEqual(status, 404)
+
     async def test_shared_question_title_scopes_rename_and_delete_to_its_year(self):
         await self.login()
         status, _, holder = await self.admin_request('/survey/forms/create', 'POST', {

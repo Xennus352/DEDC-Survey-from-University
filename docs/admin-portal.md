@@ -209,3 +209,10 @@ The table's publish switch publishes an active draft or restores a previously
 published survey. Switching publication off archives the survey. The archive
 switch can also archive or restore it directly. Archiving preserves published
 versions and responses; restoring a draft does not publish it automatically.
+
+On the native survey board at `/dashboard/forms`, each survey row also has a
+calendar action that changes its start/end period and publication state in place.
+The pencil action lists the survey's question titles. From there an administrator
+can edit an existing title and its questions, add more questions under it, or use
+**ခေါင်းစဉ် အသစ် ထည့်ရန်** to create a new question title with its own questions in
+the same survey year.
