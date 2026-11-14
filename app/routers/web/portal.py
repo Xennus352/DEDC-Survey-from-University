@@ -42,16 +42,26 @@ def render(request: Request, template: str, token: str, status_code=200, **conte
     return response
 
 
-def set_session_cookie(response, token: str, authenticated=False):
+REMEMBER_ME_SECONDS = 30 * 24 * 60 * 60
+SESSION_SECONDS = 8 * 60 * 60
+
+
+def set_session_cookie(response, token: str, authenticated=False, remember=False):
     # Clear the old portal-only cookie when upgrading to the separate dashboard.
     response.delete_cookie(
         COOKIE_NAME, path="/portal", httponly=True, samesite="strict",
         secure=settings.PORTAL_COOKIE_SECURE,
     )
+    if not authenticated:
+        max_age = 15 * 60
+    elif remember:
+        max_age = REMEMBER_ME_SECONDS
+    else:
+        max_age = SESSION_SECONDS
     response.set_cookie(
         COOKIE_NAME, token, path="/", httponly=True, samesite="strict",
         secure=settings.PORTAL_COOKIE_SECURE,
-        max_age=8 * 60 * 60 if authenticated else 15 * 60,
+        max_age=max_age,
     )
 
 
@@ -126,6 +136,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
         return response
     form = await read_form(request, db)
     token = request.cookies[COOKIE_NAME]
+    remember = form.get("remember") == "1"
     admin = await run_in_threadpool(
         user.authenticate_admin, db, form.get("username", ""), form.get("password", ""),
     )
@@ -137,14 +148,17 @@ async def login(request: Request, db: Session = Depends(get_db)):
             request, "login", token, status_code=401,
             error="The username or password is incorrect.",
             username=form.get("username", ""),
+            remember=remember,
         )
     admin_id = admin.id
     from app.services.forms import audit
     audit(db,admin_id,'auth.login','user',admin_id)
     admin_session.delete_session(db, token)
-    token = admin_session.create_session(db, admin_id)
+    token = admin_session.create_session(
+        db, admin_id, lifetime=REMEMBER_ME_SECONDS if remember else None,
+    )
     response = redirect_to(request, "dashboard")
-    set_session_cookie(response, token, authenticated=True)
+    set_session_cookie(response, token, authenticated=True, remember=remember)
     return response
 
 

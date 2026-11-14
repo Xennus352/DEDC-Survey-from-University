@@ -37,7 +37,8 @@ portal request. Sessions are stored in private files referenced by metadata in e
 
 Passwords use salted PBKDF2-SHA256 with 600,000 iterations. Session cookies contain
 random tokens; only hashes are stored in private session records. Anonymous forms expire
-after 15 minutes, and authenticated sessions after eight hours. Login and logout
+after 15 minutes, and authenticated sessions after eight hours, or thirty days when the
+login form's "remember me" option is checked. Login and logout
 require a session-bound CSRF token. Portal pages use `Cache-Control: no-store`.
 The cookie uses path `/` so the session is available to both `/portal` and
 `/dashboard`.

@@ -58,6 +58,7 @@ def delete_session(db: Session, token: str) -> None:
     _exec_native(db, "DELETE FROM admin_sessions WHERE token_hash = :th", {"th": token_hash(token)})
 
 
+<<<<<<< HEAD
 def revoke_user_sessions(db: Session, user_id: int, keep_token: str | None = None) -> None:
     """Remove a user's sessions from the projection and native fallback store."""
     query = db.query(AdminSession).filter(AdminSession.user_id == user_id)
@@ -75,6 +76,9 @@ def revoke_user_sessions(db: Session, user_id: int, keep_token: str | None = Non
 
 
 def create_session(db: Session, user_id: int | None = None) -> str:
+=======
+def create_session(db: Session, user_id: int | None = None, lifetime: int | None = None) -> str:
+>>>>>>> b0f1fd6 (Redesign admin login as centred two-column card)
     # Clean up expired sessions in both ORM and native
     native = getattr(db, 'native', None)
     now = int(time.time())
@@ -89,7 +93,8 @@ def create_session(db: Session, user_id: int | None = None) -> str:
         db.query(AdminSession).filter(AdminSession.expires_at <= now).delete()
 
     token = secrets.token_urlsafe(32)
-    lifetime = 8 * 60 * 60 if user_id is not None else 15 * 60
+    if lifetime is None:
+        lifetime = 8 * 60 * 60 if user_id is not None else 15 * 60
     expires_at = now + lifetime
     th = token_hash(token)
 

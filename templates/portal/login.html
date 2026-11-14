@@ -15,40 +15,48 @@
     <link rel="stylesheet" href="/static/css/admin/workspace.css" />
     <link
       rel="stylesheet"
-      href="/static/css/admin/login.css?v=20261114-login2"
+      href="/static/css/admin/login.css?v=20261114-card"
     />
-    <script defer src="/static/js/portal.js?v=20261114-login2"></script>
+    <script defer src="/static/js/portal.js?v=20261114-card"></script>
   </head>
   <body class="survey-public login-page">
     <a class="skip" href="#main-content">အကြောင်းအရာသို့ ကျော်သွားရန်</a>
-    <div class="auth-shell">
-      <aside class="auth-visual" aria-hidden="true">
-        <span class="auth-visual__grid"></span>
-        <img
-          class="auth-visual__mark"
-          src="/static/img/logo.png"
-          alt=""
-          width="260"
-          height="260"
-        />
-      </aside>
 
-      <main class="auth-panel" id="main-content" tabindex="-1">
-        <div class="auth-card">
-          <div class="auth-brand">
-            <img
-              src="/static/img/logo.png"
-              width="34"
-              height="34"
-              alt=""
-            />
-            <span class="auth-brand__name">DEDC</span>
+    <main class="auth-page" id="main-content" tabindex="-1">
+      <div class="auth-card">
+        <section class="auth-info" aria-labelledby="auth-welcome">
+          <div class="auth-info__brand">
+            <span class="auth-info__logo">
+              <img
+                src="/static/img/logo.png"
+                width="34"
+                height="34"
+                alt="သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန တံဆိပ်"
+              />
+            </span>
+            <span class="auth-info__name">
+              <strong>DEDC</strong>
+              <span>စစ်တမ်း စီမံခန့်ခွဲမှု</span>
+            </span>
           </div>
 
-          <h1 class="auth-title">ပြန်လည်ကြိုဆိုပါတယ်။</h1>
-          <p class="auth-subtitle">
-            သင့် DEDC စီမံခန့်ခွဲမှု စနစ်ထဲသို့ ဝင်ရောက်ပါ။
-          </p>
+          <div class="auth-info__body">
+            <p class="auth-info__eyebrow">စီမံခန့်ခွဲသူ စနစ်</p>
+            <h1 id="auth-welcome">ပြန်လည်ကြိုဆိုပါတယ်။</h1>
+            <p>
+              သင့်စစ်တမ်းများ၊ တုံ့ပြန်ချက်များနှင့် အစီရင်ခံစာများကို
+              တစ်နေရာတည်းတွင် စီမံခန့်ခွဲနိုင်သည့် နေရာ။
+            </p>
+          </div>
+
+          <p class="auth-info__foot">သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန</p>
+        </section>
+
+        <section class="auth-form-panel" aria-labelledby="auth-signin">
+          <div class="auth-form-head">
+            <h2 id="auth-signin">အကောင့်ဝင်ရန်</h2>
+            <p>အသုံးပြုသူအမည်နှင့် စကားဝှက် ထည့်သွင်းပါ။</p>
+          </div>
 
           {% if error %}
           <p class="auth-alert" role="alert">{{ error }}</p>
@@ -62,9 +70,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
 
             <div class="auth-field">
-              <label class="auth-label" for="portal-username"
-                >အသုံးပြုသူအမည်</label
-              >
+              <label class="auth-label" for="portal-username">အသုံးပြုသူအမည်</label>
               <div class="auth-control">
                 <svg
                   class="auth-icon"
@@ -164,6 +170,17 @@
               </div>
             </div>
 
+            <label class="auth-check" for="remember-me">
+              <input
+                id="remember-me"
+                name="remember"
+                type="checkbox"
+                value="1"
+                {% if remember | default(false) %}checked{% endif %}
+              />
+              <span>ကျွန်ုပ်ကို မှတ်ထားပါ</span>
+            </label>
+
             <button class="auth-submit" type="submit">
               <span>စနစ်ထဲသို့ ဝင်ရောက်ရန်</span>
               <svg
@@ -183,16 +200,14 @@
 
           <p class="auth-switch">
             စစ်တမ်းဖြေဆိုသူလား။
-            <a href="/survey/login"
-              >စစ်တမ်းများသို့ ဝင်ရောက်ရန် <span aria-hidden="true">↗</span></a
-            >
+            <a href="/survey/login">စစ်တမ်းများသို့ ဝင်ရောက်ရန် <span aria-hidden="true">↗</span></a>
           </p>
-        </div>
+        </section>
+      </div>
 
-        <p class="auth-copyright">
-          © 2026 DEDC · သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန
-        </p>
-      </main>
-    </div>
+      <p class="auth-page__foot">
+        © 2026 DEDC · သိပ္ပံနှင့်နည်းပညာဝန်ကြီးဌာန
+      </p>
+    </main>
   </body>
 </html>
