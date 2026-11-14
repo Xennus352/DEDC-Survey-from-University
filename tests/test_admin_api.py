@@ -311,7 +311,6 @@ class AdminApiTests(PortalFixture):
         status, _, forms = await self.admin_request("/forms")
         self.assertEqual(forms["total"], 0)
 
-<<<<<<< HEAD
     async def test_user_update_cannot_remove_own_admin_access_or_leak_password(self):
         await self.login()
         _, _, data = await self.admin_request("/users")
@@ -338,8 +337,6 @@ class AdminApiTests(PortalFixture):
         _, _, result = await self.admin_request("/users")
         self.assertNotIn("password", json.dumps(result))
 
-=======
->>>>>>> 96b634f (updating admin site)
     async def test_retired_api_is_unavailable(self):
         for path in ("/surveys/", "/questions/survey/1", "/responses/"):
             status, _, _ = await self.request(path)

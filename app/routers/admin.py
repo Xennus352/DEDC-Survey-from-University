@@ -36,15 +36,11 @@ from app.models.user import User, UserRole
 from app.portal_auth import hash_password, verify_password
 from app.schemas.forms import CreateForm, DraftInput, SubmissionInput, PreviewInput, QuestionInput
 from app.services import (
-<<<<<<< HEAD
-    forms, ministry_reports, reports, university_reports, workbook,
-=======
     forms,
     ministry_reports,
     reports,
     university_reports,
     workbook,
->>>>>>> 96b634f (updating admin site)
 )
 from app.services.presentation import audit_action, label
 from pydantic import BaseModel, Field, ValidationError
@@ -1047,7 +1043,6 @@ class UserInput(BaseModel):
     ministry_id: int | None = None
 
 
-<<<<<<< HEAD
 class AdministratorInput(BaseModel):
     username: str = Field(min_length=1, max_length=100)
     is_active: bool = True
@@ -1367,10 +1362,6 @@ def audit_logs(
             .limit(limit)
         ],
     }
-
-
-=======
->>>>>>> 96b634f (updating admin site)
 @router.post("/forms/{form_id}/submit", status_code=201)
 def submit_form(
     form_id: int,
